@@ -199,14 +199,19 @@ export default function ReturnsPage() {
 
     for (const item of items) {
       const checks = postChecks[item.id] || {};
-      await supabase.from("rental_items")
+      const { error: updateRentalItemError } = await supabase.from("rental_items")
         .update({ post_checklist: checks, inspected_by: inspector || null, inspected_at: new Date().toISOString() })
         .eq("id", item.id).eq("user_id", user.id);
+      
+      if (updateRentalItemError) {
+        toast.error("Failed to update rental item checklist: " + updateRentalItemError.message);
+        throw updateRentalItemError;
+      }
 
       const d = damage[item.id];
       if (d?.hasDamage) {
         const photos = (d.photosCsv || "").split(",").map(s => s.trim()).filter(Boolean);
-        await supabase.from("damage_reports").insert({
+        const { error: insertDamageError } = await supabase.from("damage_reports").insert({
           user_id: user.id,
           rental_id: rental.id,
           gear_id: item.gear_id,
@@ -216,11 +221,24 @@ export default function ReturnsPage() {
           estimate_cost: d.estimate || null,
           notes: d.notes || null
         });
+        if (insertDamageError) {
+          toast.error("Failed to insert damage report: " + insertDamageError.message);
+          throw insertDamageError;
+        }
+
         const newStatus = d.severity === "Critical" ? "Quarantined" : "In Maintenance";
-        await supabase.from("gear_items").update({ status: newStatus }).eq("id", item.gear_id).eq("user_id", user.id);
+        const { error: updateGearStatusError } = await supabase.from("gear_items").update({ status: newStatus }).eq("id", item.gear_id).eq("user_id", user.id);
+        if (updateGearStatusError) {
+          toast.error("Failed to update gear status after damage: " + updateGearStatusError.message);
+          throw updateGearStatusError;
+        }
         extraCharges += Number(d.estimate || 0);
       } else {
-        await supabase.from("gear_items").update({ status: "Available" }).eq("id", item.gear_id).eq("user_id", user.id);
+        const { error: updateGearStatusError } = await supabase.from("gear_items").update({ status: "Available" }).eq("id", item.gear_id).eq("user_id", user.id);
+        if (updateGearStatusError) {
+          toast.error("Failed to update gear status to available: " + updateGearStatusError.message);
+          throw updateGearStatusError;
+        }
       }
     }
 
@@ -230,18 +248,27 @@ export default function ReturnsPage() {
 
     // Update rental as returned and adjust total_cost
     const newTotal = Number(rental.total_cost || 0) + lateCharges + extraCharges;
-    await supabase
+    const { error: updateRentalError } = await supabase
       .from("rentals")
       .update({ status: "returned", updated_at: new Date().toISOString(), total_cost: newTotal })
       .eq("id", rental.id).eq("user_id", user.id);
 
+    if (updateRentalError) {
+      toast.error("Failed to update rental status: " + updateRentalError.message);
+      throw updateRentalError;
+    }
+
     // Increase customer balance by late/damage charges
     if (lateCharges + extraCharges > 0) {
-      await supabase.rpc("increment_customer_balance", {
+      const { error: incrementBalanceError } = await supabase.rpc("increment_customer_balance", {
         p_user_id: user.id,
         p_customer_id: rental.customer_id,
         p_amount: lateCharges + extraCharges,
       });
+      if (incrementBalanceError) {
+        toast.error("Failed to update customer balance: " + incrementBalanceError.message);
+        throw incrementBalanceError;
+      }
     }
 
     toast.success(`Return finalized. Late: $${lateCharges.toFixed(2)}, Damage: $${extraCharges.toFixed(2)}.`);

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import MaintenanceTicketForm from "@/components/MaintenanceTicketForm";
 import { format } from "date-fns";
 import Link from "next/link";
+import RoleGuard from "@/components/RoleGuard";
 
 type Ticket = {
   id: string;
@@ -318,183 +319,185 @@ export default function MaintenancePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Maintenance</h1>
-        <div className="flex items-center gap-2">
-          <Link href="/gear" className="text-sm underline">Go to Gear</Link>
-          <Button variant="outline" onClick={runTriggerScan}>Run Service Trigger Scan</Button>
+    <RoleGuard allow={["owner", "manager", "technician", "staff"]} title="Maintenance">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Maintenance</h1>
+          <div className="flex items-center gap-2">
+            <Link href="/gear" className="text-sm underline">Go to Gear</Link>
+            <Button variant="outline" onClick={runTriggerScan}>Run Service Trigger Scan</Button>
+          </div>
         </div>
-      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Create Maintenance Ticket</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MaintenanceTicketForm onCreated={loadData} />
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Create Maintenance Ticket</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MaintenanceTicketForm onCreated={loadData} />
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Tickets</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Gear</TableHead>
-                <TableHead>Received</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Technician</TableHead>
-                <TableHead>Estimate</TableHead>
-                <TableHead>Cost</TableHead>
-                <TableHead>Charge?</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tickets.map(t => (
-                <TableRow key={t.id}>
-                  <TableCell>
-                    {t.gear_items?.internal_id ? (
-                      <Link href={`/gear/${t.gear_id}/edit`} className="underline font-mono">
-                        {t.gear_items.internal_id}
-                      </Link>
-                    ) : (
-                      <span className="text-muted-foreground">N/A</span>
-                    )}
-                    <div className="text-xs text-muted-foreground">
-                      {t.problem_description || "No description"}
-                    </div>
-                  </TableCell>
-                  <TableCell>{t.date_received ? format(new Date(t.date_received), "PPP") : "-"}</TableCell>
-                  <TableCell>
-                    <Badge variant={STATUS_VARIANT(t.status)}>{t.status}</Badge>
-                    <div className="mt-1">
-                      <select
-                        className="border rounded px-2 py-1 text-xs"
-                        value={statusUpdate[t.id] ?? t.status}
-                        onChange={(e) => setStatusUpdate(prev => ({ ...prev, [t.id]: e.target.value }))}
-                      >
-                        {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm">{t.assigned_technician || "-"}</TableCell>
-                  <TableCell className="text-sm">
-                    {t.estimated_completion_date ? format(new Date(t.estimated_completion_date), "PPP") : "-"}
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      className="w-28"
-                      value={(costUpdate[t.id] ?? (t.cost ?? 0)).toString()}
-                      onChange={(e) => setCostUpdate(prev => ({ ...prev, [t.id]: Number(e.target.value) }))}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <label className="flex items-center gap-2 text-xs">
-                      <input
-                        type="checkbox"
-                        checked={chargeFlag[t.id] ?? !!t.charge_customer}
-                        onChange={(e) => setChargeFlag(prev => ({ ...prev, [t.id]: e.target.checked }))}
-                      />
-                      Charge customer
-                    </label>
-                  </TableCell>
-                  <TableCell className="space-x-2">
-                    <Button size="sm" variant="outline" onClick={() => updateTicket(t)}>Save</Button>
-                  </TableCell>
+        <Card>
+          <CardHeader>
+            <CardTitle>Tickets</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Gear</TableHead>
+                  <TableHead>Received</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Technician</TableHead>
+                  <TableHead>Estimate</TableHead>
+                  <TableHead>Cost</TableHead>
+                  <TableHead>Charge?</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-              {tickets.length === 0 && (
-                <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground">No tickets.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {tickets.map(t => (
+                  <TableRow key={t.id}>
+                    <TableCell>
+                      {t.gear_items?.internal_id ? (
+                        <Link href={`/gear/${t.gear_id}/edit`} className="underline font-mono">
+                          {t.gear_items.internal_id}
+                        </Link>
+                      ) : (
+                        <span className="text-muted-foreground">N/A</span>
+                      )}
+                      <div className="text-xs text-muted-foreground">
+                        {t.problem_description || "No description"}
+                      </div>
+                    </TableCell>
+                    <TableCell>{t.date_received ? format(new Date(t.date_received), "PPP") : "-"}</TableCell>
+                    <TableCell>
+                      <Badge variant={STATUS_VARIANT(t.status)}>{t.status}</Badge>
+                      <div className="mt-1">
+                        <select
+                          className="border rounded px-2 py-1 text-xs"
+                          value={statusUpdate[t.id] ?? t.status}
+                          onChange={(e) => setStatusUpdate(prev => ({ ...prev, [t.id]: e.target.value }))}
+                        >
+                          {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">{t.assigned_technician || "-"}</TableCell>
+                    <TableCell className="text-sm">
+                      {t.estimated_completion_date ? format(new Date(t.estimated_completion_date), "PPP") : "-"}
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        className="w-28"
+                        value={(costUpdate[t.id] ?? (t.cost ?? 0)).toString()}
+                        onChange={(e) => setCostUpdate(prev => ({ ...prev, [t.id]: Number(e.target.value) }))}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <label className="flex items-center gap-2 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={chargeFlag[t.id] ?? !!t.charge_customer}
+                          onChange={(e) => setChargeFlag(prev => ({ ...prev, [t.id]: e.target.checked }))}
+                        />
+                        Charge customer
+                      </label>
+                    </TableCell>
+                    <TableCell className="space-x-2">
+                      <Button size="sm" variant="outline" onClick={() => updateTicket(t)}>Save</Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {tickets.length === 0 && (
+                  <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground">No tickets.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Work Performed & Parts Used</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {tickets.map(t => (
-            <div key={t.id} className="border rounded p-3">
-              <div className="flex items-center justify-between">
-                <div className="font-medium">Ticket: {t.id.slice(0, 8)} • {t.gear_items?.internal_id || "N/A"}</div>
-                <Badge variant={STATUS_VARIANT(t.status)}>{t.status}</Badge>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-2 mt-3">
-                <div>
-                  <Label>Add Work Log</Label>
-                  <div className="flex gap-2 mt-1">
-                    <Input id={`wl-${t.id}`} placeholder='e.g. "Overhauled 1st stage"' />
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        const el = document.getElementById(`wl-${t.id}`) as HTMLInputElement | null;
-                        addWorkLog(t.id, el?.value || "");
-                      }}
-                    >
-                      Add
-                    </Button>
+        <Card>
+          <CardHeader>
+            <CardTitle>Work Performed & Parts Used</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {tickets.map(t => (
+              <div key={t.id} className="border rounded p-3">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium">Ticket: {t.id.slice(0, 8)} • {t.gear_items?.internal_id || "N/A"}</div>
+                  <Badge variant={STATUS_VARIANT(t.status)}>{t.status}</Badge>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-2 mt-3">
+                  <div>
+                    <Label>Add Work Log</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input id={`wl-${t.id}`} placeholder='e.g. "Overhauled 1st stage"' />
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const el = document.getElementById(`wl-${t.id}`) as HTMLInputElement | null;
+                          addWorkLog(t.id, el?.value || "");
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      {(workLogs[t.id] || []).map(wl => (
+                        <div key={wl.id} className="text-xs">
+                          <span className="text-muted-foreground">{format(new Date(wl.created_at), "PPp")} • </span>
+                          {wl.description}
+                        </div>
+                      ))}
+                      {(workLogs[t.id] || []).length === 0 && (
+                        <div className="text-xs text-muted-foreground">No work logs.</div>
+                      )}
+                    </div>
                   </div>
-                  <div className="mt-2 space-y-1">
-                    {(workLogs[t.id] || []).map(wl => (
-                      <div key={wl.id} className="text-xs">
-                        <span className="text-muted-foreground">{format(new Date(wl.created_at), "PPp")} • </span>
-                        {wl.description}
-                      </div>
-                    ))}
-                    {(workLogs[t.id] || []).length === 0 && (
-                      <div className="text-xs text-muted-foreground">No work logs.</div>
-                    )}
+                  <div>
+                    <Label>Add Part</Label>
+                    <div className="grid grid-cols-[2fr,1fr,1fr,auto] gap-2 mt-1">
+                      <Input id={`ptn-${t.id}`} placeholder="Part name" />
+                      <Input id={`ptq-${t.id}`} type="number" placeholder="Qty" />
+                      <Input id={`ptc-${t.id}`} type="number" step="0.01" placeholder="Unit cost" />
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const ptn = document.getElementById(`ptn-${t.id}`) as HTMLInputElement | null;
+                          const ptq = document.getElementById(`ptq-${t.id}`) as HTMLInputElement | null;
+                          const ptc = document.getElementById(`ptc-${t.id}`) as HTMLInputElement | null;
+                          const qty = Number(ptq?.value || 0);
+                          const cost = ptc?.value ? Number(ptc.value) : undefined;
+                          addPart(t.id, ptn?.value || "", qty, cost);
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      {(parts[t.id] || []).map(pt => (
+                        <div key={pt.id} className="text-xs">
+                          {pt.part_name} × {pt.quantity} {pt.unit_cost != null ? `@ $${Number(pt.unit_cost).toFixed(2)}` : ""}
+                        </div>
+                      ))}
+                      {(parts[t.id] || []).length === 0 && (
+                        <div className="text-xs text-muted-foreground">No parts added.</div>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <Label>Add Part</Label>
-                  <div className="grid grid-cols-[2fr,1fr,1fr,auto] gap-2 mt-1">
-                    <Input id={`ptn-${t.id}`} placeholder="Part name" />
-                    <Input id={`ptq-${t.id}`} type="number" placeholder="Qty" />
-                    <Input id={`ptc-${t.id}`} type="number" step="0.01" placeholder="Unit cost" />
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        const ptn = document.getElementById(`ptn-${t.id}`) as HTMLInputElement | null;
-                        const ptq = document.getElementById(`ptq-${t.id}`) as HTMLInputElement | null;
-                        const ptc = document.getElementById(`ptc-${t.id}`) as HTMLInputElement | null;
-                        const qty = Number(ptq?.value || 0);
-                        const cost = ptc?.value ? Number(ptc.value) : undefined;
-                        addPart(t.id, ptn?.value || "", qty, cost);
-                      }}
-                    >
-                      Add
-                    </Button>
-                  </div>
-                  <div className="mt-2 space-y-1">
-                    {(parts[t.id] || []).map(pt => (
-                      <div key={pt.id} className="text-xs">
-                        {pt.part_name} × {pt.quantity} {pt.unit_cost != null ? `@ $${Number(pt.unit_cost).toFixed(2)}` : ""}
-                      </div>
-                    ))}
-                    {(parts[t.id] || []).length === 0 && (
-                      <div className="text-xs text-muted-foreground">No parts added.</div>
-                    )}
-                  </div>
-                </div>
               </div>
-            </div>
-          ))}
-          {tickets.length === 0 && (
-            <div className="text-sm text-muted-foreground">No maintenance records yet.</div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+            ))}
+            {tickets.length === 0 && (
+              <div className="text-sm text-muted-foreground">No maintenance records yet.</div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </RoleGuard>
   );
 }

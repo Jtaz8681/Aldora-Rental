@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import ServiceScheduleCalendar from "@/components/ServiceScheduleCalendar";
 
 type Gear = { id: string; internal_id: string; category: string; date_added: string | null; purchase_date: string | null; rental_price: number | null };
 type RentalItem = { gear_id: string; rentals: { start_at: string; expected_end_at: string; status: string } | null };
@@ -112,14 +113,46 @@ export default function ReportsPage() {
   }
 
   const utilization = (gear || [])
-    .map(g => ({
-      gear: g,
-      daysRented: rentalDaysByGear[g.id] || 0,
-      revenueApprox: (rentalDaysByGear[g.id] || 0) * Number(g.rental_price || 0),
-      maintenanceCost: costByGear[g.id] || 0,
-      profitability: ((rentalDaysByGear[g.id] || 0) * Number(g.rental_price || 0)) - (costByGear[g.id] || 0),
-    }))
+    .map(g => {
+      const daysRented = rentalDaysByGear[g.id] || 0;
+      const revenueApprox = daysRented * Number(g.rental_price || 0);
+      const maintenanceCost = costByGear[g.id] || 0;
+      const profitability = revenueApprox - maintenanceCost;
+
+      // NEW: profitability per month owned
+      const anchorStr = g.purchase_date || g.date_added || null;
+      let monthsOwned = 0;
+      if (anchorStr) {
+        const anchor = new Date(anchorStr);
+        const now = new Date();
+        monthsOwned = Math.max(1, (now.getFullYear() - anchor.getFullYear()) * 12 + (now.getMonth() - anchor.getMonth()));
+      }
+      const profitPerMonth = monthsOwned > 0 ? profitability / monthsOwned : 0;
+
+      return {
+        gear: g,
+        daysRented,
+        revenueApprox,
+        maintenanceCost,
+        profitability,
+        profitPerMonth,
+      };
+    })
     .sort((a, b) => b.daysRented - a.daysRented);
+
+  // NEW: Maintenance cost by category
+  const gearCategoryById: Record<string, string> = {};
+  for (const g of gear) gearCategoryById[g.id] = g.category;
+  const costByCategory: Record<string, number> = {};
+  for (const t of tickets) {
+    if (t.gear_id && t.cost != null) {
+      const cat = gearCategoryById[t.gear_id] || "Unknown";
+      costByCategory[cat] = (costByCategory[cat] || 0) + Number(t.cost || 0);
+    }
+  }
+  const costCategoryRows = Object.entries(costByCategory)
+    .map(([category, total]) => ({ category, total }))
+    .sort((a, b) => b.total - a.total);
 
   const damageSummary = (damages || []).map(d => ({
     gear_id: d.gear_id,
@@ -145,6 +178,7 @@ export default function ReportsPage() {
                 <TableHead>Revenue (approx)</TableHead>
                 <TableHead>Maintenance Cost</TableHead>
                 <TableHead>Profitability</TableHead>
+                <TableHead>Profit / mo</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -157,10 +191,13 @@ export default function ReportsPage() {
                   <TableCell className={u.profitability >= 0 ? "text-green-600" : "text-destructive"}>
                     ${u.profitability.toFixed(2)}
                   </TableCell>
+                  <TableCell className={u.profitPerMonth >= 0 ? "text-green-600" : "text-destructive"}>
+                    ${u.profitPerMonth.toFixed(2)}
+                  </TableCell>
                 </TableRow>
               ))}
               {utilization.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground">No data.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground">No data.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -226,33 +263,38 @@ export default function ReportsPage() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Service Schedule Projection (Next Due)</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Maintenance Cost by Category</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Gear</TableHead>
                 <TableHead>Category</TableHead>
-                <TableHead>Next Due</TableHead>
-                <TableHead>Days Away</TableHead>
+                <TableHead>Total Cost</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {serviceDueSoon.map((s, idx) => (
-                <TableRow key={idx}>
-                  <TableCell className="font-mono">{s.gear.internal_id}</TableCell>
-                  <TableCell>{s.gear.category}</TableCell>
-                  <TableCell>{format(new Date(s.nextDue), "PPP")}</TableCell>
-                  <TableCell>{s.daysAway}</TableCell>
+              {costCategoryRows.map((row) => (
+                <TableRow key={row.category}>
+                  <TableCell>{row.category}</TableCell>
+                  <TableCell>${row.total.toFixed(2)}</TableCell>
                 </TableRow>
               ))}
-              {serviceDueSoon.length === 0 && (
-                <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground">No projected services.</TableCell></TableRow>
+              {costCategoryRows.length === 0 && (
+                <TableRow><TableCell colSpan={2} className="text-center text-sm text-muted-foreground">No maintenance costs yet.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      <ServiceScheduleCalendar
+        projections={serviceDueSoon.map((s: any) => ({
+          gear: { id: s.gear.id, internal_id: s.gear.internal_id, category: s.gear.category },
+          nextDue: new Date(s.nextDue),
+          daysAway: s.daysAway,
+        }))}
+      />
+
     </div>
   );
 }

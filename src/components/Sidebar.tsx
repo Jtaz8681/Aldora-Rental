@@ -59,6 +59,7 @@ export default function Sidebar() {
     { href: "/rentals/new", icon: PlusCircle, label: "New Rental" },
     { href: "/rentals", icon: ArrowLeftRight, label: "All Rentals" },
     { href: "/returns", icon: ArrowLeftRight, label: "Process Returns" },
+    { href: "/maintenance", icon: Wrench, label: "Maintenance" }
   ];
 
   return (

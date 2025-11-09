@@ -101,6 +101,23 @@ export default function ReportDamageDialog({
     setPhotoUrls([]);
     onOpenChange(false);
     onReported?.();
+
+    // NEW: Create maintenance ticket automatically for this damage event
+    const problem = [watch("damage_type") || null, watch("notes") || null].filter(Boolean).join(" - ") || "Damage reported";
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from("maintenance_tickets").insert({
+        user_id: user.id,
+        gear_id: gearId,
+        rental_id: rentalId,
+        damage_report_id: null, // report id not captured here; leaving null is fine
+        problem_description: problem,
+        status: "pending",
+        cost: watch("estimate_cost") ?? null,
+        charge_customer: false,
+        date_received: new Date().toISOString(),
+      });
+    }
   };
 
   return (

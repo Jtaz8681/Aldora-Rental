@@ -220,6 +220,22 @@ export default function ReturnsPage() {
           throw insertDamageError;
         }
 
+        // NEW: Auto-create maintenance ticket for this damage event
+        if (!insertDamageError) {
+          const problem = [d.type, d.notes].filter(Boolean).join(" - ") || "Damage reported";
+          await supabase.from("maintenance_tickets").insert({
+            user_id: user.id,
+            gear_id: item.gear_id,
+            rental_id: rental.id,
+            damage_report_id: null, // damage report id is unknown here due to batch insert; left null
+            problem_description: problem,
+            status: "pending",
+            cost: d.estimate ?? null,
+            charge_customer: false,
+            date_received: new Date().toISOString(),
+          });
+        }
+
         const newStatus = d.severity === "Critical" ? "Quarantined" : "In Maintenance";
         const { error: updateGearStatusError } = await supabase.from("gear_items").update({ status: newStatus }).eq("id", item.gear_id).eq("user_id", user.id);
         if (updateGearStatusError) {

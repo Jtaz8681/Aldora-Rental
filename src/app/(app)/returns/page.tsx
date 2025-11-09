@@ -10,8 +10,9 @@ import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
 import { format } from "date-fns";
-import { useRouter } from "next/navigation"; // Import useRouter
-import PostRentalChecklist from "@/components/PostRentalChecklist"; // Import the new component
+import { useRouter } from "next/navigation";
+import PostRentalChecklist from "@/components/PostRentalChecklist";
+import DamageReportForm from "@/components/DamageReportForm"; // Import the new component
 
 type Rental = { 
   id: string; 
@@ -30,7 +31,7 @@ type DamageEntry = { hasDamage: boolean; type?: string; severity?: string; photo
 type DamageMap = Record<string, DamageEntry>;
 
 export default function ReturnsPage() {
-  const router = useRouter(); // Initialize useRouter
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [rental, setRental] = useState<Rental | null>(null);
   const [items, setItems] = useState<(RentalItem & { gear: Gear })[]>([]);
@@ -91,9 +92,15 @@ export default function ReturnsPage() {
 
     const defaults: Record<string, Record<string, boolean>> = {};
     enriched.forEach(ri => {
-      defaults[ri.id] = ri.post_checklist || {}; // Initialize with empty object if no post_checklist
+      defaults[ri.id] = ri.post_checklist || {};
     });
     setPostChecks(defaults);
+
+    const damageDefaults: DamageMap = {};
+    enriched.forEach(ri => {
+      damageDefaults[ri.id] = { hasDamage: false }; // Initialize damage state
+    });
+    setDamage(damageDefaults);
   };
 
   const handleSearch = async () => {
@@ -262,10 +269,9 @@ export default function ReturnsPage() {
     setItems([]);
     setPostChecks({});
     setDamage({});
-    setQuery(""); // Clear search query
-    setActiveRentals(prev => prev.filter(r => r.id !== rental.id)); // Remove from active list
+    setQuery("");
+    setActiveRentals(prev => prev.filter(r => r.id !== rental.id));
     
-    // Redirect to rentals page and refresh to show updated status
     router.push("/rentals");
     router.refresh();
   };
@@ -317,40 +323,10 @@ export default function ReturnsPage() {
                     onChecklistChange={(newChecks) => setPostChecks(prev => ({ ...prev, [item.id]: newChecks }))}
                   />
 
-                  <div className="border-t pt-2">
-                    <label className="flex items-center gap-2 text-sm">
-                      <Checkbox checked={dmg.hasDamage} onCheckedChange={(v) => setDamage(prev => ({ ...prev, [item.id]: { ...prev[item.id], hasDamage: !!v } }))} />
-                      Damage Found
-                    </label>
-                    {dmg.hasDamage && (
-                      <div className="grid sm:grid-cols-2 gap-2 mt-2">
-                        <div>
-                          <Label>Type</Label>
-                          <Input value={dmg.type || ""} onChange={(e) => setDamage(prev => ({ ...prev, [item.id]: { ...prev[item.id], type: e.target.value } }))} />
-                        </div>
-                        <div>
-                          <Label>Severity</Label>
-                          <select className="border rounded px-2 py-2 w-full" value={dmg.severity || "Functional"} onChange={(e) => setDamage(prev => ({ ...prev, [item.id]: { ...prev[item.id], severity: e.target.value } }))}>
-                            <option>Cosmetic</option>
-                            <option>Functional</option>
-                            <option>Critical</option>
-                          </select>
-                        </div>
-                        <div className="sm:col-span-2">
-                          <Label>Photo URLs (comma-separated)</Label>
-                          <Input value={dmg.photosCsv || ""} onChange={(e) => setDamage(prev => ({ ...prev, [item.id]: { ...prev[item.id], photosCsv: e.target.value } }))} placeholder="https://..." />
-                        </div>
-                        <div className="sm:col-span-2">
-                          <Label>Notes</Label>
-                          <Input value={dmg.notes || ""} onChange={(e) => setDamage(prev => ({ ...prev, [item.id]: { ...prev[item.id], notes: e.target.value } }))} />
-                        </div>
-                        <div>
-                          <Label>Estimated Repair Cost</Label>
-                          <Input type="number" step="0.01" value={dmg.estimate ?? 0} onChange={(e) => setDamage(prev => ({ ...prev, [item.id]: { ...prev[item.id], estimate: Number(e.target.value) } }))} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <DamageReportForm
+                    damage={dmg}
+                    onDamageChange={(newDamage) => setDamage(prev => ({ ...prev, [item.id]: newDamage }))}
+                  />
                 </div>
               );
             })}

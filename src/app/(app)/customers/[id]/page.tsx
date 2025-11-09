@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import RecordPaymentDialog from "@/components/RecordPaymentDialog";
+import Link from "next/link";
 
 export default function CustomerDetailPage() {
   const params = useParams();
@@ -50,6 +51,7 @@ export default function CustomerDetailPage() {
               <TableHead>Expected End</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Total</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -59,10 +61,13 @@ export default function CustomerDetailPage() {
                 <TableCell>{new Date(r.expected_end_at).toLocaleString()}</TableCell>
                 <TableCell>{r.status}</TableCell>
                 <TableCell>${Number(r.total_cost || 0).toFixed(2)}</TableCell>
+                <TableCell>
+                  <Link className="underline text-sm" href={`/rentals/${r.id}`}>View</Link>
+                </TableCell>
               </TableRow>
             ))}
             {rentals.length === 0 && (
-              <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground">No rental history.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground">No rental history.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>

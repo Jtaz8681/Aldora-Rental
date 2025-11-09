@@ -54,7 +54,11 @@ export default function CustomersPage() {
           <TableBody>
             {customers.map(c => (
               <TableRow key={c.id}>
-                <TableCell>{c.name}</TableCell>
+                <TableCell>
+                  <Link href={`/customers/${c.id}`} className="underline">
+                    {c.name}
+                  </Link>
+                </TableCell>
                 <TableCell>{c.phone || "-"}</TableCell>
                 <TableCell>{c.email || "-"}</TableCell>
                 <TableCell>{c.rentals[0]?.count || 0}</TableCell>

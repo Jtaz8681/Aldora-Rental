@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import supabase from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import Link from "next/link";

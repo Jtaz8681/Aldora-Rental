@@ -18,6 +18,7 @@ export default function ReturnsPage() {
   const [items, setItems] = useState<(RentalItem & { gear: Gear })[]>([]);
   const [postChecks, setPostChecks] = useState<Record<string, Record<string, boolean>>>({}); // rentalItemId -> checks
   const [damage, setDamage] = useState<Record<string, { hasDamage: boolean; type?: string; severity?: string; photosCsv?: string; notes?: string; estimate?: number }>>({});
+  const [inspector, setInspector] = useState<string>("");
 
   const loadRentalByInternalId = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -77,7 +78,9 @@ export default function ReturnsPage() {
 
     for (const item of items) {
       const checks = postChecks[item.id] || {};
-      await supabase.from("rental_items").update({ post_checklist: checks }).eq("id", item.id).eq("user_id", user.id);
+      await supabase.from("rental_items")
+        .update({ post_checklist: checks, inspected_by: inspector || null, inspected_at: new Date().toISOString() })
+        .eq("id", item.id).eq("user_id", user.id);
 
       const d = damage[item.id];
       if (d?.hasDamage) {
@@ -136,6 +139,10 @@ export default function ReturnsPage() {
         </div>
         <div className="flex items-end">
           <Button onClick={loadRentalByInternalId}>Find</Button>
+        </div>
+        <div className="sm:col-span-2">
+          <Label>Inspector Name</Label>
+          <Input value={inspector} onChange={(e) => setInspector(e.target.value)} placeholder="Your name" />
         </div>
       </div>
 

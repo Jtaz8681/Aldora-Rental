@@ -19,6 +19,7 @@ type GearItem = {
   size: string | null;
   status: string;
   rental_price: number;
+  manual_url?: string | null;
 };
 
 export default function GearPage() {
@@ -31,7 +32,7 @@ export default function GearPage() {
       if (!user) return;
       const { data, error } = await supabase
         .from("gear_items")
-        .select("id, internal_id, friendly_name, category, sub_type, brand, model, size, status, rental_price")
+        .select("id, internal_id, friendly_name, category, sub_type, brand, model, size, status, rental_price, manual_url")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -75,6 +76,7 @@ export default function GearPage() {
               <TableHead>Size</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Price</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -87,10 +89,18 @@ export default function GearPage() {
                 <TableCell>{g.size || "-"}</TableCell>
                 <TableCell><Badge variant="secondary">{g.status}</Badge></TableCell>
                 <TableCell>${Number(g.rental_price || 0).toFixed(2)}</TableCell>
+                <TableCell className="space-x-2">
+                  {g.manual_url ? (
+                    <a href={g.manual_url} target="_blank" rel="noopener noreferrer" className="text-sm underline">Manual</a>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">No manual</span>
+                  )}
+                  <Link href={`/gear/new`} className="text-sm underline">Edit</Link>
+                </TableCell>
               </TableRow>
             ))}
             {filtered.length === 0 && (
-              <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground">No gear found.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground">No gear found.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>

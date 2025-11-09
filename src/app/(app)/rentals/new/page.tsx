@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import SignaturePad from "@/components/SignaturePad";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import PickList from "@/components/PickList";
 
 type Customer = { id: string; name: string; };
 type Gear = { id: string; internal_id: string; category: string; rental_price: number; status: string; };
@@ -183,7 +184,19 @@ export default function NewRentalPage() {
 
       <div className="flex items-center justify-between">
         <p className="text-sm">Total: <span className="font-semibold">${total.toFixed(2)}</span> ({days} day{days > 1 ? "s" : ""})</p>
-        <Button onClick={submitRental}>Finalize & Check Out</Button>
+        <div className="flex gap-2">
+          <PickList
+            customerName={customers.find(c => c.id === customerId)?.name || ""}
+            startAt={startAt}
+            endAt={endAt}
+            items={selectedGearIds.map(id => {
+              const gItem = gear.find(x => x.id === id);
+              return { internal_id: gItem?.internal_id || "", category: gItem?.category || "", price: Number(gItem?.rental_price || 0) };
+            })}
+            total={total}
+          />
+          <Button onClick={submitRental}>Finalize & Check Out</Button>
+        </div>
       </div>
     </div>
   );

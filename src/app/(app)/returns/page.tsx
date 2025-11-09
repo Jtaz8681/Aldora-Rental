@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client"; // Changed from default to named import
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -113,6 +113,7 @@ export default function ReturnsPage() {
     if (extraCharges > 0) {
       await supabase.rpc("increment_customer_balance", { p_user_id: user.id, p_customer_id: rental.customer_id, p_amount: extraCharges })
         .catch(async () => {
+          // Fallback if function not present: direct update
           const { data: cust } = await supabase.from("customers").select("balance_due").eq("user_id", user.id).eq("id", rental.customer_id).single();
           const current = Number(cust?.balance_due || 0);
           await supabase.from("customers").update({ balance_due: current + extraCharges }).eq("user_id", user.id).eq("id", rental.customer_id);
@@ -166,7 +167,7 @@ export default function ReturnsPage() {
                       Regulator OK
                     </label>
                     <label className="flex items-center gap-2 text-sm">
-                      <Checkbox checked={!!checks.bcd_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev, [item.id]: { ...prev[item.id], bcd_ok: !!v } }))} />
+                      <Checkbox checked={!!checks.bcd_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev[item.id], bcd_ok: !!v } }))} />
                       BCD OK
                     </label>
                     <label className="flex items-center gap-2 text-sm">

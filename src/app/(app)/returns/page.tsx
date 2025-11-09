@@ -188,6 +188,16 @@ export default function ReturnsPage() {
     const expected = new Date(rental.expected_end_at);
     const lateDays = Math.max(Math.ceil((now.getTime() - expected.getTime()) / (1000 * 60 * 60 * 24)), 0);
 
+    // Fetch settings for late fee per day
+    const { data: settings } = await supabase
+      .from("service_settings")
+      .select("late_fee_per_day")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+
+    const lateFeePerDay = Number(settings?.late_fee_per_day ?? 0);
+
     let extraCharges = 0;
 
     for (const item of items) {
@@ -257,9 +267,8 @@ export default function ReturnsPage() {
       }
     }
 
-    // Calculate late charges based on per-day item prices
-    const perDaySum = items.reduce((sum, item) => sum + Number(item.price || 0), 0);
-    const lateCharges = perDaySum * lateDays;
+    // Calculate late charges using configured late fee per day
+    const lateCharges = lateFeePerDay * lateDays;
 
     // Update rental as returned and adjust total_cost
     const newTotal = Number(rental.total_cost || 0) + lateCharges + extraCharges;
@@ -286,7 +295,7 @@ export default function ReturnsPage() {
       }
     }
 
-    toast.success(`Return finalized. Late: $${lateCharges.toFixed(2)}, Damage: $${extraCharges.toFixed(2)}.`);
+    toast.success(`Return finalized. Late fee ($${lateFeePerDay.toFixed(2)}/day × ${lateDays} days): $${lateCharges.toFixed(2)}, Damage: $${extraCharges.toFixed(2)}.`);
     setRental(null);
     setItems([]);
     setPostChecks({});

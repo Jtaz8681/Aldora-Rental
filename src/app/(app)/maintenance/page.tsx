@@ -145,6 +145,15 @@ export default function MaintenancePage() {
       toast.error("Failed to add part: " + error.message);
       throw error;
     }
+
+    // NEW: Move ticket to 'awaiting_parts' if not already completed
+    await supabase
+      .from("maintenance_tickets")
+      .update({ status: "awaiting_parts", updated_at: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .eq("id", ticketId)
+      .in("status", ["pending", "in_progress"]);
+
     toast.success("Part added.");
     await loadData();
   };
@@ -170,6 +179,15 @@ export default function MaintenancePage() {
     if (error) {
       toast.error("Failed to update ticket: " + error.message);
       throw error;
+    }
+
+    // NEW: On completion, mark gear as Available
+    if (newStatus === "completed" && ticket.gear_id) {
+      await supabase
+        .from("gear_items")
+        .update({ status: "Available", updated_at: new Date().toISOString() })
+        .eq("id", ticket.gear_id)
+        .eq("user_id", user.id);
     }
 
     // NEW: On completion, log Final Testing & Sign-off

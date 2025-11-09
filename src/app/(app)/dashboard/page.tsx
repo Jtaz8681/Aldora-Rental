@@ -13,6 +13,12 @@ type GearItem = {
   status: string;
 };
 
+// NEW: minimal gear type for service projection
+type GearLite = { id: string; internal_id?: string; category: string; date_added?: string | null; purchase_date?: string | null };
+
+// NEW: projection type
+type ServiceProjection = { gear: GearLite; nextDue: Date; daysAway: number };
+
 type Customer = {
   id: string;
   balance_due: number;
@@ -36,6 +42,10 @@ export default function DashboardPage() {
   const [totalBalanceDue, setTotalBalanceDue] = useState(0);
   const [recentRentals, setRecentRentals] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(true);
+  // NEW: dashboard alerts
+  const [overdueRentalsCount, setOverdueRentalsCount] = useState(0);
+  const [serviceDueCount, setServiceDueCount] = useState(0);
+  const [serviceDueSoon, setServiceDueSoon] = useState<ServiceProjection[]>([]);
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -49,7 +59,7 @@ export default function DashboardPage() {
       // Fetch Gear Data
       const { data: gearData, error: gearError } = await supabase
         .from("gear_items")
-        .select("id, status")
+        .select("id, status, internal_id, category, date_added, purchase_date")
         .eq("user_id", user.id);
       if (gearError) console.error("Error fetching gear:", gearError);
       setTotalGear(gearData?.length || 0);
@@ -64,16 +74,69 @@ export default function DashboardPage() {
       setTotalCustomers(customerData?.length || 0);
       setTotalBalanceDue(customerData?.reduce((sum, c) => sum + Number(c.balance_due || 0), 0) || 0);
 
-      // Fetch Rental Data
+      // Fetch Rental Data (recent list)
       const { data: rentalData, error: rentalError } = await supabase
         .from("rentals")
         .select("id, customer_id, start_at, expected_end_at, status, total_cost, customers(name)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(5); // Get recent rentals
+        .limit(5);
       if (rentalError) console.error("Error fetching rentals:", rentalError);
       setActiveRentalsCount(rentalData?.filter(r => r.status === "active" || r.status === "checked-out").length || 0);
       setRecentRentals(rentalData || []);
+
+      // NEW: Overdue rentals count across all active/checked-out
+      const { data: activeAll } = await supabase
+        .from("rentals")
+        .select("id, expected_end_at, status")
+        .eq("user_id", user.id)
+        .in("status", ["active", "checked-out"]);
+      const overdueCount = (activeAll || []).filter(r => new Date(r.expected_end_at).getTime() < Date.now()).length;
+      setOverdueRentalsCount(overdueCount);
+
+      // NEW: Service interval settings and maintenance data for projections
+      const { data: settings } = await supabase
+        .from("service_settings")
+        .select("regulator_service_interval_months, bcd_service_interval_months")
+        .eq("user_id", user.id)
+        .limit(1)
+        .maybeSingle();
+      const regulatorMonths = Number(settings?.regulator_service_interval_months ?? 12);
+      const bcdMonths = Number(settings?.bcd_service_interval_months ?? 12);
+
+      const { data: ticketData } = await supabase
+        .from("maintenance_tickets")
+        .select("gear_id, status, updated_at")
+        .eq("user_id", user.id);
+
+      // NEW: Build service projections (next due based on last completed or purchase/date_added)
+      const projections: ServiceProjection[] = [];
+      for (const g of gearData || []) {
+        const cat = (g.category || "").toLowerCase();
+        const isReg = cat.includes("reg");
+        const isBcd = cat.includes("bcd");
+        const months = isReg ? regulatorMonths : isBcd ? bcdMonths : 0;
+        if (months <= 0) continue;
+
+        const lastCompleted = (ticketData || [])
+          .filter(t => t.gear_id === g.id && t.status === "completed" && t.updated_at)
+          .sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime())[0];
+
+        const anchorStr = lastCompleted?.updated_at || g.purchase_date || g.date_added || null;
+        if (!anchorStr) continue;
+
+        const nextDue = new Date(anchorStr);
+        nextDue.setMonth(nextDue.getMonth() + months);
+        const daysAway = Math.ceil((nextDue.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        projections.push({
+          gear: { id: g.id, internal_id: g.internal_id, category: g.category, date_added: g.date_added, purchase_date: g.purchase_date },
+          nextDue,
+          daysAway,
+        });
+      }
+      const sorted = projections.sort((a, b) => a.nextDue.getTime() - b.nextDue.getTime());
+      setServiceDueSoon(sorted);
+      setServiceDueCount(sorted.filter(p => p.daysAway >= 0 && p.daysAway <= 30).length);
 
       setLoading(false);
     };
@@ -134,6 +197,64 @@ export default function DashboardPage() {
             </p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* NEW: Alerts row */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Overdue Rentals</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{overdueRentalsCount}</div>
+            <p className="text-xs text-muted-foreground">
+              <Link href="/rentals" className="underline">View rentals</Link>
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Service Due Soon (30d)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{serviceDueCount}</div>
+            <p className="text-xs text-muted-foreground">
+              <Link href="/maintenance" className="underline">Go to Maintenance</Link>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* NEW: Compact upcoming service list */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4">Upcoming Service</h2>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Gear</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Due Date</TableHead>
+              <TableHead>Days Away</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {serviceDueSoon.slice(0, 5).map((p, idx) => (
+              <TableRow key={idx}>
+                <TableCell className="font-mono">{p.gear.internal_id || p.gear.id}</TableCell>
+                <TableCell>{p.gear.category}</TableCell>
+                <TableCell>{format(p.nextDue, 'PPP')}</TableCell>
+                <TableCell className={p.daysAway < 0 ? "text-destructive" : ""}>{p.daysAway}</TableCell>
+                <TableCell>
+                  <Link href="/maintenance" className="text-sm underline">Review</Link>
+                </TableCell>
+              </TableRow>
+            ))}
+            {serviceDueSoon.length === 0 && (
+              <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground">No upcoming service due.</TableCell></TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       <div>

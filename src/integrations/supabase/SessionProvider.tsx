@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -11,12 +11,11 @@ type Props = {
 export default function SessionProvider({ children }: Props) {
   const router = useRouter();
   const pathname = usePathname();
-  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let unsub: { unsubscribe: () => void } | null = null;
 
-    const init = async () => {
+    const handleAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const isAuthPage = pathname?.startsWith("/login");
       const isRootPage = pathname === "/";
@@ -26,19 +25,18 @@ export default function SessionProvider({ children }: Props) {
       } else if (session && (isAuthPage || isRootPage)) {
         router.replace("/dashboard");
       }
-      
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
-        if (event === "SIGNED_IN" && (pathname?.startsWith("/login") || pathname === "/")) {
-          router.replace("/dashboard");
-        } else if (event === "SIGNED_OUT") {
-          router.replace("/login");
-        }
-      });
-      unsub = subscription;
-      setReady(true);
     };
 
-    init();
+    handleAuth(); // Run once on client mount
+
+    const { data: { subscription } = {} } = supabase.auth.onAuthStateChange((event, newSession) => {
+      if (event === "SIGNED_IN" && (pathname?.startsWith("/login") || pathname === "/")) {
+        router.replace("/dashboard");
+      } else if (event === "SIGNED_OUT") {
+        router.replace("/login");
+      }
+    });
+    unsub = subscription;
 
     return () => {
       if (unsub) {
@@ -47,9 +45,6 @@ export default function SessionProvider({ children }: Props) {
     };
   }, [pathname, router]);
 
-  if (!ready) {
-    return <div className="flex items-center justify-center min-h-dvh text-sm text-muted-foreground">Loading…</div>;
-  }
-
+  // Always render children. Client-side useEffect handles redirects.
   return <>{children}</>;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useRef } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
 type Item = {
@@ -19,6 +19,11 @@ type Props = {
 
 export default function PickList({ customerName, startAt, endAt, items, total }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [generatedDate, setGeneratedDate] = useState<string>(""); // State for client-side date
+
+  useEffect(() => {
+    setGeneratedDate(new Date().toLocaleString()); // Set date only on client
+  }, []);
 
   const days = useMemo(() => {
     if (!startAt || !endAt) return 1;
@@ -67,7 +72,7 @@ export default function PickList({ customerName, startAt, endAt, items, total }:
 
       <div ref={containerRef}>
         <h1>Aldora Dive Gear Management System</h1>
-        <p className="muted">Generated: {new Date().toLocaleString()}</p>
+        <p className="muted">Generated: {generatedDate}</p> {/* Use client-side state */}
 
         <div className="grid">
           <div><strong>Customer:</strong> {customerName || "-"}</div>

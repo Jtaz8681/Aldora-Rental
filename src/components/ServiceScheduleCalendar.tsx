@@ -6,6 +6,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { format } from "date-fns";
+import Link from "next/link";
 
 type Gear = { id: string; internal_id: string; category: string };
 type Projection = { gear: Gear; nextDue: Date; daysAway: number };
@@ -81,7 +82,11 @@ export default function ServiceScheduleCalendar({ projections }: Props) {
               <TableBody>
                 {(itemsForSelectedDay || []).map((p, idx) => (
                   <TableRow key={idx}>
-                    <TableCell className="font-mono">{p.gear.internal_id}</TableCell>
+                    <TableCell className="font-mono">
+                      <Link href={`/gear/${p.gear.id}`} className="underline">
+                        {p.gear.internal_id}
+                      </Link>
+                    </TableCell>
                     <TableCell>{p.gear.category}</TableCell>
                     <TableCell>{p.daysAway}</TableCell>
                   </TableRow>
@@ -105,7 +110,7 @@ export default function ServiceScheduleCalendar({ projections }: Props) {
                     <div className="grid sm:grid-cols-2 gap-1">
                       {groupedByDate[d].map((p, i) => (
                         <div key={i} className="text-sm">
-                          <span className="font-mono">{p.gear.internal_id}</span> <span className="text-muted-foreground">({p.gear.category})</span>
+                          <Link href={`/gear/${p.gear.id}`} className="font-mono underline">{p.gear.internal_id}</Link> <span className="text-muted-foreground">({p.gear.category})</span>
                         </div>
                       ))}
                     </div>

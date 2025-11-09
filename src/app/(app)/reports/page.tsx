@@ -7,6 +7,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { toast } from "sonner";
 import { format } from "date-fns";
 import ServiceScheduleCalendar from "@/components/ServiceScheduleCalendar";
+import Link from "next/link";
 
 type Gear = { id: string; internal_id: string; category: string; date_added: string | null; purchase_date: string | null; rental_price: number | null };
 type RentalItem = { gear_id: string; rentals: { start_at: string; expected_end_at: string; status: string } | null };
@@ -184,7 +185,11 @@ export default function ReportsPage() {
             <TableBody>
               {utilization.map(u => (
                 <TableRow key={u.gear.id}>
-                  <TableCell className="font-mono">{u.gear.internal_id}</TableCell>
+                  <TableCell className="font-mono">
+                    <Link href={`/gear/${u.gear.id}`} className="underline">
+                      {u.gear.internal_id}
+                    </Link>
+                  </TableCell>
                   <TableCell>{u.daysRented}</TableCell>
                   <TableCell>${u.revenueApprox.toFixed(2)}</TableCell>
                   <TableCell>${u.maintenanceCost.toFixed(2)}</TableCell>
@@ -219,7 +224,11 @@ export default function ReportsPage() {
             <TableBody>
               {damageSummary.map((d, idx) => (
                 <TableRow key={idx}>
-                  <TableCell className="font-mono">{d.gear_id}</TableCell>
+                  <TableCell className="font-mono">
+                    <Link href={`/gear/${d.gear_id}`} className="underline">
+                      {d.gear_id}
+                    </Link>
+                  </TableCell>
                   <TableCell>{d.severity}</TableCell>
                   <TableCell>${d.estimate_cost.toFixed(2)}</TableCell>
                   <TableCell>{d.reported_at ? format(new Date(d.reported_at), "PPp") : "-"}</TableCell>

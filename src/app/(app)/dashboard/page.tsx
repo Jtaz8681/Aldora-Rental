@@ -241,7 +241,11 @@ export default function DashboardPage() {
           <TableBody>
             {serviceDueSoon.slice(0, 5).map((p, idx) => (
               <TableRow key={idx}>
-                <TableCell className="font-mono">{p.gear.internal_id || p.gear.id}</TableCell>
+                <TableCell className="font-mono">
+                  <Link href={`/gear/${p.gear.id}`} className="underline">
+                    {p.gear.internal_id || p.gear.id}
+                  </Link>
+                </TableCell>
                 <TableCell>{p.gear.category}</TableCell>
                 <TableCell>{format(p.nextDue, 'PPP')}</TableCell>
                 <TableCell className={p.daysAway < 0 ? "text-destructive" : ""}>{p.daysAway}</TableCell>

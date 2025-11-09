@@ -82,7 +82,9 @@ export default function GearPage() {
           <TableBody>
             {filtered.map((g) => (
               <TableRow key={g.id}>
-                <TableCell className="font-mono">{g.internal_id}</TableCell>
+                <TableCell className="font-mono">
+                  <Link href={`/gear/${g.id}`} className="underline">{g.internal_id}</Link>
+                </TableCell>
                 <TableCell>{g.friendly_name || "-"}</TableCell>
                 <TableCell>{g.category}{g.sub_type ? ` / ${g.sub_type}` : ""}</TableCell>
                 <TableCell>{[g.brand, g.model].filter(Boolean).join(" ") || "-"}</TableCell>

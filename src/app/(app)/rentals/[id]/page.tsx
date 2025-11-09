@@ -235,7 +235,7 @@ export default function RentalDetailPage() {
               {rentalItems.map(item => (
                 <TableRow key={item.id}>
                   <TableCell>
-                    <Link href={`/gear/${item.gear_id}/edit`} className="underline">
+                    <Link href={`/gear/${item.gear_id}`} className="underline">
                       {item.gear_items?.internal_id || "N/A"}
                     </Link>
                     <p className="text-xs text-muted-foreground">{item.gear_items?.friendly_name || ""}</p>

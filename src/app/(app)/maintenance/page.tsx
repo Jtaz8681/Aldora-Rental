@@ -637,7 +637,7 @@ export default function MaintenancePage() {
                   <TableRow key={t.id}>
                     <TableCell>
                       {t.gear_items?.internal_id ? (
-                        <Link href={`/gear/${t.gear_id}/edit`} className="underline font-mono">
+                        <Link href={`/gear/${t.gear_id}`} className="underline font-mono">
                           {t.gear_items.internal_id}
                         </Link>
                       ) : (
@@ -751,7 +751,15 @@ export default function MaintenancePage() {
             {tickets.map(t => (
               <div key={t.id} className="border rounded p-3">
                 <div className="flex items-center justify-between">
-                  <div className="font-medium">Ticket: {t.id.slice(0, 8)} • {t.gear_items?.internal_id || "N/A"}</div>
+                  <div className="font-medium">
+                    Ticket: {t.id.slice(0, 8)} • {t.gear_items?.internal_id ? (
+                      <Link href={`/gear/${t.gear_id}`} className="underline font-mono">
+                        {t.gear_items.internal_id}
+                      </Link>
+                    ) : (
+                      "N/A"
+                    )}
+                  </div>
                   <Badge variant={STATUS_VARIANT(t.status)}>{t.status}</Badge>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-2 mt-3">

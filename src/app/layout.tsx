@@ -29,6 +29,7 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning // Added to suppress hydration warnings on the body tag
       >
         <SessionProvider>
           <div className="flex min-h-screen">

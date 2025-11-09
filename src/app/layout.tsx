@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
-import Link from "next/link";
-import SessionProvider from "@/integrations/supabase/SessionProvider"; // Re-added SessionProvider import
+import SessionProvider from "@/integrations/supabase/SessionProvider";
+import Sidebar from "@/components/Sidebar"; // Import the new Sidebar component
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,23 +30,21 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SessionProvider> {/* Re-added SessionProvider wrapper */}
-          <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur">
-            <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-              <Link href="/gear" className="font-semibold">Aldora Dive Gear</Link>
-              <nav className="flex gap-2">
-                <Link href="/gear" className="text-sm px-3 py-2 rounded hover:bg-muted">Gear</Link>
-                <Link href="/customers" className="text-sm px-3 py-2 rounded hover:bg-muted">Customers</Link>
-                <Link href="/rentals/new" className="text-sm px-3 py-2 rounded hover:bg-muted">New Rental</Link>
-                <Link href="/returns" className="text-sm px-3 py-2 rounded hover:bg-muted">Returns</Link>
-              </nav>
+        <SessionProvider>
+          <div className="flex min-h-screen">
+            <Sidebar /> {/* Integrate the Sidebar */}
+            <div className="flex-1 flex flex-col">
+              <header className="lg:hidden sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur p-4">
+                {/* Mobile header content if needed, but the SheetTrigger for sidebar is fixed */}
+                <h1 className="text-lg font-semibold text-center">Aldora Dive Gear</h1>
+              </header>
+              <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-6">
+                {children}
+              </main>
             </div>
-          </header>
-          <main className="mx-auto max-w-6xl px-4 py-6">
-            {children}
-          </main>
+          </div>
           <Toaster richColors />
-        </SessionProvider> {/* End of SessionProvider wrapper */}
+        </SessionProvider>
       </body>
     </html>
   );

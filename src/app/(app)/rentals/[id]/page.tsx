@@ -10,6 +10,18 @@ import { format } from "date-fns";
 import Link from "next/link";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button"; // Import Button
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import ReportDamageDialog from "@/components/ReportDamageDialog"; // Import the new component
 
 type Rental = {
@@ -117,6 +129,25 @@ export default function RentalDetailPage() {
   const handleReportDamageClick = (rentalItemId: string, gearId: string, gearInternalId: string) => {
     setSelectedGearForDamage({ rentalItemId, gearId, gearInternalId });
     setShowReportDamageDialog(true);
+  };
+
+  const deleteDamageReport = async (damageReportId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("damage_reports")
+      .delete()
+      .eq("id", damageReportId)
+      .eq("user_id", user.id);
+
+    if (error) {
+      toast.error("Failed to delete damage report: " + error.message);
+      throw error;
+    }
+
+    toast.success("Damage report deleted.");
+    await loadRentalData();
   };
 
   const statusVariant = (status: string) => {
@@ -240,6 +271,29 @@ export default function RentalDetailPage() {
                                 ))}
                               </div>
                             )}
+                            <div className="flex justify-end mt-2">
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="destructive" size="sm">
+                                    Delete
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete damage report?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will permanently remove this report.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => deleteDamageReport(dr.id)}>
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
                           </div>
                         ))}
                       </div>

@@ -95,7 +95,7 @@ export default function GearPage() {
                   ) : (
                     <span className="text-xs text-muted-foreground">No manual</span>
                   )}
-                  <Link href={`/gear/new`} className="text-sm underline">Edit</Link>
+                  <Link href={`/gear/${g.id}/edit`} className="text-sm underline">Edit</Link>
                 </TableCell>
               </TableRow>
             ))}

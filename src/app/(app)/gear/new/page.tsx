@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import ManualUpload from "@/components/ManualUpload";
+import MultiPhotoUpload from "@/components/MultiPhotoUpload";
 
 const schema = z.object({
   internal_id: z.string().min(1),
@@ -25,13 +27,19 @@ const schema = z.object({
   home_location: z.string().optional(),
   manual_url: z.string().url().optional(),
   notes: z.string().optional(),
+  purchase_date: z.string().optional(),
+  purchase_cost: z.coerce.number().optional(),
+  initial_cost: z.coerce.number().optional(),
+  current_value: z.coerce.number().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
 
 export default function NewGearPage() {
   const router = useRouter();
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setValue, watch } = useForm<FormValues>({ resolver: zodResolver(schema) });
+
+  const internalId = watch("internal_id");
 
   const onSubmit = async (values: FormValues) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -99,10 +107,31 @@ export default function NewGearPage() {
           <Label>Rental Price (per day)</Label>
           <Input type="number" step="0.01" {...register("rental_price")} />
         </div>
-        <div className="sm:col-span-2">
-          <Label>Photo URLs (comma-separated)</Label>
-          <Input {...register("photos_csv")} placeholder="https://..." />
+
+        <div>
+          <Label>Purchase Date</Label>
+          <Input type="date" {...register("purchase_date")} />
         </div>
+        <div>
+          <Label>Purchase Cost</Label>
+          <Input type="number" step="0.01" {...register("purchase_cost")} />
+        </div>
+        <div>
+          <Label>Initial Cost</Label>
+          <Input type="number" step="0.01" {...register("initial_cost")} />
+        </div>
+        <div>
+          <Label>Current Value</Label>
+          <Input type="number" step="0.01" {...register("current_value")} />
+        </div>
+
+        <div className="sm:col-span-2">
+          <MultiPhotoUpload
+            gearInternalId={internalId}
+            onUploaded={(urls) => setValue("photos_csv", urls.join(","))}
+          />
+        </div>
+
         <div>
           <Label>Serial Number</Label>
           <Input {...register("serial_number")} />
@@ -112,8 +141,10 @@ export default function NewGearPage() {
           <Input {...register("home_location")} placeholder="Shelf A / Bin 3" />
         </div>
         <div className="sm:col-span-2">
-          <Label>Manual URL (PDF)</Label>
-          <Input {...register("manual_url")} placeholder="https://..." />
+          <ManualUpload
+            gearInternalId={internalId}
+            onUploaded={(url) => setValue("manual_url", url)}
+          />
         </div>
         <div className="sm:col-span-2">
           <Label>Notes</Label>

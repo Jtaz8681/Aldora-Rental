@@ -88,7 +88,22 @@ export default function ReturnsPage() {
 
     const defaults: Record<string, Record<string, boolean>> = {};
     enriched.forEach(ri => {
-      defaults[ri.id] = ri.post_checklist || { general_ok: false, regulator_ok: false, bcd_ok: false, computer_ok: false, wetsuit_ok: false };
+      defaults[ri.id] = ri.post_checklist || { 
+        general_ok: false, 
+        regulator_ok: false, 
+        regulator_ip_ok: false, 
+        octopus_ok: false,
+        bcd_ok: false, 
+        holds_pressure_5min: false, 
+        opv_ok: false, 
+        power_inflator_ok: false,
+        computer_ok: false, 
+        computer_battery_ok: false, 
+        computer_screen_ok: false, 
+        computer_buttons_ok: false,
+        wetsuit_ok: false, 
+        wetsuit_zipper_ok: false 
+      };
     });
     setPostChecks(defaults);
   };
@@ -298,19 +313,55 @@ export default function ReturnsPage() {
                     </label>
                     <label className="flex items-center gap-2 text-sm">
                       <Checkbox checked={!!checks.regulator_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev, [item.id]: { ...prev[item.id], regulator_ok: !!v } }))} />
-                      Regulator OK
+                      Regulator breathes freely
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox checked={!!checks.regulator_ip_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev, [item.id]: { ...prev[item.id], regulator_ip_ok: !!v } }))} />
+                      Regulator IP check OK
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox checked={!!checks.octopus_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev, [item.id]: { ...prev[item.id], octopus_ok: !!v } }))} />
+                      Octopus function OK
                     </label>
                     <label className="flex items-center gap-2 text-sm">
                       <Checkbox checked={!!checks.bcd_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev, [item.id]: { ...prev[item.id], bcd_ok: !!v } }))} />
-                      BCD OK
+                      BCD inflates/deflates OK
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox checked={!!checks.holds_pressure_5min} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev, [item.id]: { ...prev[item.id], holds_pressure_5min: !!v } }))} />
+                      BCD holds pressure (5 min)
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox checked={!!checks.opv_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev, [item.id]: { ...prev[item.id], opv_ok: !!v } }))} />
+                      OPV OK
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox checked={!!checks.power_inflator_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev, [item.id]: { ...prev[item.id], power_inflator_ok: !!v } }))} />
+                      Power inflator OK
                     </label>
                     <label className="flex items-center gap-2 text-sm">
                       <Checkbox checked={!!checks.computer_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev, [item.id]: { ...prev[item.id], computer_ok: !!v } }))} />
-                      Computer OK
+                      Dive computer powers on
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox checked={!!checks.computer_battery_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev, [item.id]: { ...prev[item.id], computer_battery_ok: !!v } }))} />
+                      Battery indicator OK
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox checked={!!checks.computer_screen_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev, [item.id]: { ...prev[item.id], computer_screen_ok: !!v } }))} />
+                      Screen legible
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox checked={!!checks.computer_buttons_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev, [item.id]: { ...prev[item.id], computer_buttons_ok: !!v } }))} />
+                      Buttons work
                     </label>
                     <label className="flex items-center gap-2 text-sm">
                       <Checkbox checked={!!checks.wetsuit_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev, [item.id]: { ...prev[item.id], wetsuit_ok: !!v } }))} />
-                      Wetsuit OK
+                      Wetsuit no major tears
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox checked={!!checks.wetsuit_zipper_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev, [item.id]: { ...prev[item.id], wetsuit_zipper_ok: !!v } }))} />
+                      Wetsuit zipper OK
                     </label>
                   </div>
 

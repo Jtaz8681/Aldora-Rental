@@ -90,13 +90,27 @@ export default function NewRentalPage() {
     }
 
     // apply bill to customer account
-    await supabase.rpc("increment_customer_balance", { p_user_id: user.id, p_customer_id: customerId, p_amount: total })
-      .catch(async () => {
-        // Fallback if function not present: direct update
-        const { data: cust } = await supabase.from("customers").select("balance_due").eq("user_id", user.id).eq("id", customerId).single();
-        const current = Number(cust?.balance_due || 0);
-        await supabase.from("customers").update({ balance_due: current + total }).eq("user_id", user.id).eq("id", customerId);
-      });
+    const { error: balanceErr } = await supabase.rpc("increment_customer_balance", {
+      p_user_id: user.id,
+      p_customer_id: customerId,
+      p_amount: total,
+    });
+
+    if (balanceErr) {
+      // Fallback if function not present: direct update
+      const { data: cust } = await supabase
+        .from("customers")
+        .select("balance_due")
+        .eq("user_id", user.id)
+        .eq("id", customerId)
+        .single();
+      const current = Number(cust?.balance_due || 0);
+      await supabase
+        .from("customers")
+        .update({ balance_due: current + total })
+        .eq("user_id", user.id)
+        .eq("id", customerId);
+    }
 
     toast.success("Rental created and gear checked out");
     router.push(`/customers/${customerId}`);

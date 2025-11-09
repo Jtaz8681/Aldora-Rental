@@ -204,30 +204,35 @@ export default function ReturnsPage() {
       const d = damage[item.id];
       if (d?.hasDamage) {
         const photos = d.photos || []; // Use the photos array directly
-        const { error: insertDamageError } = await supabase.from("damage_reports").insert({
-          user_id: user.id,
-          rental_id: rental.id,
-          gear_id: item.gear_id,
-          rental_item_id: item.id, // Added rental_item_id
-          damage_type: d.type || null,
-          severity: d.severity || "Functional",
-          photos,
-          estimate_cost: d.estimate || null,
-          notes: d.notes || null
-        });
+        const { data: newDamage, error: insertDamageError } = await supabase
+          .from("damage_reports")
+          .insert({
+            user_id: user.id,
+            rental_id: rental.id,
+            gear_id: item.gear_id,
+            rental_item_id: item.id,
+            damage_type: d.type || null,
+            severity: d.severity || "Functional",
+            photos,
+            estimate_cost: d.estimate || null,
+            notes: d.notes || null
+          })
+          .select("*")
+          .single();
+        
         if (insertDamageError) {
           toast.error("Failed to insert damage report: " + insertDamageError.message);
           throw insertDamageError;
         }
 
-        // NEW: Auto-create maintenance ticket for this damage event
-        if (!insertDamageError) {
+        // NEW: Auto-create maintenance ticket linked to this damage report
+        if (!insertDamageError && newDamage) {
           const problem = [d.type, d.notes].filter(Boolean).join(" - ") || "Damage reported";
           await supabase.from("maintenance_tickets").insert({
             user_id: user.id,
             gear_id: item.gear_id,
             rental_id: rental.id,
-            damage_report_id: null, // damage report id is unknown here due to batch insert; left null
+            damage_report_id: newDamage.id,
             problem_description: problem,
             status: "pending",
             cost: d.estimate ?? null,

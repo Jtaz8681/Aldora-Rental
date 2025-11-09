@@ -46,6 +46,8 @@ export default function EditGearPage() {
   const internalId = watch("internal_id");
   const [loading, setLoading] = useState(true);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [logsByTicket, setLogsByTicket] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
     const load = async () => {
@@ -84,6 +86,31 @@ export default function EditGearPage() {
           status: data.status,
         });
         setPhotoUrls(data.photos || []);
+        
+        // NEW: Load maintenance history for this gear
+        const { data: tData } = await supabase
+          .from("maintenance_tickets")
+          .select("id, status, date_received, problem_description, updated_at, assigned_technician, cost")
+          .eq("user_id", user.id)
+          .eq("gear_id", id)
+          .order("date_received", { ascending: false });
+        setTickets(tData || []);
+        const ids = (tData || []).map(t => t.id);
+        if (ids.length) {
+          const { data: wlData } = await supabase
+            .from("maintenance_work_logs")
+            .select("id, ticket_id, description, created_at")
+            .eq("user_id", user.id)
+            .in("ticket_id", ids)
+            .order("created_at", { ascending: false });
+          const map: Record<string, any[]> = {};
+          (wlData || []).forEach(w => {
+            map[w.ticket_id] = [...(map[w.ticket_id] || []), w];
+          });
+          setLogsByTicket(map);
+        } else {
+          setLogsByTicket({});
+        }
       }
       setLoading(false);
     };
@@ -234,6 +261,35 @@ export default function EditGearPage() {
       {Object.keys(errors).length > 0 && (
         <p className="text-xs text-destructive">Please fix the highlighted fields.</p>
       )}
+
+      {/* NEW: Full Maintenance History */}
+      <div className="mt-8 space-y-2">
+        <h2 className="text-lg font-semibold">Maintenance History</h2>
+        {tickets.length === 0 && (
+          <p className="text-sm text-muted-foreground">No maintenance records for this item yet.</p>
+        )}
+        {tickets.map(t => (
+          <div key={t.id} className="border rounded-md p-3">
+            <div className="flex items-center justify-between">
+              <div className="font-medium">{t.problem_description || "Service"}</div>
+              <span className="text-xs text-muted-foreground">{new Date(t.date_received).toLocaleDateString()}</span>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Status: {t.status} {t.assigned_technician ? `• Tech: ${t.assigned_technician}` : ""} {t.cost != null ? `• Cost: $${Number(t.cost).toFixed(2)}` : ""}
+            </div>
+            <div className="mt-2 space-y-1">
+              {(logsByTicket[t.id] || []).map(l => (
+                <div key={l.id} className="text-xs">
+                  {new Date(l.created_at).toLocaleString()} • {l.description}
+                </div>
+              ))}
+              {(logsByTicket[t.id] || []).length === 0 && (
+                <div className="text-xs text-muted-foreground">No work logs.</div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
     </form>
   );
 }

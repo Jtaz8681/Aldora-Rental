@@ -67,21 +67,25 @@ export default function ReportDamageDialog({
       .map(s => s.trim())
       .filter(Boolean);
 
-    const { error: insertDamageError } = await supabase.from("damage_reports").insert({
-      user_id: user.id,
-      rental_id: rentalId,
-      gear_id: gearId,
-      rental_item_id: rentalItemId, // Included rental_item_id
-      damage_type: values.damage_type || null,
-      severity: values.severity,
-      photos,
-      estimate_cost: values.estimate_cost ?? null,
-      notes: values.notes || null,
-    });
+    const { data: inserted, error } = await supabase
+      .from("damage_reports")
+      .insert({
+        user_id: user.id,
+        rental_id: rentalId || null,
+        gear_id: gearId,
+        rental_item_id: rentalItemId || null,
+        damage_type: watch("damage_type") || null,
+        severity: watch("severity") || "Functional",
+        photos: photoUrls,
+        estimate_cost: watch("estimate_cost") ?? null,
+        notes: watch("notes") || null,
+      })
+      .select("*")
+      .single();
 
-    if (insertDamageError) {
-      toast.error("Failed to report damage: " + insertDamageError.message);
-      throw insertDamageError;
+    if (error) {
+      toast.error("Failed to report damage: " + error.message);
+      throw error;
     }
 
     // If damage is critical, update gear status to Quarantined
@@ -102,21 +106,21 @@ export default function ReportDamageDialog({
     onOpenChange(false);
     onReported?.();
 
-    // NEW: Create maintenance ticket automatically for this damage event
-    const problem = [values.damage_type || null, values.notes || null]
-      .filter(Boolean)
-      .join(" - ") || "Damage reported";
-    await supabase.from("maintenance_tickets").insert({
-      user_id: user.id,
-      gear_id: gearId,
-      rental_id: rentalId,
-      damage_report_id: null, // report id not captured here; leaving null is fine
-      problem_description: problem,
-      status: "pending",
-      cost: values.estimate_cost ?? null,
-      charge_customer: false,
-      date_received: new Date().toISOString(),
-    });
+    // NEW: Create maintenance ticket automatically for this damage event with linked report ID
+    const problem = [watch("damage_type") || null, watch("notes") || null].filter(Boolean).join(" - ") || "Damage reported";
+    if (user && !error && inserted) {
+      await supabase.from("maintenance_tickets").insert({
+        user_id: user.id,
+        gear_id: gearId,
+        rental_id: rentalId || null,
+        damage_report_id: inserted.id,
+        problem_description: problem,
+        status: "pending",
+        cost: watch("estimate_cost") ?? null,
+        charge_customer: false,
+        date_received: new Date().toISOString(),
+      });
+    }
   };
 
   return (

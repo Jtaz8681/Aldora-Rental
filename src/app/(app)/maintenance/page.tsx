@@ -171,6 +171,18 @@ export default function MaintenancePage() {
       throw error;
     }
 
+    // NEW: On completion, log Final Testing & Sign-off
+    if (newStatus === "completed") {
+      const signer = ticket.assigned_technician || "Technician";
+      await supabase
+        .from("maintenance_work_logs")
+        .insert({
+          user_id: user.id,
+          ticket_id: ticket.id,
+          description: `Final testing & sign-off completed by ${signer}.`,
+        });
+    }
+
     // If ticket completed and charge_customer is true and rental_id exists, charge the customer balance
     if (newStatus === "completed" && newCharge && ticket.rental_id) {
       const { data: rental, error: rErr } = await supabase
@@ -198,6 +210,107 @@ export default function MaintenancePage() {
     await loadData();
   };
 
+  // NEW: Automated Service Trigger Scan (by time and usage)
+  const runTriggerScan = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: settings } = await supabase
+      .from("service_settings")
+      .select("*")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+
+    const regulatorMonths = Number(settings?.regulator_service_interval_months ?? 12);
+    const bcdMonths = Number(settings?.bcd_service_interval_months ?? 12);
+    const usageLimit = Number(settings?.max_dives_before_service ?? 100);
+
+    const { data: gear } = await supabase
+      .from("gear_items")
+      .select("id, category, date_added, purchase_date")
+      .eq("user_id", user.id);
+
+    if (!gear || gear.length === 0) {
+      toast.info("No gear to scan.");
+      return;
+    }
+
+    const isReg = (c: string) => c.toLowerCase().includes("reg");
+    const isBcd = (c: string) => c.toLowerCase().includes("bcd");
+
+    for (const g of gear) {
+      // Last completed service date
+      const { data: lastCompleted } = await supabase
+        .from("maintenance_tickets")
+        .select("id, updated_at")
+        .eq("user_id", user.id)
+        .eq("gear_id", g.id)
+        .eq("status", "completed")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const anchorDateStr = lastCompleted?.updated_at || g.purchase_date || g.date_added || null;
+      const anchorDate = anchorDateStr ? new Date(anchorDateStr) : null;
+
+      // Time-based trigger
+      let dueByTime = false;
+      if (anchorDate) {
+        const months = isReg(g.category) ? regulatorMonths : isBcd(g.category) ? bcdMonths : 0;
+        if (months > 0) {
+          const nextDue = new Date(anchorDate);
+          nextDue.setMonth(nextDue.getMonth() + months);
+          dueByTime = nextDue.getTime() <= Date.now();
+        }
+      }
+
+      // Usage-based trigger: sum rental days for this gear
+      const { data: rentalsForGear } = await supabase
+        .from("rental_items")
+        .select("rental_id, rentals(start_at, expected_end_at)")
+        .eq("user_id", user.id)
+        .eq("gear_id", g.id);
+
+      let usageDays = 0;
+      for (const ri of rentalsForGear || []) {
+        const s = ri.rentals?.start_at ? new Date(ri.rentals.start_at) : null;
+        const e = ri.rentals?.expected_end_at ? new Date(ri.rentals.expected_end_at) : null;
+        if (s && e) {
+          const diff = Math.ceil((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24));
+          if (diff > 0) usageDays += diff;
+        }
+      }
+      const dueByUsage = usageDays >= usageLimit;
+
+      // Skip if a pending/in_progress ticket already exists
+      const { data: openTicket } = await supabase
+        .from("maintenance_tickets")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("gear_id", g.id)
+        .in("status", ["pending", "in_progress", "awaiting_parts"])
+        .limit(1)
+        .maybeSingle();
+
+      if ((dueByTime || dueByUsage) && !openTicket) {
+        const reasons: string[] = [];
+        if (dueByTime) reasons.push("Time due");
+        if (dueByUsage) reasons.push(`Usage threshold (${usageDays} days)`);
+        await supabase.from("maintenance_tickets").insert({
+          user_id: user.id,
+          gear_id: g.id,
+          problem_description: `Automated service trigger: ${reasons.join(", ")}`,
+          status: "pending",
+          date_received: new Date().toISOString(),
+        });
+      }
+    }
+
+    toast.success("Service trigger scan completed.");
+    await loadData();
+  };
+
   const statusOptions = ["pending", "in_progress", "awaiting_parts", "completed"];
 
   if (loading) {
@@ -208,7 +321,10 @@ export default function MaintenancePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Maintenance</h1>
-        <Link href="/gear" className="text-sm underline">Go to Gear</Link>
+        <div className="flex items-center gap-2">
+          <Link href="/gear" className="text-sm underline">Go to Gear</Link>
+          <Button variant="outline" onClick={runTriggerScan}>Run Service Trigger Scan</Button>
+        </div>
       </div>
 
       <Card>

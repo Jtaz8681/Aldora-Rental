@@ -11,7 +11,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, LayoutDashboard, Wrench, Users, PlusCircle, ArrowLeftRight, LogOut } from "lucide-react";
+import { Menu, LayoutDashboard, Wrench, Users, PlusCircle, ArrowLeftRight, LogOut, Settings, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -59,7 +59,9 @@ export default function Sidebar() {
     { href: "/rentals/new", icon: PlusCircle, label: "New Rental" },
     { href: "/rentals", icon: ArrowLeftRight, label: "All Rentals" },
     { href: "/returns", icon: ArrowLeftRight, label: "Process Returns" },
-    { href: "/maintenance", icon: Wrench, label: "Maintenance" }
+    { href: "/maintenance", icon: Wrench, label: "Maintenance" },
+    { href: "/reports", icon: BarChart3, label: "Reports" },
+    { href: "/settings", icon: Settings, label: "Settings" }
   ];
 
   return (

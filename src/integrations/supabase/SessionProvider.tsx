@@ -19,16 +19,17 @@ export default function SessionProvider({ children }: Props) {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const isAuthPage = pathname?.startsWith("/login");
+      const isRootPage = pathname === "/";
 
       if (!session && !isAuthPage) {
         router.replace("/login");
-      } else if (session && isAuthPage) {
-        router.replace("/gear");
+      } else if (session && (isAuthPage || isRootPage)) {
+        router.replace("/dashboard");
       }
       
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
-        if (event === "SIGNED_IN" && pathname?.startsWith("/login")) {
-          router.replace("/gear");
+        if (event === "SIGNED_IN" && (pathname?.startsWith("/login") || pathname === "/")) {
+          router.replace("/dashboard");
         } else if (event === "SIGNED_OUT") {
           router.replace("/login");
         }

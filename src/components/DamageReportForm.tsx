@@ -4,12 +4,13 @@ import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import MultiPhotoUpload from "@/components/MultiPhotoUpload"; // Import MultiPhotoUpload
 
 type DamageEntry = { 
   hasDamage: boolean; 
   type?: string; 
   severity?: string; 
-  photosCsv?: string; 
+  photos?: string[]; // Changed from photosCsv to photos array
   notes?: string; 
   estimate?: number 
 };
@@ -17,9 +18,10 @@ type DamageEntry = {
 type Props = {
   damage: DamageEntry;
   onDamageChange: (newDamage: DamageEntry) => void;
+  gearInternalId?: string; // Added for MultiPhotoUpload
 };
 
-export default function DamageReportForm({ damage, onDamageChange }: Props) {
+export default function DamageReportForm({ damage, onDamageChange, gearInternalId }: Props) {
   const handleFieldChange = (field: keyof DamageEntry, value: any) => {
     onDamageChange({ ...damage, [field]: value });
   };
@@ -56,11 +58,10 @@ export default function DamageReportForm({ damage, onDamageChange }: Props) {
             </select>
           </div>
           <div className="sm:col-span-2">
-            <Label>Photo URLs (comma-separated)</Label>
-            <Input 
-              value={damage.photosCsv || ""} 
-              onChange={(e) => handleFieldChange("photosCsv", e.target.value)} 
-              placeholder="https://..." 
+            <MultiPhotoUpload
+              gearInternalId={gearInternalId}
+              initialUrls={damage.photos || []}
+              onUploaded={(urls) => handleFieldChange("photos", urls)}
             />
           </div>
           <div className="sm:col-span-2">

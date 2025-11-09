@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
-import { format } from "date-fns";
+import { format } = from "date-fns";
 import { useRouter } from "next/navigation";
 import PostRentalChecklist from "@/components/PostRentalChecklist";
 import DamageReportForm from "@/components/DamageReportForm"; // Import the new component
@@ -27,7 +27,7 @@ type RentalItem = { id: string; gear_id: string; price: number; pre_checklist: a
 type Gear = { id: string; internal_id: string; category: string; };
 
 type PostChecks = Record<string, Record<string, boolean>>;
-type DamageEntry = { hasDamage: boolean; type?: string; severity?: string; photosCsv?: string; notes?: string; estimate?: number };
+type DamageEntry = { hasDamage: boolean; type?: string; severity?: string; photos?: string[]; notes?: string; estimate?: number }; // Updated type
 type DamageMap = Record<string, DamageEntry>;
 
 export default function ReturnsPage() {
@@ -98,7 +98,7 @@ export default function ReturnsPage() {
 
     const damageDefaults: DamageMap = {};
     enriched.forEach(ri => {
-      damageDefaults[ri.id] = { hasDamage: false }; // Initialize damage state
+      damageDefaults[ri.id] = { hasDamage: false, photos: [] }; // Initialize damage state with empty photos array
     });
     setDamage(damageDefaults);
   };
@@ -203,7 +203,7 @@ export default function ReturnsPage() {
 
       const d = damage[item.id];
       if (d?.hasDamage) {
-        const photos = (d.photosCsv || "").split(",").map(s => s.trim()).filter(Boolean);
+        const photos = d.photos || []; // Use the photos array directly
         const { error: insertDamageError } = await supabase.from("damage_reports").insert({
           user_id: user.id,
           rental_id: rental.id,
@@ -314,7 +314,7 @@ export default function ReturnsPage() {
           <div className="space-y-3 mt-4">
             {items.map(item => {
               const checks = postChecks[item.id] || {};
-              const dmg = damage[item.id] || { hasDamage: false };
+              const dmg = damage[item.id] || { hasDamage: false, photos: [] }; // Initialize damage state
               return (
                 <div key={item.id} className="border rounded p-3 space-y-2">
                   <PostRentalChecklist
@@ -327,6 +327,7 @@ export default function ReturnsPage() {
                   <DamageReportForm
                     damage={dmg}
                     onDamageChange={(newDamage) => setDamage(prev => ({ ...prev, [item.id]: newDamage }))}
+                    gearInternalId={item.gear.internal_id} // Pass gearInternalId
                   />
                 </div>
               );

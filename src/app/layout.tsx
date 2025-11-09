@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import Link from "next/link";
-import SessionProvider from "@/integrations/supabase/SessionProvider";
+import SessionProvider from "@/integrations/supabase/SessionProvider"; // Re-added SessionProvider import
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,7 +30,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SessionProvider>
+        <SessionProvider> {/* Re-added SessionProvider wrapper */}
           <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur">
             <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
               <Link href="/gear" className="font-semibold">Aldora Dive Gear</Link>
@@ -46,7 +46,7 @@ export default function RootLayout({
             {children}
           </main>
           <Toaster richColors />
-        </SessionProvider>
+        </SessionProvider> {/* End of SessionProvider wrapper */}
       </body>
     </html>
   );

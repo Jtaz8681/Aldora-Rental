@@ -64,11 +64,11 @@ export default function MaintenancePage() {
   const [statusUpdate, setStatusUpdate] = useState<Record<string, string>>({});
   const [costUpdate, setCostUpdate] = useState<Record<string, number>>({});
   const [chargeFlag, setChargeFlag] = useState<Record<string, boolean>>({});
-  // NEW: inline updates for technician and estimated date
   const [techUpdate, setTechUpdate] = useState<Record<string, string>>({});
   const [etaUpdate, setEtaUpdate] = useState<Record<string, string>>({});
-  // NEW: filter by status
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  // NEW: list of available technicians from profiles
+  const [technicians, setTechnicians] = useState<string[]>([]);
 
   const loadData = async () => {
     setLoading(true);
@@ -125,6 +125,19 @@ export default function MaintenancePage() {
       setParts({});
     }
 
+    // NEW: fetch profiles to populate technician picker
+    const { data: techProfiles } = await supabase
+      .from("profiles")
+      .select("first_name, last_name, role")
+      .in("role", ["technician", "manager", "owner"])
+      .order("first_name", { ascending: true });
+
+    const names = (techProfiles || [])
+      .map(p => [p.first_name, p.last_name].filter(Boolean).join(" ").trim())
+      .filter(Boolean);
+
+    setTechnicians(Array.from(new Set(names))); // dedupe
+
     setLoading(false);
   };
 
@@ -137,6 +150,62 @@ export default function MaintenancePage() {
     () => tickets.filter(t => (filterStatus === "all" ? true : t.status === filterStatus)),
     [tickets, filterStatus]
   );
+
+  // NEW: Export tickets to CSV
+  const exportTicketsCsv = () => {
+    const headers = [
+      "ticket_id",
+      "gear_internal_id",
+      "status",
+      "assigned_technician",
+      "estimated_completion_date",
+      "cost",
+      "charge_customer",
+      "date_received",
+      "problem_description",
+      "parts_count",
+      "parts_total",
+    ];
+    const lines = [headers.join(",")];
+
+    tickets.forEach(t => {
+      const gearId = t.gear_items?.internal_id ?? "";
+      const assigned = (techUpdate[t.id] ?? t.assigned_technician) ?? "";
+      const eta = (etaUpdate[t.id] ?? (t.estimated_completion_date ? t.estimated_completion_date.split("T")[0] : "")) ?? "";
+      const cost = (costUpdate[t.id] ?? (t.cost ?? 0));
+      const charge = (chargeFlag[t.id] ?? !!t.charge_customer) ? "yes" : "no";
+      const received = t.date_received ? new Date(t.date_received).toISOString().split("T")[0] : "";
+      const desc = (t.problem_description || "").replace(/,/g, ";");
+      const partsList = parts[t.id] || [];
+      const partsCount = partsList.length;
+      const partsTotal = partsList.reduce((sum, p) => sum + Number(p.quantity || 0) * Number(p.unit_cost || 0), 0);
+
+      const row = [
+        t.id,
+        gearId,
+        t.status,
+        assigned,
+        eta,
+        cost.toString(),
+        charge,
+        received,
+        desc,
+        partsCount.toString(),
+        partsTotal.toFixed(2),
+      ];
+      lines.push(row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","));
+    });
+
+    const csv = lines.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `maintenance_tickets_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Tickets exported to CSV.");
+  };
 
   const addWorkLog = async (ticketId: string, description: string) => {
     if (!description.trim()) return;
@@ -462,6 +531,8 @@ export default function MaintenancePage() {
             </label>
             <Link href="/gear" className="text-sm underline">Go to Gear</Link>
             <Button variant="outline" onClick={runTriggerScan}>Run Service Trigger Scan</Button>
+            {/* NEW: Export CSV */}
+            <Button variant="outline" onClick={exportTicketsCsv}>Export CSV</Button>
           </div>
         </div>
 
@@ -521,12 +592,28 @@ export default function MaintenancePage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-sm">
-                      <Input
-                        className="w-40"
-                        placeholder="Technician"
-                        value={techUpdate[t.id] ?? (t.assigned_technician || "")}
-                        onChange={(e) => setTechUpdate(prev => ({ ...prev, [t.id]: e.target.value }))}
-                      />
+                      <div className="flex items-center gap-2">
+                        <Input
+                          className="w-40"
+                          placeholder="Technician"
+                          value={techUpdate[t.id] ?? (t.assigned_technician || "")}
+                          onChange={(e) => setTechUpdate(prev => ({ ...prev, [t.id]: e.target.value }))}
+                        />
+                        {/* NEW: quick picker from Profiles */}
+                        <select
+                          className="border rounded px-2 py-1 text-xs"
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val) setTechUpdate(prev => ({ ...prev, [t.id]: val }));
+                          }}
+                          value=""
+                        >
+                          <option value="">Pick</option>
+                          {technicians.map(name => (
+                            <option key={name} value={name}>{name}</option>
+                          ))}
+                        </select>
+                      </div>
                     </TableCell>
                     <TableCell className="text-sm">
                       <Input
@@ -665,6 +752,11 @@ export default function MaintenancePage() {
                       {(parts[t.id] || []).length === 0 && (
                         <div className="text-xs text-muted-foreground">No parts added.</div>
                       )}
+                      {/* NEW: parts total display */}
+                      <div className="text-xs mt-2 font-medium">
+                        Parts total: $
+                        {((parts[t.id] || []).reduce((sum, p) => sum + Number(p.quantity || 0) * Number(p.unit_cost || 0), 0)).toFixed(2)}
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -11,9 +11,8 @@ type Customer = {
   name: string;
   phone: string | null;
   email: string | null;
-  certification_level: string | null;
-  certification_agency: string | null;
   balance_due: number;
+  rentals: [{ count: number }]; // Supabase returns an array for related counts
 };
 
 export default function CustomersPage() {
@@ -25,7 +24,7 @@ export default function CustomersPage() {
       if (!user) return;
       const { data, error } = await supabase
         .from("customers")
-        .select("id, name, phone, email, certification_level, certification_agency, balance_due")
+        .select("id, name, phone, email, balance_due, rentals(count)") // Fetch phone, email, and rental count
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -45,8 +44,9 @@ export default function CustomersPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>Certification</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Number of Rentals</TableHead>
               <TableHead>Balance</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -55,14 +55,18 @@ export default function CustomersPage() {
             {customers.map(c => (
               <TableRow key={c.id}>
                 <TableCell>{c.name}</TableCell>
-                <TableCell>{[c.phone, c.email].filter(Boolean).join(" / ") || "-"}</TableCell>
-                <TableCell>{[c.certification_level, c.certification_agency].filter(Boolean).join(" / ") || "-"}</TableCell>
+                <TableCell>{c.phone || "-"}</TableCell>
+                <TableCell>{c.email || "-"}</TableCell>
+                <TableCell>{c.rentals[0]?.count || 0}</TableCell>
                 <TableCell>${Number(c.balance_due || 0).toFixed(2)}</TableCell>
-                <TableCell><Link href={`/customers/${c.id}`} className="text-sm underline">View</Link></TableCell>
+                <TableCell className="space-x-2">
+                  <Link href={`/customers/${c.id}`} className="text-sm underline">View</Link>
+                  <Link href={`/customers/${c.id}/edit`} className="text-sm underline">Edit</Link>
+                </TableCell>
               </TableRow>
             ))}
             {customers.length === 0 && (
-              <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground">No customers found.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground">No customers found.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>

@@ -13,6 +13,7 @@ type Profile = {
   first_name: string | null;
   last_name: string | null;
   role: string | null;
+  updated_at?: string | null;
 };
 
 export default function AdminUsersPage() {
@@ -22,17 +23,20 @@ export default function AdminUsersPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Managers/Owners can view all profiles (policy added)
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, first_name, last_name, role")
-      .order("updated_at", { ascending: false });
+    // Managers/Owners can view all via secure RPC; others see their own profile
+    const { data, error } = await supabase.rpc("list_profiles_for_admin");
 
     if (error) {
       toast.error("Failed to load users: " + error.message);
       return;
     }
-    setProfiles(data || []);
+    const list = (data || []) as Profile[];
+    list.sort((a, b) => {
+      const ta = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+      const tb = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+      return tb - ta;
+    });
+    setProfiles(list);
   };
 
   useEffect(() => {

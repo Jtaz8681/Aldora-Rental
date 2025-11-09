@@ -167,9 +167,7 @@ export default function RentalDetailPage() {
           {rental.customers?.email && <p><strong>Email:</strong> {rental.customers.email}</p>}
           {rental.customers?.phone && <p><strong>Phone:</strong> {rental.customers.phone}</p>}
           <p><strong>Start Date:</strong> {format(new Date(rental.start_at), 'PPP p')}</p>
-          {/* Changed <p> to <div> to fix nesting warning */}
           <div><strong>Expected End Date:</strong> {format(new Date(rental.expected_end_at), 'PPP p')} {isOverdue && <Badge variant="destructive" className="ml-2">Overdue</Badge>}</div>
-          {/* Changed <p> to <div> to fix nesting warning */}
           <div><strong>Status:</strong> <Badge variant={statusVariant(rental.status)}>{rental.status}</Badge></div>
           <p><strong>Total Cost:</strong> ${Number(rental.total_cost || 0).toFixed(2)}</p>
           {rental.signed_at && <p><strong>Signed At:</strong> {format(new Date(rental.signed_at), 'PPP p')}</p>}
@@ -229,10 +227,10 @@ export default function RentalDetailPage() {
                       <div className="space-y-1">
                         {item.damage_reports.map(dr => (
                           <div key={dr.id} className="border rounded p-1 text-xs">
-                            <p><strong>Type:</strong> {dr.damage_type || "N/A"}</p>
-                            <p><strong>Severity:</strong> <Badge variant={dr.severity === "Critical" ? "destructive" : "secondary"}>{dr.severity || "N/A"}</Badge></p>
-                            {dr.estimate_cost && <p><strong>Estimate:</strong> ${Number(dr.estimate_cost).toFixed(2)}</p>}
-                            {dr.notes && <p><strong>Notes:</strong> {dr.notes}</p>}
+                            <div><strong>Type:</strong> {dr.damage_type || "N/A"}</div>
+                            <div><strong>Severity:</strong> <Badge variant={dr.severity === "Critical" ? "destructive" : "secondary"}>{dr.severity || "N/A"}</Badge></div>
+                            {dr.estimate_cost && <div><strong>Estimate:</strong> ${Number(dr.estimate_cost).toFixed(2)}</div>}
+                            {dr.notes && <div><strong>Notes:</strong> {dr.notes}</div>}
                             {dr.photos && dr.photos.length > 0 && (
                               <div className="flex gap-1 mt-1">
                                 {dr.photos.map((photo, idx) => (

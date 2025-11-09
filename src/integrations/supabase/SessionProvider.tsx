@@ -36,14 +36,14 @@ export default function SessionProvider({ children }: Props) {
         router.replace("/gear");
       }
 
-      const { data } = supabase.auth.onAuthStateChange((event, newSession) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
         if (event === "SIGNED_IN" && pathname?.startsWith("/login")) {
           router.replace("/gear");
         } else if (event === "SIGNED_OUT") {
           router.replace("/login");
         }
       });
-      unsub = data;
+      unsub = subscription;
       setReady(true);
     };
 

@@ -17,7 +17,8 @@ export default function SignaturePad({ onChange }: Props) {
   };
 
   const save = () => {
-    const dataUrl = ref.current?.getTrimmedCanvas().toDataURL("image/png") || "";
+    const canvas = ref.current?.getCanvas();
+    const dataUrl = canvas ? canvas.toDataURL("image/png") : "";
     onChange(dataUrl);
   };
 

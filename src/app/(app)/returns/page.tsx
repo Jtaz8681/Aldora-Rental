@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
 import { format } from "date-fns";
+import { useRouter } from "next/navigation"; // Import useRouter
 
 type Rental = { 
   id: string; 
@@ -28,6 +29,7 @@ type DamageEntry = { hasDamage: boolean; type?: string; severity?: string; photo
 type DamageMap = Record<string, DamageEntry>;
 
 export default function ReturnsPage() {
+  const router = useRouter(); // Initialize useRouter
   const [query, setQuery] = useState("");
   const [rental, setRental] = useState<Rental | null>(null);
   const [items, setItems] = useState<(RentalItem & { gear: Gear })[]>([]);
@@ -249,6 +251,10 @@ export default function ReturnsPage() {
     setDamage({});
     setQuery(""); // Clear search query
     setActiveRentals(prev => prev.filter(r => r.id !== rental.id)); // Remove from active list
+    
+    // Redirect to rentals page and refresh to show updated status
+    router.push("/rentals");
+    router.refresh();
   };
 
   return (

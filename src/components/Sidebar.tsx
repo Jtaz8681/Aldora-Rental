@@ -71,7 +71,7 @@ export default function Sidebar() {
     { href: "/returns", icon: ArrowLeftRight, label: "Process Returns" },
     { href: "/maintenance", icon: Wrench, label: "Maintenance" },
     { href: "/reports", icon: BarChart3, label: "Reports" },
-    ...(role === "manager" || role === "owner" ? [{ href: "/(app)/admin/users", icon: Users, label: "Users" }] : []),
+    ...(role === "manager" || role === "owner" ? [{ href: "/admin/users", icon: Users, label: "Users" }] : []),
     { href: "/settings", icon: Settings, label: "Settings" }
   ];
 

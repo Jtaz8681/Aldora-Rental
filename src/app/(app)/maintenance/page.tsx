@@ -25,6 +25,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import ServiceScheduleCalendar from "@/components/ServiceScheduleCalendar";
 
 type Ticket = {
   id: string;
@@ -45,6 +46,13 @@ type Ticket = {
 
 type WorkLog = { id: string; description: string; created_at: string };
 type Part = { id: string; part_name: string; quantity: number; unit_cost: number | null };
+
+// NEW: Projection type for the calendar
+type Projection = {
+  gear: { id: string; internal_id: string; category: string };
+  nextDue: Date;
+  daysAway: number;
+};
 
 const STATUS_VARIANT = (status: string) => {
   switch (status) {
@@ -69,6 +77,8 @@ export default function MaintenancePage() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   // NEW: list of available technicians from profiles
   const [technicians, setTechnicians] = useState<string[]>([]);
+  // NEW: projections for ServiceScheduleCalendar
+  const [projections, setProjections] = useState<Projection[]>([]);
 
   const loadData = async () => {
     setLoading(true);
@@ -137,6 +147,57 @@ export default function MaintenancePage() {
       .filter(Boolean);
 
     setTechnicians(Array.from(new Set(names))); // dedupe
+
+    // NEW: Build service projections for the calendar
+    const { data: settings } = await supabase
+      .from("service_settings")
+      .select("regulator_service_interval_months, bcd_service_interval_months")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+    const regulatorMonths = Number(settings?.regulator_service_interval_months ?? 12);
+    const bcdMonths = Number(settings?.bcd_service_interval_months ?? 12);
+
+    const { data: gearData } = await supabase
+      .from("gear_items")
+      .select("id, internal_id, category, date_added, purchase_date")
+      .eq("user_id", user.id);
+
+    const projectionsCalc: Projection[] = [];
+    for (const g of gearData || []) {
+      const cat = (g.category || "").toLowerCase();
+      const months = cat.includes("reg")
+        ? regulatorMonths
+        : cat.includes("bcd")
+          ? bcdMonths
+          : 0;
+
+      if (months <= 0) continue;
+
+      const lastCompleted = (tData || [])
+        .filter(t => t.gear_id === g.id && t.status === "completed" && t.updated_at)
+        .sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime())[0];
+
+      const anchorStr = (lastCompleted?.updated_at as string | undefined) || (g.purchase_date as string | null) || (g.date_added as string | null) || null;
+      if (!anchorStr) continue;
+
+      const nextDue = new Date(anchorStr);
+      nextDue.setMonth(nextDue.getMonth() + months);
+      const daysAway = Math.ceil((nextDue.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+
+      projectionsCalc.push({
+        gear: {
+          id: g.id,
+          internal_id: (g.internal_id as string | null) ?? g.id.slice(0, 8),
+          category: g.category as string,
+        },
+        nextDue,
+        daysAway,
+      });
+    }
+
+    projectionsCalc.sort((a, b) => a.nextDue.getTime() - b.nextDue.getTime());
+    setProjections(projectionsCalc);
 
     setLoading(false);
   };
@@ -531,7 +592,6 @@ export default function MaintenancePage() {
             </label>
             <Link href="/gear" className="text-sm underline">Go to Gear</Link>
             <Button variant="outline" onClick={runTriggerScan}>Run Service Trigger Scan</Button>
-            {/* NEW: Export CSV */}
             <Button variant="outline" onClick={exportTicketsCsv}>Export CSV</Button>
           </div>
         </div>
@@ -542,6 +602,15 @@ export default function MaintenancePage() {
           </CardHeader>
           <CardContent>
             <MaintenanceTicketForm onCreated={loadData} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Service Schedule</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ServiceScheduleCalendar projections={projections} />
           </CardContent>
         </Card>
 

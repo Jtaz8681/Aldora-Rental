@@ -88,7 +88,7 @@ export default function ReturnsPage() {
         await supabase.from("damage_reports").insert({
           user_id: user.id,
           rental_id: rental.id,
-          gear_id: item.gear_id,
+          gear_id: item.gear.id, // Use item.gear.id here
           damage_type: d.type || null,
           severity: d.severity || "Functional",
           photos,
@@ -96,10 +96,10 @@ export default function ReturnsPage() {
           notes: d.notes || null
         });
         const newStatus = d.severity === "Critical" ? "Quarantined" : "In Maintenance";
-        await supabase.from("gear_items").update({ status: newStatus }).eq("id", item.gear_id).eq("user_id", user.id);
+        await supabase.from("gear_items").update({ status: newStatus }).eq("id", item.gear.id).eq("user_id", user.id); // Use item.gear.id here
         extraCharges += Number(d.estimate || 0);
       } else {
-        await supabase.from("gear_items").update({ status: "Available" }).eq("id", item.gear_id).eq("user_id", user.id);
+        await supabase.from("gear_items").update({ status: "Available" }).eq("id", item.gear.id).eq("user.id", user.id); // Use item.gear.id here
       }
     }
 

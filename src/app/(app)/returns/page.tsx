@@ -207,7 +207,7 @@ export default function ReturnsPage() {
         await supabase.from("damage_reports").insert({
           user_id: user.id,
           rental_id: rental.id,
-          gear_id: item.gear.id,
+          gear_id: item.gear_id,
           damage_type: d.type || null,
           severity: d.severity || "Functional",
           photos,
@@ -215,48 +215,34 @@ export default function ReturnsPage() {
           notes: d.notes || null
         });
         const newStatus = d.severity === "Critical" ? "Quarantined" : "In Maintenance";
-        await supabase.from("gear_items").update({ status: newStatus }).eq("id", item.gear.id).eq("user_id", user.id);
+        await supabase.from("gear_items").update({ status: newStatus }).eq("id", item.gear_id).eq("user_id", user.id);
         extraCharges += Number(d.estimate || 0);
       } else {
-        await supabase.from("gear_items").update({ status: "Available" }).eq("id", item.gear.id).eq("user_id", user.id);
+        await supabase.from("gear_items").update({ status: "Available" }).eq("id", item.gear_id).eq("user_id", user.id);
       }
     }
 
-    // Late fees: simple per-day late equals sum of per-item daily price * lateDays
-    if (lateDays > 0) {
-      const perDay = items.reduce((sum, i) => sum + Number(i.price || 0), 0);
-      extraCharges += perDay * lateDays;
-    }
+    // Calculate late charges based on per-day item prices
+    const perDaySum = items.reduce((sum, item) => sum + Number(item.price || 0), 0);
+    const lateCharges = perDaySum * lateDays;
 
-    // Update customer balance
-    if (extraCharges > 0) {
-      const { error: rpcError } = await supabase.rpc("increment_customer_balance", { 
-        p_user_id: user.id, 
-        p_customer_id: rental.customer_id, 
-        p_amount: extraCharges 
+    // Update rental as returned and adjust total_cost
+    const newTotal = Number(rental.total_cost || 0) + lateCharges + extraCharges;
+    await supabase
+      .from("rentals")
+      .update({ status: "returned", updated_at: new Date().toISOString(), total_cost: newTotal })
+      .eq("id", rental.id).eq("user_id", user.id);
+
+    // Increase customer balance by late/damage charges
+    if (lateCharges + extraCharges > 0) {
+      await supabase.rpc("increment_customer_balance", {
+        p_user_id: user.id,
+        p_customer_id: rental.customer_id,
+        p_amount: lateCharges + extraCharges,
       });
-
-      if (rpcError) {
-        // Fallback if function not present or other RPC error: direct update
-        console.error("RPC call failed, falling back to direct update:", rpcError);
-        const { data: cust } = await supabase
-          .from("customers")
-          .select("balance_due")
-          .eq("user_id", user.id)
-          .eq("id", rental.customer_id)
-          .single();
-        const current = Number(cust?.balance_due || 0);
-        await supabase
-          .from("customers")
-          .update({ balance_due: current + extraCharges })
-          .eq("user_id", user.id)
-          .eq("id", rental.customer_id);
-      }
     }
 
-    await supabase.from("rentals").update({ status: "completed" }).eq("id", rental.id).eq("user_id", user.id);
-
-    toast.success("Return finalized");
+    toast.success(`Return finalized. Late: $${lateCharges.toFixed(2)}, Damage: $${extraCharges.toFixed(2)}.`);
     setRental(null);
     setItems([]);
     setPostChecks({});

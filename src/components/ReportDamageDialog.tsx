@@ -35,6 +35,7 @@ type Props = {
   rentalId: string;
   gearId: string;
   gearInternalId: string;
+  rentalItemId: string; // Added rentalItemId prop
   onReported?: () => void;
 };
 
@@ -44,6 +45,7 @@ export default function ReportDamageDialog({
   rentalId,
   gearId,
   gearInternalId,
+  rentalItemId, // Destructure rentalItemId
   onReported,
 }: Props) {
   const { register, handleSubmit, formState: { isSubmitting, errors }, reset, setValue, watch } = useForm<FormValues>({
@@ -69,6 +71,7 @@ export default function ReportDamageDialog({
       user_id: user.id,
       rental_id: rentalId,
       gear_id: gearId,
+      rental_item_id: rentalItemId, // Included rental_item_id
       damage_type: values.damage_type || null,
       severity: values.severity,
       photos,

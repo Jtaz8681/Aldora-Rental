@@ -208,6 +208,7 @@ export default function ReturnsPage() {
           user_id: user.id,
           rental_id: rental.id,
           gear_id: item.gear_id,
+          rental_item_id: item.id, // Added rental_item_id
           damage_type: d.type || null,
           severity: d.severity || "Functional",
           photos,

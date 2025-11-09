@@ -25,6 +25,16 @@ type Rental = {
   customers: { name: string; email: string | null; phone: string | null } | null;
 };
 
+type DamageReport = {
+  id: string;
+  damage_type: string | null;
+  severity: string | null;
+  estimate_cost: number | null;
+  notes: string | null;
+  photos: string[] | null;
+  rental_item_id: string; // Added rental_item_id to type
+};
+
 type RentalItem = {
   id: string;
   gear_id: string;
@@ -43,14 +53,7 @@ type RentalItem = {
     size: string | null;
     photos: string[] | null;
   } | null;
-  damage_reports: {
-    id: string;
-    damage_type: string | null;
-    severity: string | null;
-    estimate_cost: number | null;
-    notes: string | null;
-    photos: string[] | null;
-  }[];
+  damage_reports: DamageReport[]; // Using the updated DamageReport type
 };
 
 export default function RentalDetailPage() {
@@ -95,7 +98,7 @@ export default function RentalDetailPage() {
       .select(`
           *,
           gear_items(internal_id, friendly_name, category, sub_type, brand, model, size, photos),
-          damage_reports(id, damage_type, severity, estimate_cost, notes, photos)
+          damage_reports(id, damage_type, severity, estimate_cost, notes, photos, rental_item_id)
         `)
       .eq("user_id", user.id)
       .eq("rental_id", rentalId);
@@ -164,8 +167,10 @@ export default function RentalDetailPage() {
           {rental.customers?.email && <p><strong>Email:</strong> {rental.customers.email}</p>}
           {rental.customers?.phone && <p><strong>Phone:</strong> {rental.customers.phone}</p>}
           <p><strong>Start Date:</strong> {format(new Date(rental.start_at), 'PPP p')}</p>
-          <p><strong>Expected End Date:</strong> {format(new Date(rental.expected_end_at), 'PPP p')} {isOverdue && <Badge variant="destructive" className="ml-2">Overdue</Badge>}</p>
-          <p><strong>Status:</strong> <Badge variant={statusVariant(rental.status)}>{rental.status}</Badge></p>
+          {/* Changed <p> to <div> to fix nesting warning */}
+          <div><strong>Expected End Date:</strong> {format(new Date(rental.expected_end_at), 'PPP p')} {isOverdue && <Badge variant="destructive" className="ml-2">Overdue</Badge>}</div>
+          {/* Changed <p> to <div> to fix nesting warning */}
+          <div><strong>Status:</strong> <Badge variant={statusVariant(rental.status)}>{rental.status}</Badge></div>
           <p><strong>Total Cost:</strong> ${Number(rental.total_cost || 0).toFixed(2)}</p>
           {rental.signed_at && <p><strong>Signed At:</strong> {format(new Date(rental.signed_at), 'PPP p')}</p>}
           {rental.signature_data_url && (
@@ -191,7 +196,7 @@ export default function RentalDetailPage() {
                 <TableHead>Pre-Checklist</TableHead>
                 <TableHead>Post-Checklist</TableHead>
                 <TableHead>Damage Reports</TableHead>
-                <TableHead>Actions</TableHead> {/* New column for actions */}
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -267,6 +272,7 @@ export default function RentalDetailPage() {
           rentalId={rental.id}
           gearId={selectedGearForDamage.gearId}
           gearInternalId={selectedGearForDamage.gearInternalId}
+          rentalItemId={selectedGearForDamage.rentalItemId} // Passed rentalItemId
           onReported={loadRentalData} // Refresh data after reporting damage
         />
       )}

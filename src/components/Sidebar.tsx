@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -42,6 +42,20 @@ const NavLink = ({ href, icon: Icon, label, currentPath, onClick }: NavLinkProps
 export default function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+      setRole(profile?.role || "manager");
+    })();
+  }, []);
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -61,6 +75,7 @@ export default function Sidebar() {
     { href: "/returns", icon: ArrowLeftRight, label: "Process Returns" },
     { href: "/maintenance", icon: Wrench, label: "Maintenance" },
     { href: "/reports", icon: BarChart3, label: "Reports" },
+    ...(role === "manager" || role === "owner" ? [{ href: "/(app)/admin/users", icon: Users, label: "Users" }] : []),
     { href: "/settings", icon: Settings, label: "Settings" }
   ];
 

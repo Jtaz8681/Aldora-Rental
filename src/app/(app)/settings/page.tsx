@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import RoleGuard from "@/components/RoleGuard";
+import CategoryPricingForm from "@/components/CategoryPricingForm";
 
 const schema = z.object({
   regulator_service_interval_months: z.coerce.number().min(1).default(12),
@@ -103,35 +105,39 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-xl">
-      <h1 className="text-2xl font-bold">Settings</h1>
+    <RoleGuard allow={["owner", "manager"]} title="Settings">
+      <div className="space-y-6 max-w-xl">
+        <h1 className="text-2xl font-bold">Settings</h1>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Service Intervals</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3">
-          <div>
-            <Label>Regulator service interval (months)</Label>
-            <Input type="number" {...register("regulator_service_interval_months")} />
-          </div>
-          <div>
-            <Label>BCD service interval (months)</Label>
-            <Input type="number" {...register("bcd_service_interval_months")} />
-          </div>
-          <div>
-            <Label>Usage threshold before service (days rented)</Label>
-            <Input type="number" {...register("max_dives_before_service")} />
-          </div>
-          <div>
-            <Label>Late fee per day</Label>
-            <Input type="number" step="0.01" {...register("late_fee_per_day")} />
-          </div>
-          <div>
-            <Button type="button" onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>Save Settings</Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Service Intervals</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <div>
+              <Label>Regulator service interval (months)</Label>
+              <Input type="number" {...register("regulator_service_interval_months")} />
+            </div>
+            <div>
+              <Label>BCD service interval (months)</Label>
+              <Input type="number" {...register("bcd_service_interval_months")} />
+            </div>
+            <div>
+              <Label>Usage threshold before service (days rented)</Label>
+              <Input type="number" {...register("max_dives_before_service")} />
+            </div>
+            <div>
+              <Label>Late fee per day</Label>
+              <Input type="number" step="0.01" {...register("late_fee_per_day")} />
+            </div>
+            <div>
+              <Button type="button" onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>Save Settings</Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <CategoryPricingForm />
+      </div>
+    </RoleGuard>
   );
 }

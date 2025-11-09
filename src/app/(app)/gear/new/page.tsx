@@ -40,6 +40,27 @@ export default function NewGearPage() {
   const { register, handleSubmit, formState: { errors, isSubmitting }, setValue, watch } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   const internalId = watch("internal_id");
+  const category = watch("category");
+
+  React.useEffect(() => {
+    (async () => {
+      const cat = (category || "").trim();
+      if (!cat) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      // Fetch default price for category
+      const { data } = await supabase
+        .from("category_pricing")
+        .select("price")
+        .eq("user_id", user.id)
+        .eq("category", cat)
+        .maybeSingle();
+      const defaultPrice = data?.price != null ? Number(data.price) : undefined;
+      if (defaultPrice != null) {
+        setValue("rental_price", defaultPrice, { shouldValidate: true });
+      }
+    })();
+  }, [category, setValue]);
 
   const onSubmit = async (values: FormValues) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -86,6 +107,7 @@ export default function NewGearPage() {
         <div>
           <Label>Category</Label>
           <Input {...register("category")} placeholder="BCD, Regulator, Wetsuit..." />
+          <p className="text-xs text-muted-foreground mt-1">If a default price is configured for this category, it will auto-fill.</p>
         </div>
         <div>
           <Label>Sub-type</Label>

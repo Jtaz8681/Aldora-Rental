@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
-import { format } = from "date-fns";
+import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import PostRentalChecklist from "@/components/PostRentalChecklist";
 import DamageReportForm from "@/components/DamageReportForm"; // Import the new component

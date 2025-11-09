@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import Link from "next/link";
 import { CheckCircle2, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button"; // Import Button
+import ReportDamageDialog from "@/components/ReportDamageDialog"; // Import the new component
 
 type Rental = {
   id: string;
@@ -59,52 +61,60 @@ export default function RentalDetailPage() {
   const [rentalItems, setRentalItems] = useState<RentalItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadRentalData = async () => {
-      if (!rentalId) return;
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+  const [showReportDamageDialog, setShowReportDamageDialog] = useState(false);
+  const [selectedGearForDamage, setSelectedGearForDamage] = useState<{ rentalItemId: string; gearId: string; gearInternalId: string } | null>(null);
 
-      const { data: rentalData, error: rentalError } = await supabase
-        .from("rentals")
-        .select(`
+  const loadRentalData = async () => {
+    if (!rentalId) return;
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const { data: rentalData, error: rentalError } = await supabase
+      .from("rentals")
+      .select(`
           *,
           customers(name, email, phone)
         `)
-        .eq("user_id", user.id)
-        .eq("id", rentalId)
-        .single();
+      .eq("user_id", user.id)
+      .eq("id", rentalId)
+      .single();
 
-      if (rentalError || !rentalData) {
-        console.error("Error fetching rental:", rentalError);
-        router.push("/rentals"); // Redirect if rental not found
-        return;
-      }
-      setRental(rentalData);
+    if (rentalError || !rentalData) {
+      console.error("Error fetching rental:", rentalError);
+      router.push("/rentals"); // Redirect if rental not found
+      return;
+    }
+    setRental(rentalData);
 
-      const { data: itemsData, error: itemsError } = await supabase
-        .from("rental_items")
-        .select(`
+    const { data: itemsData, error: itemsError } = await supabase
+      .from("rental_items")
+      .select(`
           *,
           gear_items(internal_id, friendly_name, category, sub_type, brand, model, size, photos),
           damage_reports(id, damage_type, severity, estimate_cost, notes, photos)
         `)
-        .eq("user_id", user.id)
-        .eq("rental_id", rentalId);
+      .eq("user_id", user.id)
+      .eq("rental_id", rentalId);
 
-      if (itemsError) {
-        console.error("Error fetching rental items:", itemsError);
-      }
-      setRentalItems(itemsData || []);
-      setLoading(false);
-    };
+    if (itemsError) {
+      console.error("Error fetching rental items:", itemsError);
+    }
+    setRentalItems(itemsData || []);
+    setLoading(false);
+  };
 
+  useEffect(() => {
     loadRentalData();
-  }, [rentalId, router]);
+  }, [rentalId]);
+
+  const handleReportDamageClick = (rentalItemId: string, gearId: string, gearInternalId: string) => {
+    setSelectedGearForDamage({ rentalItemId, gearId, gearInternalId });
+    setShowReportDamageDialog(true);
+  };
 
   const statusVariant = (status: string) => {
     switch (status) {
@@ -181,11 +191,12 @@ export default function RentalDetailPage() {
                 <TableHead>Pre-Checklist</TableHead>
                 <TableHead>Post-Checklist</TableHead>
                 <TableHead>Damage Reports</TableHead>
+                <TableHead>Actions</TableHead> {/* New column for actions */}
               </TableRow>
             </TableHeader>
             <TableBody>
               {rentalItems.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">No gear items for this rental.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">No gear items for this rental.</TableCell></TableRow>
               )}
               {rentalItems.map(item => (
                 <TableRow key={item.id}>
@@ -233,12 +244,32 @@ export default function RentalDetailPage() {
                       <span className="text-muted-foreground text-xs">No damage reported</span>
                     )}
                   </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleReportDamageClick(item.id, item.gear_id, item.gear_items?.internal_id || "N/A")}
+                    >
+                      Report Damage
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      {selectedGearForDamage && (
+        <ReportDamageDialog
+          open={showReportDamageDialog}
+          onOpenChange={setShowReportDamageDialog}
+          rentalId={rental.id}
+          gearId={selectedGearForDamage.gearId}
+          gearInternalId={selectedGearForDamage.gearInternalId}
+          onReported={loadRentalData} // Refresh data after reporting damage
+        />
+      )}
     </div>
   );
 }

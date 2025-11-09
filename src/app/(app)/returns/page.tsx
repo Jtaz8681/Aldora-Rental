@@ -12,12 +12,16 @@ type Rental = { id: string; customer_id: string; expected_end_at: string; total_
 type RentalItem = { id: string; gear_id: string; price: number; pre_checklist: any; post_checklist: any; };
 type Gear = { id: string; internal_id: string; category: string; };
 
+type PostChecks = Record<string, Record<string, boolean>>;
+type DamageEntry = { hasDamage: boolean; type?: string; severity?: string; photosCsv?: string; notes?: string; estimate?: number };
+type DamageMap = Record<string, DamageEntry>;
+
 export default function ReturnsPage() {
   const [query, setQuery] = useState("");
   const [rental, setRental] = useState<Rental | null>(null);
   const [items, setItems] = useState<(RentalItem & { gear: Gear })[]>([]);
-  const [postChecks, setPostChecks] = useState<Record<string, Record<string, boolean>>>({}); // rentalItemId -> checks
-  const [damage, setDamage] = useState<Record<string, { hasDamage: boolean; type?: string; severity?: string; photosCsv?: string; notes?: string; estimate?: number }>>({});
+  const [postChecks, setPostChecks] = useState<PostChecks>({});
+  const [damage, setDamage] = useState<DamageMap>({});
   const [inspector, setInspector] = useState<string>("");
 
   const loadRentalByInternalId = async () => {
@@ -99,7 +103,7 @@ export default function ReturnsPage() {
         await supabase.from("gear_items").update({ status: newStatus }).eq("id", item.gear.id).eq("user_id", user.id); // Use item.gear.id here
         extraCharges += Number(d.estimate || 0);
       } else {
-        await supabase.from("gear_items").update({ status: "Available" }).eq("id", item.gear.id).eq("user.id", user.id); // Use item.gear.id here
+        await supabase.from("gear_items").update({ status: "Available" }).eq("id", item.gear.id).eq("user_id", user.id); // Use item.gear.id here
       }
     }
 
@@ -167,15 +171,15 @@ export default function ReturnsPage() {
                       Regulator OK
                     </label>
                     <label className="flex items-center gap-2 text-sm">
-                      <Checkbox checked={!!checks.bcd_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev[item.id], bcd_ok: !!v } }))} />
+                      <Checkbox checked={!!checks.bcd_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev, [item.id]: { ...prev[item.id], bcd_ok: !!v } }))} />
                       BCD OK
                     </label>
                     <label className="flex items-center gap-2 text-sm">
-                      <Checkbox checked={!!checks.computer_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev[item.id], computer_ok: !!v } }))} />
+                      <Checkbox checked={!!checks.computer_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev, [item.id]: { ...prev[item.id], computer_ok: !!v } }))} />
                       Computer OK
                     </label>
                     <label className="flex items-center gap-2 text-sm">
-                      <Checkbox checked={!!checks.wetsuit_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev[item.id], wetsuit_ok: !!v } }))} />
+                      <Checkbox checked={!!checks.wetsuit_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev, [item.id]: { ...prev[item.id], wetsuit_ok: !!v } }))} />
                       Wetsuit OK
                     </label>
                   </div>

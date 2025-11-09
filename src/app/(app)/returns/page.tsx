@@ -13,6 +13,18 @@ import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import PostRentalChecklist from "@/components/PostRentalChecklist";
 import DamageReportForm from "@/components/DamageReportForm"; // Import the new component
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 type Rental = { 
   id: string; 
@@ -39,6 +51,11 @@ export default function ReturnsPage() {
   const [damage, setDamage] = useState<DamageMap>({});
   const [inspector, setInspector] = useState<string>("");
   const [activeRentals, setActiveRentals] = useState<Rental[]>([]);
+  const [lateFeePerDay, setLateFeePerDay] = useState<number>(0);
+  const [lateDays, setLateDays] = useState<number>(0);
+  const [lateCharges, setLateCharges] = useState<number>(0);
+  const [damageCharges, setDamageCharges] = useState<number>(0);
+  const [projectedTotal, setProjectedTotal] = useState<number>(0);
 
   useEffect(() => {
     const loadActiveRentals = async () => {
@@ -307,6 +324,51 @@ export default function ReturnsPage() {
     router.refresh();
   };
 
+  useEffect(() => {
+    const computeCharges = async () => {
+      if (!rental) {
+        setLateFeePerDay(0);
+        setLateDays(0);
+        setLateCharges(0);
+        setDamageCharges(0);
+        setProjectedTotal(0);
+        return;
+      }
+
+      const now = new Date();
+      const expected = new Date(rental.expected_end_at);
+      const ld = Math.max(Math.ceil((now.getTime() - expected.getTime()) / (1000 * 60 * 60 * 24)), 0);
+      setLateDays(ld);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: settings } = await supabase
+        .from("service_settings")
+        .select("late_fee_per_day")
+        .eq("user_id", user.id)
+        .limit(1)
+        .maybeSingle();
+
+      const fee = Number(settings?.late_fee_per_day ?? 0);
+      setLateFeePerDay(fee);
+
+      const lCharges = fee * ld;
+      setLateCharges(lCharges);
+
+      const dCharges = Object.values(damage).reduce((sum, d) => {
+        if (d?.hasDamage) return sum + Number(d.estimate || 0);
+        return sum;
+      }, 0);
+      setDamageCharges(dCharges);
+
+      const newTotal = Number(rental.total_cost || 0) + lCharges + dCharges;
+      setProjectedTotal(newTotal);
+    };
+
+    computeCharges();
+  }, [rental, damage]);
+
   return (
     <div className="grid gap-6">
       <h1 className="text-xl font-semibold">Returns</h1>
@@ -364,8 +426,69 @@ export default function ReturnsPage() {
             })}
           </div>
 
+          {/* NEW: Charges preview */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Charges Preview</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm space-y-1">
+              <div className="flex items-center justify-between">
+                <span>Late fee per day</span>
+                <span>${lateFeePerDay.toFixed(2)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Days late</span>
+                <span>{lateDays}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Late charges</span>
+                <span>${lateCharges.toFixed(2)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Damage charges (est.)</span>
+                <span>${damageCharges.toFixed(2)}</span>
+              </div>
+              <div className="flex items-center justify-between font-medium pt-2 border-t">
+                <span>New total after return</span>
+                <span>${projectedTotal.toFixed(2)}</span>
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="flex items-center justify-end">
-            <Button onClick={finalizeReturn}>Finalize Return</Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button disabled={!inspector.trim()} variant={inspector.trim() ? "default" : "secondary"}>
+                  Finalize Return
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirm Finalize Return</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will mark the rental as returned, update gear status, and add charges to the customer balance.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="text-sm space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span>Late charges</span>
+                    <span>${lateCharges.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Damage charges</span>
+                    <span>${damageCharges.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between font-medium pt-2 border-t">
+                    <span>New rental total</span>
+                    <span>${projectedTotal.toFixed(2)}</span>
+                  </div>
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={finalizeReturn}>Confirm</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       )}

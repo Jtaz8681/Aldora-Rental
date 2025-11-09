@@ -139,6 +139,7 @@ export default function RentalsPage() {
                 </TableCell>
                 <TableCell>${Number(r.total_cost || 0).toFixed(2)}</TableCell>
                 <TableCell className="space-x-2">
+                  <Link className="underline text-sm" href={`/rentals/${r.id}`}>View Rental</Link> {/* Added this link */}
                   <Link className="underline text-sm" href={`/customers/${r.customer_id}`}>View Customer</Link>
                   <Link className="underline text-sm" href={`/returns`}>Return</Link>
                 </TableCell>

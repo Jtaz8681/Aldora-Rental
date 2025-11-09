@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import supabase from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client"; // Changed from default to named import
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -170,11 +170,11 @@ export default function ReturnsPage() {
                       BCD OK
                     </label>
                     <label className="flex items-center gap-2 text-sm">
-                      <Checkbox checked={!!checks.computer_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev, [item.id]: { ...prev[item.id], computer_ok: !!v } }))} />
+                      <Checkbox checked={!!checks.computer_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev[item.id], computer_ok: !!v } }))} />
                       Computer OK
                     </label>
                     <label className="flex items-center gap-2 text-sm">
-                      <Checkbox checked={!!checks.wetsuit_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev, [item.id]: { ...prev[item.id], wetsuit_ok: !!v } }))} />
+                      <Checkbox checked={!!checks.wetsuit_ok} onCheckedChange={(v) => setPostChecks(prev => ({ ...prev[item.id], wetsuit_ok: !!v } }))} />
                       Wetsuit OK
                     </label>
                   </div>

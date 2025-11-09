@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import supabase from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client"; // Changed from default to named import
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -163,11 +163,11 @@ export default function NewRentalPage() {
                     BCD inflates/deflates and holds air
                   </label>
                   <label className="flex items-center gap-2 text-sm">
-                    <Checkbox checked={!!c.computer_ok} onCheckedChange={(v) => setChecklist(prev => ({ ...prev, [id]: { ...prev[id], computer_ok: !!v } }))} />
+                    <Checkbox checked={!!c.computer_ok} onCheckedChange={(v) => setChecklist(prev => ({ ...prev[id], computer_ok: !!v } }))} />
                     Computer powers on
                   </label>
                   <label className="flex items-center gap-2 text-sm">
-                    <Checkbox checked={!!c.wetsuit_ok} onCheckedChange={(v) => setChecklist(prev => ({ ...prev, [id]: { ...prev[id], wetsuit_ok: !!v } }))} />
+                    <Checkbox checked={!!c.wetsuit_ok} onCheckedChange={(v) => setChecklist(prev => ({ ...prev[id], wetsuit_ok: !!v } }))} />
                     Wetsuit has no major tears
                   </label>
                 </div>

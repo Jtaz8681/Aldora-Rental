@@ -14,6 +14,17 @@ import { format } from "date-fns";
 import Link from "next/link";
 import RoleGuard from "@/components/RoleGuard";
 import { Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 type Ticket = {
   id: string;
@@ -53,6 +64,11 @@ export default function MaintenancePage() {
   const [statusUpdate, setStatusUpdate] = useState<Record<string, string>>({});
   const [costUpdate, setCostUpdate] = useState<Record<string, number>>({});
   const [chargeFlag, setChargeFlag] = useState<Record<string, boolean>>({});
+  // NEW: inline updates for technician and estimated date
+  const [techUpdate, setTechUpdate] = useState<Record<string, string>>({});
+  const [etaUpdate, setEtaUpdate] = useState<Record<string, string>>({});
+  // NEW: filter by status
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
   const loadData = async () => {
     setLoading(true);
@@ -115,6 +131,12 @@ export default function MaintenancePage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // NEW: computed visible tickets based on filter
+  const visibleTickets = useMemo(
+    () => tickets.filter(t => (filterStatus === "all" ? true : t.status === filterStatus)),
+    [tickets, filterStatus]
+  );
 
   const addWorkLog = async (ticketId: string, description: string) => {
     if (!description.trim()) return;
@@ -217,12 +239,33 @@ export default function MaintenancePage() {
     await loadData();
   };
 
+  // NEW: Delete a ticket with confirmation
+  const deleteTicket = async (ticketId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase
+      .from("maintenance_tickets")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("id", ticketId);
+    if (error) {
+      toast.error("Failed to delete ticket: " + error.message);
+      throw error;
+    }
+    toast.success("Ticket deleted.");
+    await loadData();
+  };
+
   const updateTicket = async (ticket: Ticket) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const newStatus = statusUpdate[ticket.id] || ticket.status;
     const newCost = costUpdate[ticket.id] ?? ticket.cost ?? null;
     const newCharge = chargeFlag[ticket.id] ?? !!ticket.charge_customer;
+    // NEW: apply technician and estimated date updates
+    const newTech = (techUpdate[ticket.id] ?? ticket.assigned_technician) || null;
+    const etaStr = etaUpdate[ticket.id] ?? (ticket.estimated_completion_date ? ticket.estimated_completion_date.split("T")[0] : "");
+    const newEta = etaStr ? new Date(etaStr).toISOString() : ticket.estimated_completion_date;
 
     const { error } = await supabase
       .from("maintenance_tickets")
@@ -230,6 +273,8 @@ export default function MaintenancePage() {
         status: newStatus,
         cost: newCost,
         charge_customer: newCharge,
+        assigned_technician: newTech,
+        estimated_completion_date: newEta ?? null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", ticket.id)
@@ -401,6 +446,20 @@ export default function MaintenancePage() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Maintenance</h1>
           <div className="flex items-center gap-2">
+            <label className="text-sm flex items-center gap-2">
+              <span>Status filter:</span>
+              <select
+                className="border rounded px-2 py-1 text-sm"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+              >
+                <option value="all">All</option>
+                <option value="pending">pending</option>
+                <option value="in_progress">in_progress</option>
+                <option value="awaiting_parts">awaiting_parts</option>
+                <option value="completed">completed</option>
+              </select>
+            </label>
             <Link href="/gear" className="text-sm underline">Go to Gear</Link>
             <Button variant="outline" onClick={runTriggerScan}>Run Service Trigger Scan</Button>
           </div>
@@ -434,7 +493,7 @@ export default function MaintenancePage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tickets.map(t => (
+                {visibleTickets.map(t => (
                   <TableRow key={t.id}>
                     <TableCell>
                       {t.gear_items?.internal_id ? (
@@ -461,9 +520,21 @@ export default function MaintenancePage() {
                         </select>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm">{t.assigned_technician || "-"}</TableCell>
                     <TableCell className="text-sm">
-                      {t.estimated_completion_date ? format(new Date(t.estimated_completion_date), "PPP") : "-"}
+                      <Input
+                        className="w-40"
+                        placeholder="Technician"
+                        value={techUpdate[t.id] ?? (t.assigned_technician || "")}
+                        onChange={(e) => setTechUpdate(prev => ({ ...prev, [t.id]: e.target.value }))}
+                      />
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      <Input
+                        type="date"
+                        className="w-40"
+                        value={etaUpdate[t.id] ?? (t.estimated_completion_date ? t.estimated_completion_date.split("T")[0] : "")}
+                        onChange={(e) => setEtaUpdate(prev => ({ ...prev, [t.id]: e.target.value }))}
+                      />
                     </TableCell>
                     <TableCell>
                       <Input
@@ -486,10 +557,29 @@ export default function MaintenancePage() {
                     </TableCell>
                     <TableCell className="space-x-2">
                       <Button size="sm" variant="outline" onClick={() => updateTicket(t)}>Save</Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="destructive">Delete</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete this ticket?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete the ticket and its work logs and parts will no longer be visible. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => deleteTicket(t.id)}>
+                              Confirm Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))}
-                {tickets.length === 0 && (
+                {visibleTickets.length === 0 && (
                   <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground">No tickets.</TableCell></TableRow>
                 )}
               </TableBody>

@@ -43,12 +43,12 @@ export default function DuplicateCustomerWarning({
           <AlertDialogTitle>Possible Duplicate Customer</AlertDialogTitle>
           <AlertDialogDescription>
             A customer with similar details already exists.
-            <div className="mt-4 p-3 border rounded bg-muted text-sm">
-              <p className="font-semibold">{duplicateCustomer.name}</p>
-              {duplicateCustomer.phone && <p>Phone: {duplicateCustomer.phone}</p>}
-              {duplicateCustomer.email && <p>Email: {duplicateCustomer.email}</p>}
-            </div>
           </AlertDialogDescription>
+          <div className="mt-4 p-3 border rounded bg-muted text-sm">
+            <p className="font-semibold">{duplicateCustomer.name}</p>
+            {duplicateCustomer.phone && <p>Phone: {duplicateCustomer.phone}</p>}
+            {duplicateCustomer.email && <p>Email: {duplicateCustomer.email}</p>}
+          </div>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel asChild>

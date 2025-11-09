@@ -215,13 +215,28 @@ export default function ReturnsPage() {
 
     // Update customer balance
     if (extraCharges > 0) {
-      await supabase.rpc("increment_customer_balance", { p_user_id: user.id, p_customer_id: rental.customer_id, p_amount: extraCharges })
-        .catch(async () => {
-          // Fallback if function not present: direct update
-          const { data: cust } = await supabase.from("customers").select("balance_due").eq("user_id", user.id).eq("id", rental.customer_id).single();
-          const current = Number(cust?.balance_due || 0);
-          await supabase.from("customers").update({ balance_due: current + extraCharges }).eq("user_id", user.id).eq("id", rental.customer_id);
-        });
+      const { error: rpcError } = await supabase.rpc("increment_customer_balance", { 
+        p_user_id: user.id, 
+        p_customer_id: rental.customer_id, 
+        p_amount: extraCharges 
+      });
+
+      if (rpcError) {
+        // Fallback if function not present or other RPC error: direct update
+        console.error("RPC call failed, falling back to direct update:", rpcError);
+        const { data: cust } = await supabase
+          .from("customers")
+          .select("balance_due")
+          .eq("user_id", user.id)
+          .eq("id", rental.customer_id)
+          .single();
+        const current = Number(cust?.balance_due || 0);
+        await supabase
+          .from("customers")
+          .update({ balance_due: current + extraCharges })
+          .eq("user_id", user.id)
+          .eq("id", rental.customer_id);
+      }
     }
 
     await supabase.from("rentals").update({ status: "completed" }).eq("id", rental.id).eq("user_id", user.id);

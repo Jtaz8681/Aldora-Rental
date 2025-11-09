@@ -21,12 +21,8 @@ export default function RoleGuard({ allow, children, title }: Props) {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setRole(null); setLoading(false); return; }
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle();
-      const r = (profile?.role as Role) || "manager";
+      const { data: roleData } = await supabase.rpc("get_my_role");
+      const r = (roleData as Role) || "manager";
       setRole(r);
       setLoading(false);
     })();

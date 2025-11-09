@@ -32,17 +32,6 @@ export default function SettingsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Simple role check (manager only)
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (profile && profile.role && profile.role !== "manager") {
-        toast.error("Access denied: Manager role required.");
-        return;
-      }
-
       const { data: settings } = await supabase
         .from("service_settings")
         .select("*")

@@ -48,12 +48,8 @@ export default function Sidebar() {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle();
-      setRole(profile?.role || "manager");
+      const { data: roleData } = await supabase.rpc("get_my_role");
+      setRole((roleData as string) || "manager");
     })();
   }, []);
 

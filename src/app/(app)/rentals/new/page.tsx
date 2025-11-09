@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import SignaturePad from "@/components/SignaturePad";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import PickList from "@/components/PickList";
 
 type Customer = { id: string; name: string; };
@@ -25,6 +26,8 @@ export default function NewRentalPage() {
   const [signature, setSignature] = useState<string>("");
 
   const [checklist, setChecklist] = useState<Record<string, Record<string, boolean>>>({}); // gearId -> checks
+  const [conflictsByGear, setConflictsByGear] = useState<Record<string, { rentalId: string; start_at: string; expected_end_at: string }[]>>({});
+  const [checkingConflicts, setCheckingConflicts] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -37,6 +40,57 @@ export default function NewRentalPage() {
     };
     load();
   }, []);
+
+  // NEW: check for date-range conflicts when dates or selected gear change
+  useEffect(() => {
+    const run = async () => {
+      if (!startAt || !endAt || selectedGearIds.length === 0) {
+        setConflictsByGear({});
+        return;
+      }
+      setCheckingConflicts(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setCheckingConflicts(false);
+        return;
+      }
+
+      // Fetch rental items for selected gear with their parent rentals
+      const { data: items } = await supabase
+        .from("rental_items")
+        .select("gear_id, rental_id, rentals(id, start_at, expected_end_at, status)")
+        .eq("user_id", user.id)
+        .in("gear_id", selectedGearIds);
+
+      const conflicts: Record<string, { rentalId: string; start_at: string; expected_end_at: string }[]> = {};
+      const start = new Date(startAt).getTime();
+      const end = new Date(endAt).getTime();
+
+      (items || []).forEach((row: any) => {
+        const r = row.rentals;
+        if (!r || r.status !== "active") return;
+        const rStart = new Date(r.start_at).getTime();
+        const rEnd = new Date(r.expected_end_at).getTime();
+        const overlaps = !(rEnd < start || rStart > end);
+        if (overlaps) {
+          const gid = row.gear_id as string;
+          conflicts[gid] = conflicts[gid] || [];
+          conflicts[gid].push({
+            rentalId: r.id,
+            start_at: r.start_at,
+            expected_end_at: r.expected_end_at,
+          });
+        }
+      });
+
+      setConflictsByGear(conflicts);
+      setCheckingConflicts(false);
+    };
+
+    run();
+  }, [startAt, endAt, selectedGearIds]);
+
+  const hasConflicts = Object.keys(conflictsByGear).length > 0;
 
   const days = useMemo(() => {
     if (!startAt || !endAt) return 1;
@@ -120,6 +174,16 @@ export default function NewRentalPage() {
     <div className="grid gap-6">
       <h1 className="text-xl font-semibold">New Rental</h1>
 
+      {/* NEW: global conflicts alert */}
+      {hasConflicts && (
+        <Alert className="border-destructive/50 bg-destructive/10">
+          <AlertTitle>Some selected gear is already booked</AlertTitle>
+          <AlertDescription className="text-sm">
+            Adjust your dates or remove the conflicting items below. You cannot finalize while conflicts exist.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
           <Label>Customer</Label>
@@ -148,14 +212,44 @@ export default function NewRentalPage() {
       <div>
         <Label className="block mb-2">Gear (Available)</Label>
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2">
-          {gear.map(g => (
-            <label key={g.id} className="flex items-center gap-2 border rounded p-2">
-              <Checkbox checked={selectedGearIds.includes(g.id)} onCheckedChange={() => toggleGear(g.id)} />
-              <span className="text-sm">{g.internal_id} · {g.category} · ${g.rental_price.toFixed(2)}/day</span>
-            </label>
-          ))}
+          {gear.map(g => {
+            const conflicts = conflictsByGear[g.id] || [];
+            return (
+              <label key={g.id} className="flex flex-col gap-1 border rounded p-2">
+                <div className="flex items-center gap-2">
+                  <Checkbox checked={selectedGearIds.includes(g.id)} onCheckedChange={() => toggleGear(g.id)} />
+                  <span className="text-sm">{g.internal_id} · {g.category} · ${g.rental_price.toFixed(2)}/day</span>
+                </div>
+                {/* NEW: per-item conflict hint */}
+                {selectedGearIds.includes(g.id) && conflicts.length > 0 && (
+                  <span className="text-xs text-destructive">
+                    Not available for selected dates (conflicts with {conflicts.length} rental{conflicts.length > 1 ? "s" : ""})
+                  </span>
+                )}
+              </label>
+            );
+          })}
           {gear.length === 0 && <p className="text-sm text-muted-foreground">No available gear.</p>}
         </div>
+        {/* NEW: show conflict details list */}
+        {hasConflicts && (
+          <div className="mt-3 space-y-2">
+            {Object.entries(conflictsByGear).map(([gid, list]) => {
+              const g = gear.find(x => x.id === gid);
+              return (
+                <div key={gid} className="text-xs">
+                  <span className="font-medium">{g?.internal_id || "Gear"}:</span>{" "}
+                  {list.map((c, i) => (
+                    <span key={c.rentalId}>
+                      {new Date(c.start_at).toLocaleDateString()} → {new Date(c.expected_end_at).toLocaleDateString()}
+                      {i < list.length - 1 ? ", " : ""}
+                    </span>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {selectedGearIds.length > 0 && (
@@ -209,7 +303,9 @@ export default function NewRentalPage() {
             })}
             total={total}
           />
-          <Button onClick={submitRental}>Finalize & Check Out</Button>
+          <Button onClick={submitRental} disabled={checkingConflicts || hasConflicts}>
+            {checkingConflicts ? "Checking..." : "Finalize & Check Out"}
+          </Button>
         </div>
       </div>
     </div>

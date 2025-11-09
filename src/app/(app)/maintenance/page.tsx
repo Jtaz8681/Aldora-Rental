@@ -13,6 +13,7 @@ import MaintenanceTicketForm from "@/components/MaintenanceTicketForm";
 import { format } from "date-fns";
 import Link from "next/link";
 import RoleGuard from "@/components/RoleGuard";
+import { Trash2 } from "lucide-react";
 
 type Ticket = {
   id: string;
@@ -132,6 +133,61 @@ export default function MaintenancePage() {
     await loadData();
   };
 
+  // NEW: Helper to recompute ticket cost from parts (sum of quantity × unit_cost)
+  const recomputeTicketCost = async (ticketId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: partsData, error: partsErr } = await supabase
+      .from("maintenance_parts")
+      .select("quantity, unit_cost")
+      .eq("user_id", user.id)
+      .eq("ticket_id", ticketId);
+
+    if (partsErr) {
+      toast.error("Failed to recompute cost: " + partsErr.message);
+      throw partsErr;
+    }
+
+    const total = (partsData || []).reduce((sum, p) => {
+      const qty = Number(p.quantity || 0);
+      const cost = Number(p.unit_cost || 0);
+      return sum + qty * cost;
+    }, 0);
+
+    const { error: updErr } = await supabase
+      .from("maintenance_tickets")
+      .update({ cost: total, updated_at: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .eq("id", ticketId);
+
+    if (updErr) {
+      toast.error("Failed to update ticket cost: " + updErr.message);
+      throw updErr;
+    }
+  };
+
+  // NEW: Remove a part and recompute ticket cost
+  const removePart = async (ticketId: string, partId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("maintenance_parts")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("id", partId);
+
+    if (error) {
+      toast.error("Failed to remove part: " + error.message);
+      throw error;
+    }
+
+    await recomputeTicketCost(ticketId);
+    toast.success("Part removed and ticket cost updated.");
+    await loadData();
+  };
+
   const addPart = async (ticketId: string, partName: string, quantity: number, unitCost?: number) => {
     if (!partName.trim() || quantity <= 0) return;
     const { data: { user } } = await supabase.auth.getUser();
@@ -154,7 +210,10 @@ export default function MaintenancePage() {
       .eq("id", ticketId)
       .in("status", ["pending", "in_progress"]);
 
-    toast.success("Part added.");
+    // NEW: Recompute ticket cost from parts total
+    await recomputeTicketCost(ticketId);
+
+    toast.success("Part added and ticket cost updated.");
     await loadData();
   };
 
@@ -498,8 +557,19 @@ export default function MaintenancePage() {
                     </div>
                     <div className="mt-2 space-y-1">
                       {(parts[t.id] || []).map(pt => (
-                        <div key={pt.id} className="text-xs">
-                          {pt.part_name} × {pt.quantity} {pt.unit_cost != null ? `@ $${Number(pt.unit_cost).toFixed(2)}` : ""}
+                        <div key={pt.id} className="text-xs flex items-center justify-between">
+                          <div>
+                            {pt.part_name} × {pt.quantity} {pt.unit_cost != null ? `@ $${Number(pt.unit_cost).toFixed(2)}` : ""}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => removePart(t.id, pt.id)}
+                            aria-label="Remove part"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       ))}
                       {(parts[t.id] || []).length === 0 && (

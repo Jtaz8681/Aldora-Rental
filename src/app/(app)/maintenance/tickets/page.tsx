@@ -49,7 +49,6 @@ export default function MaintenanceTicketsPage() {
     const { data: tData, error: tErr } = await supabase
       .from("maintenance_tickets")
       .select("*, gear_items(internal_id, category)")
-      .eq("user_id", user.id)
       .order("date_received", { ascending: false });
 
     if (tErr) {
@@ -129,8 +128,7 @@ export default function MaintenanceTicketsPage() {
         estimated_completion_date: newEta ?? null,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", ticket.id)
-      .eq("user_id", user.id);
+      .eq("id", ticket.id);
 
     if (error) {
       toast.error("Failed to update ticket: " + error.message);
@@ -141,8 +139,7 @@ export default function MaintenanceTicketsPage() {
       await supabase
         .from("gear_items")
         .update({ status: "Available", updated_at: new Date().toISOString() })
-        .eq("id", ticket.gear_id)
-        .eq("user_id", user.id);
+        .eq("id", ticket.gear_id);
     }
 
     if (newStatus === "completed") {

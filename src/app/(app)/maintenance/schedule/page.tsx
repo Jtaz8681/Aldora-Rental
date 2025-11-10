@@ -25,7 +25,6 @@ export default function MaintenanceSchedulePage() {
       const { data: settings } = await supabase
         .from("service_settings")
         .select("regulator_service_interval_months, bcd_service_interval_months")
-        .eq("user_id", user.id)
         .limit(1)
         .maybeSingle();
 
@@ -34,8 +33,7 @@ export default function MaintenanceSchedulePage() {
 
       const { data: gearData, error: gErr } = await supabase
         .from("gear_items")
-        .select("id, internal_id, category, date_added, purchase_date, service_interval_months")
-        .eq("user_id", user.id);
+        .select("id, internal_id, category, date_added, purchase_date, service_interval_months");
 
       if (gErr) {
         toast.error("Failed to load gear: " + gErr.message);
@@ -44,8 +42,7 @@ export default function MaintenanceSchedulePage() {
 
       const { data: tData } = await supabase
         .from("maintenance_tickets")
-        .select("id, gear_id, status, updated_at")
-        .eq("user_id", user.id);
+        .select("id, gear_id, status, updated_at");
 
       const projectionsCalc: Projection[] = [];
       for (const g of gearData || []) {

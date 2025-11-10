@@ -76,7 +76,6 @@ export default function ReturnsPage() {
       const { data, error } = await supabase
         .from("rentals")
         .select("id, customer_id, start_at, expected_end_at, total_cost, status, customers(name, phone, email)")
-        .eq("user_id", user.id)
         .eq("status", "active")
         .order("expected_end_at", { ascending: true });
 
@@ -96,7 +95,6 @@ export default function ReturnsPage() {
     const { data: theRental, error: rentalError } = await supabase
       .from("rentals")
       .select("*, customers(name, phone, email)")
-      .eq("user_id", user.id)
       .eq("id", rentalId)
       .single();
 
@@ -114,7 +112,6 @@ export default function ReturnsPage() {
     const { data: rItemsFull } = await supabase
       .from("rental_items")
       .select("id, gear_id, price, pre_checklist, post_checklist")
-      .eq("user_id", user.id)
       .eq("rental_id", theRental.id);
 
     const gearIds = (rItemsFull || []).map(ri => ri.gear_id);
@@ -243,7 +240,6 @@ export default function ReturnsPage() {
     const { data: settings } = await supabase
       .from("service_settings")
       .select("late_fee_per_day")
-      .eq("user_id", user.id)
       .limit(1)
       .maybeSingle();
 
@@ -256,8 +252,8 @@ export default function ReturnsPage() {
       const { error: updateRentalItemError } = await supabase
         .from("rental_items")
         .update({ post_checklist: checks, inspected_by: inspectorName || null, inspected_at: new Date().toISOString() })
-        .eq("id", item.id)
-        .eq("user_id", user.id);
+        .eq("id", item.id);
+
       if (updateRentalItemError) {
         toast.error("Failed to update rental item checklist: " + updateRentalItemError.message);
         throw updateRentalItemError;
@@ -305,8 +301,7 @@ export default function ReturnsPage() {
         const { error: updateGearStatusError } = await supabase
           .from("gear_items")
           .update({ status: newStatus })
-          .eq("id", item.gear_id)
-          .eq("user_id", user.id);
+          .eq("id", item.gear_id);
         if (updateGearStatusError) {
           toast.error("Failed to update gear status after damage: " + updateGearStatusError.message);
           throw updateGearStatusError;
@@ -316,8 +311,7 @@ export default function ReturnsPage() {
         const { error: updateGearStatusError } = await supabase
           .from("gear_items")
           .update({ status: "Available" })
-          .eq("id", item.gear_id)
-          .eq("user_id", user.id);
+          .eq("id", item.gear_id);
         if (updateGearStatusError) {
           toast.error("Failed to update gear status to available: " + updateGearStatusError.message);
           throw updateGearStatusError;
@@ -331,8 +325,7 @@ export default function ReturnsPage() {
     const { error: updateRentalError } = await supabase
       .from("rentals")
       .update({ status: "returned", updated_at: new Date().toISOString(), total_cost: newTotal })
-      .eq("id", rental.id)
-      .eq("user_id", user.id);
+      .eq("id", rental.id);
     if (updateRentalError) {
       toast.error("Failed to update rental status: " + updateRentalError.message);
       throw updateRentalError;
@@ -382,7 +375,6 @@ export default function ReturnsPage() {
       const { data: settings } = await supabase
         .from("service_settings")
         .select("late_fee_per_day")
-        .eq("user_id", user.id)
         .limit(1)
         .maybeSingle();
 

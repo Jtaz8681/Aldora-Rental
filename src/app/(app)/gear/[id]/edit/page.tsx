@@ -106,7 +106,6 @@ export default function EditGearPage() {
       const { data, error } = await supabase
         .from("gear_items")
         .select("*")
-        .eq("user_id", user.id)
         .eq("id", id)
         .single();
       if (error) {
@@ -155,7 +154,6 @@ export default function EditGearPage() {
         const { data: tData } = await supabase
           .from("maintenance_tickets")
           .select("id, status, date_received, problem_description, updated_at, assigned_technician, cost")
-          .eq("user_id", user.id)
           .eq("gear_id", id)
           .order("date_received", { ascending: false });
         setTickets(tData || []);
@@ -164,7 +162,6 @@ export default function EditGearPage() {
           const { data: wlData } = await supabase
             .from("maintenance_work_logs")
             .select("id, ticket_id, description, created_at")
-            .eq("user_id", user.id)
             .in("ticket_id", ids)
             .order("created_at", { ascending: false });
           const map: Record<string, any[]> = {};
@@ -219,8 +216,7 @@ export default function EditGearPage() {
         checklist_template_pre: itemPreTemplate,
         checklist_template_post: itemPostTemplate,
       })
-      .eq("id", id)
-      .eq("user_id", user.id);
+      .eq("id", id);
 
     if (error) {
       toast.error("Failed to update gear: " + error.message);

@@ -36,7 +36,6 @@ export default function SettingsPage() {
       const { data: settings } = await supabase
         .from("service_settings")
         .select("*")
-        .eq("user_id", user.id)
         .limit(1)
         .maybeSingle();
 
@@ -56,7 +55,6 @@ export default function SettingsPage() {
     const { data: existing } = await supabase
       .from("service_settings")
       .select("id")
-      .eq("user_id", user.id)
       .limit(1)
       .maybeSingle();
 
@@ -69,8 +67,7 @@ export default function SettingsPage() {
       const { error } = await supabase
         .from("service_settings")
         .update(payload)
-        .eq("id", existing.id)
-        .eq("user_id", user.id);
+        .eq("id", existing.id);
       if (error) {
         toast.error("Failed to save settings: " + error.message);
         throw error;

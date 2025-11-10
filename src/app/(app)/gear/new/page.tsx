@@ -71,7 +71,6 @@ export default function NewGearPage() {
       const { data: cats } = await supabase
         .from("gear_categories")
         .select("id, name, service_interval_months, usage_service_threshold")
-        .eq("user_id", user.id)
         .order("name");
       setCategories(cats || []);
     })();
@@ -85,7 +84,6 @@ export default function NewGearPage() {
       const { data: subs } = await supabase
         .from("gear_subcategories")
         .select("id, name, category_id, service_interval_months, usage_service_threshold")
-        .eq("user_id", user.id)
         .eq("category_id", categoryId)
         .order("name");
       setSubcategories(subs || []);
@@ -108,7 +106,6 @@ export default function NewGearPage() {
       const { data } = await supabase
         .from("category_pricing")
         .select("price")
-        .eq("user_id", user.id)
         .eq("category", cat)
         .maybeSingle();
       const defaultPrice = data?.price != null ? Number(data.price) : undefined;

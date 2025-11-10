@@ -92,8 +92,7 @@ export default function ReportDamageDialog({
     if (values.severity === "Critical") {
       const { error: updateGearStatusError } = await supabase.from("gear_items")
         .update({ status: "Quarantined" })
-        .eq("id", gearId)
-        .eq("user_id", user.id);
+        .eq("id", gearId);
       if (updateGearStatusError) {
         toast.error("Failed to update gear status: " + updateGearStatusError.message);
         throw updateGearStatusError;

@@ -38,7 +38,6 @@ export default function EditCustomerPage() {
       const { data, error } = await supabase
         .from("customers")
         .select("*")
-        .eq("user_id", user.id)
         .eq("id", id)
         .single();
 
@@ -63,7 +62,7 @@ export default function EditCustomerPage() {
     const { error } = await supabase.from("customers").update({
       ...values,
       updated_at: new Date().toISOString(),
-    }).eq("id", id).eq("user_id", user.id);
+    }).eq("id", id);
 
     if (error) {
       toast.error("Failed to update customer: " + error.message);

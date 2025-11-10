@@ -21,11 +21,11 @@ export default function CustomerDetailPage() {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !id) return;
-      const { data: cust } = await supabase.from("customers").select("*").eq("user_id", user.id).eq("id", id).single();
+      const { data: cust } = await supabase.from("customers").select("*").eq("id", id).single();
       setCustomer(cust);
-      const { data: r } = await supabase.from("rentals").select("*").eq("user_id", user.id).eq("customer_id", id).order("start_at", { ascending: false });
+      const { data: r } = await supabase.from("rentals").select("*").eq("customer_id", id).order("start_at", { ascending: false });
       setRentals(r || []);
-      const { data: pays } = await supabase.from("payments").select("*").eq("user_id", user.id).eq("customer_id", id).order("created_at", { ascending: false }).limit(10);
+      const { data: pays } = await supabase.from("payments").select("*").eq("customer_id", id).order("created_at", { ascending: false }).limit(10);
       setPayments(pays || []);
     };
     load();
@@ -117,7 +117,6 @@ export default function CustomerDetailPage() {
               const { data: pays } = await supabase
                 .from("payments")
                 .select("*")
-                .eq("user_id", user.id)
                 .eq("customer_id", id)
                 .order("created_at", { ascending: false })
                 .limit(10);
@@ -127,7 +126,6 @@ export default function CustomerDetailPage() {
             const { data: cust } = await supabase
               .from("customers")
               .select("*")
-              .eq("user_id", user.id)
               .eq("id", id)
               .single();
             setCustomer(cust);

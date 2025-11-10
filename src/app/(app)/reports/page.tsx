@@ -31,33 +31,27 @@ export default function ReportsPage() {
 
       const { data: gearData } = await supabase
         .from("gear_items")
-        .select("id, internal_id, category, date_added, purchase_date, rental_price, service_interval_months")
-        .eq("user_id", user.id);
+        .select("id, internal_id, category, date_added, purchase_date, rental_price, service_interval_months");
 
       const { data: rentalItemData } = await supabase
         .from("rental_items")
-        .select("gear_id, rentals(start_at, expected_end_at, status)")
-        .eq("user_id", user.id);
+        .select("gear_id, rentals(start_at, expected_end_at, status)");
 
       const { data: ticketData } = await supabase
         .from("maintenance_tickets")
-        .select("id, gear_id, status, cost, updated_at, date_received")
-        .eq("user_id", user.id);
+        .select("id, gear_id, status, cost, updated_at, date_received");
 
       const { data: damageData } = await supabase
         .from("damage_reports")
-        .select("id, gear_id, user_id, severity, estimate_cost, reported_at")
-        .eq("user_id", user.id);
+        .select("id, gear_id, user_id, severity, estimate_cost, reported_at");
 
       const { data: rentalData } = await supabase
         .from("rentals")
-        .select("id, customer_id, start_at, expected_end_at, status, customers(name, phone, email)")
-        .eq("user_id", user.id);
+        .select("id, customer_id, start_at, expected_end_at, status, customers(name, phone, email)");
 
       const { data: settings } = await supabase
         .from("service_settings")
         .select("*")
-        .eq("user_id", user.id)
         .limit(1)
         .maybeSingle();
 

@@ -92,7 +92,6 @@ export default function MaintenancePage() {
     const { data: tData, error: tErr } = await supabase
       .from("maintenance_tickets")
       .select("*, gear_items(internal_id, category)")
-      .eq("user_id", user.id)
       .order("date_received", { ascending: false });
 
     if (tErr) {
@@ -108,14 +107,12 @@ export default function MaintenancePage() {
       const { data: wlData } = await supabase
         .from("maintenance_work_logs")
         .select("*")
-        .eq("user_id", user.id)
         .in("ticket_id", ids)
         .order("created_at", { ascending: false });
 
       const { data: pData } = await supabase
         .from("maintenance_parts")
         .select("*")
-        .eq("user_id", user.id)
         .in("ticket_id", ids)
         .order("created_at", { ascending: false });
 
@@ -152,7 +149,6 @@ export default function MaintenancePage() {
     const { data: settings } = await supabase
       .from("service_settings")
       .select("regulator_service_interval_months, bcd_service_interval_months")
-      .eq("user_id", user.id)
       .limit(1)
       .maybeSingle();
     const regulatorMonths = Number(settings?.regulator_service_interval_months ?? 12);
@@ -160,8 +156,7 @@ export default function MaintenancePage() {
 
     const { data: gearData } = await supabase
       .from("gear_items")
-      .select("id, internal_id, category, date_added, purchase_date")
-      .eq("user_id", user.id);
+      .select("id, internal_id, category, date_added, purchase_date");
 
     const projectionsCalc: Projection[] = [];
     for (const g of gearData || []) {
@@ -293,7 +288,6 @@ export default function MaintenancePage() {
     const { data: partsData, error: partsErr } = await supabase
       .from("maintenance_parts")
       .select("quantity, unit_cost")
-      .eq("user_id", user.id)
       .eq("ticket_id", ticketId);
 
     if (partsErr) {
@@ -310,7 +304,6 @@ export default function MaintenancePage() {
     const { error: updErr } = await supabase
       .from("maintenance_tickets")
       .update({ cost: total, updated_at: new Date().toISOString() })
-      .eq("user_id", user.id)
       .eq("id", ticketId);
 
     if (updErr) {
@@ -327,7 +320,6 @@ export default function MaintenancePage() {
     const { error } = await supabase
       .from("maintenance_parts")
       .delete()
-      .eq("user_id", user.id)
       .eq("id", partId);
 
     if (error) {
@@ -358,7 +350,6 @@ export default function MaintenancePage() {
     await supabase
       .from("maintenance_tickets")
       .update({ status: "awaiting_parts", updated_at: new Date().toISOString() })
-      .eq("user_id", user.id)
       .eq("id", ticketId)
       .in("status", ["pending", "in_progress"]);
 
@@ -376,7 +367,6 @@ export default function MaintenancePage() {
     const { error } = await supabase
       .from("maintenance_tickets")
       .delete()
-      .eq("user_id", user.id)
       .eq("id", ticketId);
     if (error) {
       toast.error("Failed to delete ticket: " + error.message);
@@ -407,8 +397,7 @@ export default function MaintenancePage() {
         estimated_completion_date: newEta ?? null,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", ticket.id)
-      .eq("user_id", user.id);
+      .eq("id", ticket.id);
 
     if (error) {
       toast.error("Failed to update ticket: " + error.message);
@@ -420,8 +409,7 @@ export default function MaintenancePage() {
       await supabase
         .from("gear_items")
         .update({ status: "Available", updated_at: new Date().toISOString() })
-        .eq("id", ticket.gear_id)
-        .eq("user_id", user.id);
+        .eq("id", ticket.gear_id);
     }
 
     // NEW: On completion, log Final Testing & Sign-off
@@ -441,7 +429,6 @@ export default function MaintenancePage() {
       const { data: rental, error: rErr } = await supabase
         .from("rentals")
         .select("customer_id")
-        .eq("user_id", user.id)
         .eq("id", ticket.rental_id)
         .single();
 
@@ -471,7 +458,6 @@ export default function MaintenancePage() {
     const { data: settings } = await supabase
       .from("service_settings")
       .select("*")
-      .eq("user_id", user.id)
       .limit(1)
       .maybeSingle();
 
@@ -481,8 +467,7 @@ export default function MaintenancePage() {
 
     const { data: gear } = await supabase
       .from("gear_items")
-      .select("id, category, date_added, purchase_date")
-      .eq("user_id", user.id);
+      .select("id, category, date_added, purchase_date");
 
     if (!gear || gear.length === 0) {
       toast.info("No gear to scan.");
@@ -497,7 +482,6 @@ export default function MaintenancePage() {
       const { data: lastCompleted } = await supabase
         .from("maintenance_tickets")
         .select("id, updated_at")
-        .eq("user_id", user.id)
         .eq("gear_id", g.id)
         .eq("status", "completed")
         .order("updated_at", { ascending: false })
@@ -522,7 +506,6 @@ export default function MaintenancePage() {
       const { data: rentalsForGear } = await supabase
         .from("rental_items")
         .select("rental_id, rentals(start_at, expected_end_at)")
-        .eq("user_id", user.id)
         .eq("gear_id", g.id);
 
       let usageDays = 0;
@@ -541,7 +524,6 @@ export default function MaintenancePage() {
       const { data: openTicket } = await supabase
         .from("maintenance_tickets")
         .select("id")
-        .eq("user_id", user.id)
         .eq("gear_id", g.id)
         .in("status", ["pending", "in_progress", "awaiting_parts"])
         .limit(1)

@@ -61,7 +61,6 @@ export default function MaintenanceTicketDetailPage() {
     const { data: tData, error: tErr } = await supabase
       .from("maintenance_tickets")
       .select("*, gear_items(internal_id, category)")
-      .eq("user_id", user.id)
       .eq("id", ticketId)
       .single();
 
@@ -80,14 +79,12 @@ export default function MaintenanceTicketDetailPage() {
     const { data: wlData } = await supabase
       .from("maintenance_work_logs")
       .select("*")
-      .eq("user_id", user.id)
       .eq("ticket_id", ticketId)
       .order("created_at", { ascending: false });
 
     const { data: pData } = await supabase
       .from("maintenance_parts")
       .select("*")
-      .eq("user_id", user.id)
       .eq("ticket_id", ticketId)
       .order("created_at", { ascending: false });
 
@@ -120,7 +117,6 @@ export default function MaintenanceTicketDetailPage() {
     const { data: partsData, error: partsErr } = await supabase
       .from("maintenance_parts")
       .select("quantity, unit_cost")
-      .eq("user_id", user.id)
       .eq("ticket_id", ticketIdLocal);
 
     if (partsErr) {
@@ -137,7 +133,6 @@ export default function MaintenanceTicketDetailPage() {
     const { error: updErr } = await supabase
       .from("maintenance_tickets")
       .update({ cost: total, updated_at: new Date().toISOString() })
-      .eq("user_id", user.id)
       .eq("id", ticketIdLocal);
 
     if (updErr) {
@@ -182,7 +177,6 @@ export default function MaintenanceTicketDetailPage() {
     await supabase
       .from("maintenance_tickets")
       .update({ status: "awaiting_parts", updated_at: new Date().toISOString() })
-      .eq("user_id", user.id)
       .eq("id", ticket.id)
       .in("status", ["pending", "in_progress"]);
 
@@ -199,7 +193,6 @@ export default function MaintenanceTicketDetailPage() {
     const { error } = await supabase
       .from("maintenance_parts")
       .delete()
-      .eq("user_id", user.id)
       .eq("id", partId);
 
     if (error) {
@@ -228,8 +221,7 @@ export default function MaintenanceTicketDetailPage() {
         estimated_completion_date: etaIso ?? null,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", ticket.id)
-      .eq("user_id", user.id);
+      .eq("id", ticket.id);
 
     if (error) {
       toast.error("Failed to update ticket: " + error.message);
@@ -240,8 +232,7 @@ export default function MaintenanceTicketDetailPage() {
       await supabase
         .from("gear_items")
         .update({ status: "Available", updated_at: new Date().toISOString() })
-        .eq("id", ticket.gear_id)
-        .eq("user_id", user.id);
+        .eq("id", ticket.gear_id);
     }
 
     if (statusUpdate === "completed") {
@@ -260,7 +251,6 @@ export default function MaintenanceTicketDetailPage() {
       const { data: rental } = await supabase
         .from("rentals")
         .select("customer_id")
-        .eq("user_id", user.id)
         .eq("id", ticket.rental_id)
         .single();
 
@@ -289,7 +279,6 @@ export default function MaintenanceTicketDetailPage() {
     const { error } = await supabase
       .from("maintenance_tickets")
       .delete()
-      .eq("user_id", user.id)
       .eq("id", ticket.id);
     if (error) {
       toast.error("Failed to delete ticket: " + error.message);

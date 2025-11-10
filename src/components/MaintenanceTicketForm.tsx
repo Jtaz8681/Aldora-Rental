@@ -48,7 +48,6 @@ export default function MaintenanceTicketForm({ onCreated }: Props) {
       const { data, error } = await supabase
         .from("gear_items")
         .select("id, internal_id, category")
-        .eq("user_id", user.id)
         .order("internal_id", { ascending: true });
       if (error) {
         toast.error("Failed to load gear: " + error.message);

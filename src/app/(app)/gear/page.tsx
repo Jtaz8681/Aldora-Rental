@@ -35,7 +35,6 @@ export default function GearPage() {
       const { data, error } = await supabase
         .from("gear_items")
         .select("id, internal_id, friendly_name, category, sub_type, brand, model, size, status, rental_price, manual_url")
-        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       setGear(data || []);

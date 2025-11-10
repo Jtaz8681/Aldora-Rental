@@ -40,12 +40,11 @@ export default function NewRentalPage() {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data: c } = await supabase.from("customers").select("id,name").eq("user_id", user.id).order("name");
+      const { data: c } = await supabase.from("customers").select("id,name").order("name");
       setCustomers(c || []);
       const { data: g } = await supabase
         .from("gear_items")
         .select("id, internal_id, category, rental_price, status, category_id, checklist_template_pre")
-        .eq("user_id", user.id)
         .eq("status", "Available")
         .order("internal_id");
       setGear(g || []);
@@ -85,7 +84,6 @@ export default function NewRentalPage() {
       const { data: items } = await supabase
         .from("rental_items")
         .select("gear_id, rental_id, rentals(id, start_at, expected_end_at, status)")
-        .eq("user_id", user.id)
         .in("gear_id", selectedGearIds);
 
       const conflicts: Record<string, { rentalId: string; start_at: string; expected_end_at: string }[]> = {};
@@ -198,7 +196,7 @@ export default function NewRentalPage() {
 
       await supabase.from("gear_items")
         .update({ status: "Checked-Out" })
-        .eq("id", gearId).eq("user_id", user.id);
+        .eq("id", gearId);
     }
 
     // Apply bill to customer account (use total which respects package)

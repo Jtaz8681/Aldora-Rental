@@ -57,7 +57,7 @@ export default function NewCustomerPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    let queryBuilder = supabase.from("customers").select("id, name, phone, email").eq("user_id", user.id);
+    let queryBuilder = supabase.from("customers").select("id, name, phone, email");
     const conditions: string[] = [];
 
     if (values.name) conditions.push(`name.ilike.%${values.name}%`);

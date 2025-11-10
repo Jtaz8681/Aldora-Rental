@@ -39,7 +39,6 @@ export default function MaintenanceWorkPartsPage() {
     const { data: tData, error: tErr } = await supabase
       .from("maintenance_tickets")
       .select("*, gear_items(internal_id, category)")
-      .eq("user_id", user.id)
       .in("status", ["pending", "in_progress", "awaiting_parts", "completed"])
       .order("status", { ascending: true });
 
@@ -55,14 +54,12 @@ export default function MaintenanceWorkPartsPage() {
       const { data: wlData } = await supabase
         .from("maintenance_work_logs")
         .select("*")
-        .eq("user_id", user.id)
         .in("ticket_id", ids)
         .order("created_at", { ascending: false });
 
       const { data: pData } = await supabase
         .from("maintenance_parts")
         .select("*")
-        .eq("user_id", user.id)
         .in("ticket_id", ids)
         .order("created_at", { ascending: false });
 
@@ -96,7 +93,6 @@ export default function MaintenanceWorkPartsPage() {
     const { data: partsData, error: partsErr } = await supabase
       .from("maintenance_parts")
       .select("quantity, unit_cost")
-      .eq("user_id", user.id)
       .eq("ticket_id", ticketId);
 
     if (partsErr) {
@@ -113,7 +109,6 @@ export default function MaintenanceWorkPartsPage() {
     const { error: updErr } = await supabase
       .from("maintenance_tickets")
       .update({ cost: total, updated_at: new Date().toISOString() })
-      .eq("user_id", user.id)
       .eq("id", ticketId);
 
     if (updErr) {
@@ -129,7 +124,6 @@ export default function MaintenanceWorkPartsPage() {
     const { error } = await supabase
       .from("maintenance_parts")
       .delete()
-      .eq("user_id", user.id)
       .eq("id", partId);
 
     if (error) {
@@ -174,7 +168,6 @@ export default function MaintenanceWorkPartsPage() {
     await supabase
       .from("maintenance_tickets")
       .update({ status: "awaiting_parts", updated_at: new Date().toISOString() })
-      .eq("user_id", user.id)
       .eq("id", ticketId)
       .in("status", ["pending", "in_progress"]);
 

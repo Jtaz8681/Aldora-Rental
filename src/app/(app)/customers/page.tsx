@@ -12,7 +12,7 @@ type Customer = {
   phone: string | null;
   email: string | null;
   balance_due: number;
-  rentals: { count: number }[];
+  rentals: { count: number }[] | [{ count: number }];
 };
 
 export default function CustomersPage() {

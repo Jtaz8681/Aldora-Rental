@@ -37,24 +37,22 @@ export default function MultiPhotoUpload({ onUploaded, initialUrls = [], gearInt
 
     for (const file of Array.from(files)) {
       const path = `${safeName}/${Date.now()}_${file.name}`;
-      const res = await fetch("https://dsnimoewqcyeegvedion.supabase.co/functions/v1/upload-gear-photo", {
-        method: "POST",
+
+      const { data, error } = await supabase.functions.invoke("upload-gear-photo", {
+        body: await file.arrayBuffer(),
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
           "Content-Type": file.type || "application/octet-stream",
           "X-File-Path": path,
         },
-        body: await file.arrayBuffer(),
       });
 
-      if (!res.ok) {
-        const text = await res.text();
-        toast.error("Upload failed: " + text);
+      if (error) {
+        toast.error("Upload failed: " + (error.message || "Unknown error"));
         setUploading(false);
-        throw new Error(text);
+        throw error;
       }
 
-      const json = await res.json();
+      const json = data as { path?: string; publicUrl?: string };
       if (json?.publicUrl) uploaded.push(json.publicUrl);
     }
 

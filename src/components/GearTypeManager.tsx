@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState, Fragment } from "react"; // Added Fragment here
+import React, { useEffect, useMemo, useState, Fragment } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
@@ -18,6 +18,7 @@ type Category = {
   checklist_template_pre?: Record<string, string> | null;
   checklist_template_post?: Record<string, string> | null;
 };
+
 type Subcategory = {
   id: string;
   category_id: string;
@@ -35,7 +36,7 @@ const defaultCategorySeeds: string[] = [
   "Dive Computer",
   "Lights",
   "Tank",
-  "Weights"
+  "Weights",
 ];
 
 export default function GearTypeManager() {
@@ -51,7 +52,7 @@ export default function GearTypeManager() {
   // New subcategory form
   const [newSubName, setNewSubName] = useState("");
 
-  // NEW: checklist template editors
+  // Checklist template editors
   const [preTemplate, setPreTemplate] = useState<Record<string, string>>({});
   const [postTemplate, setPostTemplate] = useState<Record<string, string>>({});
   const [newPreKey, setNewPreKey] = useState("");
@@ -85,8 +86,7 @@ export default function GearTypeManager() {
     }
     setSubcategories(subs || []);
 
-    // Populate template editors when a category is selected
-    const sel = (cats || []).find(c => c.id === selectedCategoryId);
+    const sel = (cats || []).find((c) => c.id === selectedCategoryId);
     setPreTemplate((sel?.checklist_template_pre as any) || {});
     setPostTemplate((sel?.checklist_template_post as any) || {});
   };
@@ -96,13 +96,13 @@ export default function GearTypeManager() {
   }, []);
 
   useEffect(() => {
-    const sel = categories.find(c => c.id === selectedCategoryId);
+    const sel = categories.find((c) => c.id === selectedCategoryId);
     setPreTemplate((sel?.checklist_template_pre as any) || {});
     setPostTemplate((sel?.checklist_template_post as any) || {});
   }, [selectedCategoryId, categories]);
 
   const currentSubcats = useMemo(
-    () => subcategories.filter(s => s.category_id === selectedCategoryId),
+    () => subcategories.filter((s) => s.category_id === selectedCategoryId),
     [subcategories, selectedCategoryId]
   );
 
@@ -115,7 +115,7 @@ export default function GearTypeManager() {
     }
 
     // Insert base categories
-    const baseRows = defaultCategorySeeds.map(name => ({
+    const baseRows = defaultCategorySeeds.map((name) => ({
       user_id: user.id,
       name,
       service_interval_months: null,
@@ -123,14 +123,16 @@ export default function GearTypeManager() {
       checklist_template_pre: {},
       checklist_template_post: {},
     }));
-    const { data: insertedCats, error: catsErr } = await supabase.from("gear_categories").insert(baseRows).select("id, name");
+    const { data: insertedCats, error: catsErr } = await supabase
+      .from("gear_categories")
+      .insert(baseRows)
+      .select("id, name");
     if (catsErr) {
       toast.error("Seeding categories failed: " + catsErr.message);
       throw catsErr;
     }
 
-    // Helper to find inserted IDs
-    const getCatId = (nm: string) => insertedCats?.find(c => c.name === nm)?.id;
+    const getCatId = (nm: string) => insertedCats?.find((c) => c.name === nm)?.id;
 
     // Define example subcategories
     const subRows: any[] = [
@@ -144,7 +146,7 @@ export default function GearTypeManager() {
       { user_id: user.id, category_id: getCatId("Regulator"), name: "Alternate Air Source (Octopus)" },
       { user_id: user.id, category_id: getCatId("Regulator"), name: "Low-Pressure Inflator Hose" },
       { user_id: user.id, category_id: getCatId("Regulator"), name: "Submersible Pressure Gauge (SPG)" },
-    ].filter(r => r.category_id);
+    ].filter((r) => r.category_id);
 
     if (subRows.length) {
       const { error: subsErr } = await supabase.from("gear_subcategories").insert(subRows);
@@ -158,7 +160,8 @@ export default function GearTypeManager() {
     const bcdId = getCatId("BCD");
     const regId = getCatId("Regulator");
     if (bcdId) {
-      await supabase.from("gear_categories")
+      await supabase
+        .from("gear_categories")
         .update({
           checklist_template_pre: {
             bcd_inflate_ok: "Inflates/deflates smoothly",
@@ -171,13 +174,14 @@ export default function GearTypeManager() {
             holds_pressure_5min: "Holds pressure (5 min)",
             hose_inspected: "Hoses inspected",
             visual_ok: "Visual check OK",
-          }
+          },
         })
         .eq("id", bcdId)
         .eq("user_id", user.id);
     }
     if (regId) {
-      await supabase.from("gear_categories")
+      await supabase
+        .from("gear_categories")
         .update({
           checklist_template_pre: {
             regulator_breathes_ok: "Breathes freely",
@@ -190,7 +194,7 @@ export default function GearTypeManager() {
             regs_rinsed: "Rinsed & cleaned",
             mouthpiece_ok: "Mouthpiece good",
             spg_ok: "SPG reads correctly",
-          }
+          },
         })
         .eq("id", regId)
         .eq("user_id", user.id);
@@ -229,7 +233,11 @@ export default function GearTypeManager() {
     if (!user) return;
     const { error } = await supabase
       .from("gear_categories")
-      .update({ service_interval_months: months, usage_service_threshold: usage, updated_at: new Date().toISOString() })
+      .update({
+        service_interval_months: months,
+        usage_service_threshold: usage,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", id)
       .eq("user_id", user.id);
     if (error) {
@@ -328,15 +336,17 @@ export default function GearTypeManager() {
       toast.error("Provide both key and label for pre-check.");
       return;
     }
-    setPreTemplate(prev => ({ ...prev, [key]: label }));
+    setPreTemplate((prev) => ({ ...prev, [key]: label }));
     setNewPreKey("");
     setNewPreLabel("");
   };
+
   const removePreCheck = (key: string) => {
     const next = { ...preTemplate };
     delete next[key];
     setPreTemplate(next);
   };
+
   const addPostCheck = () => {
     const key = newPostKey.trim();
     const label = newPostLabel.trim();
@@ -344,10 +354,11 @@ export default function GearTypeManager() {
       toast.error("Provide both key and label for post-check.");
       return;
     }
-    setPostTemplate(prev => ({ ...prev, [key]: label }));
+    setPostTemplate((prev) => ({ ...prev, [key]: label }));
     setNewPostKey("");
     setNewPostLabel("");
   };
+
   const removePostCheck = (key: string) => {
     const next = { ...postTemplate };
     delete next[key];
@@ -365,10 +376,26 @@ export default function GearTypeManager() {
           <div>
             <div className="text-sm font-medium mb-2">Add Category</div>
             <div className="grid grid-cols-[2fr,1fr,1fr,auto] gap-2 mb-3">
-              <Input placeholder="Category name (e.g., BCD)" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} />
-              <Input type="number" placeholder="Months" value={newCatMonths === "" ? "" : String(newCatMonths)} onChange={(e) => setNewCatMonths(e.target.value === "" ? "" : Number(e.target.value))} />
-              <Input type="number" placeholder="Usage (days)" value={newCatUsage === "" ? "" : String(newCatUsage)} onChange={(e) => setNewCatUsage(e.target.value === "" ? "" : Number(e.target.value))} />
-              <Button variant="outline" onClick={addCategory}>Add</Button>
+              <Input
+                placeholder="Category name (e.g., BCD)"
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+              />
+              <Input
+                type="number"
+                placeholder="Months"
+                value={newCatMonths === "" ? "" : String(newCatMonths)}
+                onChange={(e) => setNewCatMonths(e.target.value === "" ? "" : Number(e.target.value))}
+              />
+              <Input
+                type="number"
+                placeholder="Usage (days)"
+                value={newCatUsage === "" ? "" : String(newCatUsage)}
+                onChange={(e) => setNewCatUsage(e.target.value === "" ? "" : Number(e.target.value))}
+              />
+              <Button variant="outline" onClick={addCategory}>
+                Add
+              </Button>
             </div>
 
             <Table>
@@ -381,17 +408,25 @@ export default function GearTypeManager() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {categories.map(cat => (
+                {categories.map((cat) => (
                   <TableRow key={cat.id} className="align-top">
                     <TableCell>
-                      <button className="font-mono underline" onClick={() => setSelectedCategoryId(cat.id)}>{cat.name}</button>
+                      <button className="font-mono underline" onClick={() => setSelectedCategoryId(cat.id)}>
+                        {cat.name}
+                      </button>
                     </TableCell>
                     <TableCell>
                       <Input
                         type="number"
                         className="w-24"
                         defaultValue={cat.service_interval_months ?? ""}
-                        onBlur={(e) => updateCategory(cat.id, e.target.value === "" ? null : Number(e.target.value), cat.usage_service_threshold)}
+                        onBlur={(e) =>
+                          updateCategory(
+                            cat.id,
+                            e.target.value === "" ? null : Number(e.target.value),
+                            cat.usage_service_threshold
+                          )
+                        }
                       />
                     </TableCell>
                     <TableCell>
@@ -399,17 +434,27 @@ export default function GearTypeManager() {
                         type="number"
                         className="w-28"
                         defaultValue={cat.usage_service_threshold ?? ""}
-                        onBlur={(e) => updateCategory(cat.id, cat.service_interval_months, e.target.value === "" ? null : Number(e.target.value))}
+                        onBlur={(e) =>
+                          updateCategory(
+                            cat.id,
+                            cat.service_interval_months,
+                            e.target.value === "" ? null : Number(e.target.value)
+                          )
+                        }
                       />
                     </TableCell>
                     <TableCell>
-                      <Button variant="destructive" size="sm" onClick={() => deleteCategory(cat.id)}>Remove</Button>
+                      <Button variant="destructive" size="sm" onClick={() => deleteCategory(cat.id)}>
+                        Remove
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
                 {categories.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">No categories configured. Add your first category above.</TableCell>
+                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
+                      No categories configured. Add your first category above.
+                    </TableCell>
                   </TableRow>
                 )}
               </TableBody>
@@ -432,11 +477,21 @@ export default function GearTypeManager() {
                   <SelectValue placeholder="Pick a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              <Input placeholder="Subcategory name (e.g., Jacket Style BCD)" value={newSubName} onChange={(e) => setNewSubName(e.target.value)} />
-              <Button variant="outline" onClick={addSubcategory} disabled={!selectedCategoryId}>Add</Button>
+              <Input
+                placeholder="Subcategory name (e.g., Jacket Style BCD)"
+                value={newSubName}
+                onChange={(e) => setNewSubName(e.target.value)}
+              />
+              <Button variant="outline" onClick={addSubcategory} disabled={!selectedCategoryId}>
+                Add
+              </Button>
             </div>
 
             <Table>
@@ -447,22 +502,28 @@ export default function GearTypeManager() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentSubcats.map(sc => (
+                {currentSubcats.map((sc) => (
                   <TableRow key={sc.id}>
                     <TableCell className="font-mono">{sc.name}</TableCell>
                     <TableCell>
-                      <Button variant="destructive" size="sm" onClick={() => deleteSubcategory(sc.id)}>Remove</Button>
+                      <Button variant="destructive" size="sm" onClick={() => deleteSubcategory(sc.id)}>
+                        Remove
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
                 {selectedCategoryId && currentSubcats.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-center text-sm text-muted-foreground">No subcategories for this category yet.</TableCell>
+                    <TableCell colSpan={2} className="text-center text-sm text-muted-foreground">
+                      No subcategories for this category yet.
+                    </TableCell>
                   </TableRow>
                 )}
                 {!selectedCategoryId && (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-center text-sm text-muted-foreground">Select a category to view or add subcategories.</TableCell>
+                    <TableCell colSpan={2} className="text-center text-sm text-muted-foreground">
+                      Select a category to view or add subcategories.
+                    </TableCell>
                   </TableRow>
                 )}
               </TableBody>
@@ -479,8 +540,14 @@ export default function GearTypeManager() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2">
             <Input placeholder="key (e.g., bcd_inflate_ok)" value={newPreKey} onChange={(e) => setNewPreKey(e.target.value)} />
-            <Input placeholder="Label (e.g., Inflates/deflates smoothly)" value={newPreLabel} onChange={(e) => setNewPreLabel(e.target.value)} />
-            <Button variant="outline" onClick={addPreCheck}>Add</Button>
+            <Input
+              placeholder="Label (e.g., Inflates/deflates smoothly)"
+              value={newPreLabel}
+              onChange={(e) => setNewPreLabel(e.target.value)}
+            />
+            <Button variant="outline" onClick={addPreCheck}>
+              Add
+            </Button>
           </div>
           <Table>
             <TableHeader>
@@ -495,11 +562,19 @@ export default function GearTypeManager() {
                 <TableRow key={key}>
                   <TableCell className="font-mono">{key}</TableCell>
                   <TableCell>{label}</TableCell>
-                  <TableCell><Button variant="destructive" size="sm" onClick={() => removePreCheck(key)}>Remove</Button></TableCell>
+                  <TableCell>
+                    <Button variant="destructive" size="sm" onClick={() => removePreCheck(key)}>
+                      Remove
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
               {Object.keys(preTemplate).length === 0 && (
-                <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground">No pre-checks configured.</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-sm text-muted-foreground">
+                    No pre-checks configured.
+                  </TableCell>
+                </TableRow>
               )}
             </TableBody>
           </Table>
@@ -518,7 +593,9 @@ export default function GearTypeManager() {
           <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2">
             <Input placeholder="key (e.g., regs_rinsed)" value={newPostKey} onChange={(e) => setNewPostKey(e.target.value)} />
             <Input placeholder="Label (e.g., Rinsed & cleaned)" value={newPostLabel} onChange={(e) => setNewPostLabel(e.target.value)} />
-            <Button variant="outline" onClick={addPostCheck}>Add</Button>
+            <Button variant="outline" onClick={addPostCheck}>
+              Add
+            </Button>
           </div>
           <Table>
             <TableHeader>
@@ -533,13 +610,20 @@ export default function GearTypeManager() {
                 <TableRow key={key}>
                   <TableCell className="font-mono">{key}</TableCell>
                   <TableCell>{label}</TableCell>
-                  <TableCell><Button variant="destructive" size="sm" onClick={() => removePostCheck(key)}>Remove</Button></TableCell>
+                  <TableCell>
+                    <Button variant="destructive" size="sm" onClick={() => removePostCheck(key)}>
+                      Remove
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
               {Object.keys(postTemplate).length === 0 && (
-                <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground">No post-checks configured.</TableCell></TableRow>
-              </TableRow>
-            )}
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-sm text-muted-foreground">
+                    No post-checks configured.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
           <div className="flex justify-end">

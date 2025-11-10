@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import PickList from "@/components/PickList";
 import { roundToTwo } from "@/lib/format";
+import { ensureDefaultTemplate } from "@/lib/checklists";
 
 type Customer = { id: string; name: string; };
 type Gear = { id: string; internal_id: string; category: string; rental_price: number; status: string; category_id?: string; checklist_template_pre?: Record<string, string> | null };
@@ -138,9 +139,10 @@ export default function NewRentalPage() {
   const toggleGear = (id: string) => {
     setSelectedGearIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
     const gItem = gear.find(x => x.id === id);
-    const tmpl = (gItem?.checklist_template_pre && Object.keys(gItem.checklist_template_pre).length
+    const rawTmpl = (gItem?.checklist_template_pre && Object.keys(gItem.checklist_template_pre).length
       ? gItem.checklist_template_pre
       : (gItem?.category_id ? categoryPreTemplates[gItem.category_id] || {} : {})) as Record<string, string>;
+    const tmpl = ensureDefaultTemplate(rawTmpl);
     const defaults = Object.fromEntries(Object.keys(tmpl).map(k => [k, false]));
     setChecklist(prev => ({ ...prev, [id]: prev[id] || defaults }));
   };
@@ -336,9 +338,10 @@ export default function NewRentalPage() {
           {selectedGearIds.map(id => {
             const gItem = gear.find(x => x.id === id);
             const c = checklist[id] || {};
-            const tmpl = (gItem?.checklist_template_pre && Object.keys(gItem.checklist_template_pre || {}).length
+            const rawTmpl = (gItem?.checklist_template_pre && Object.keys(gItem.checklist_template_pre || {}).length
               ? (gItem?.checklist_template_pre as any)
               : (gItem?.category_id ? categoryPreTemplates[gItem.category_id] || {} : {})) as Record<string, string>;
+            const tmpl = ensureDefaultTemplate(rawTmpl);
             return (
               <div key={id} className="border rounded p-3">
                 <p className="font-medium text-sm mb-2">{gItem?.internal_id} · {gItem?.category}</p>

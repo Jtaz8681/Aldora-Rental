@@ -3,6 +3,7 @@
 import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { ensureDefaultTemplate } from "@/lib/checklists";
 
 type Checklist = Record<string, boolean>;
 
@@ -25,7 +26,7 @@ export default function PostRentalChecklist({
     onChecklistChange({ ...checklist, [key]: value });
   };
 
-  const entries = Object.entries(template);
+  const entries = Object.entries(ensureDefaultTemplate(template));
 
   return (
     <div className="border rounded p-3 space-y-2">

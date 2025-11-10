@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import PostRentalChecklist from "@/components/PostRentalChecklist";
 import DamageReportForm from "@/components/DamageReportForm"; // Import the new component
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { ensureDefaultTemplate, ensureDefaultChecks } from "@/lib/checklists";
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -141,7 +142,7 @@ export default function ReturnsPage() {
     // Initialize per-item post-checks with existing values
     const defaults: Record<string, Record<string, boolean>> = {};
     enriched.forEach(ri => {
-      defaults[ri.id] = ri.post_checklist || {};
+      defaults[ri.id] = ensureDefaultChecks(ri.post_checklist);
     });
     setPostChecks(defaults);
 
@@ -249,9 +250,10 @@ export default function ReturnsPage() {
 
     for (const item of items) {
       const checks = postChecks[item.id] || {};
+      const checksWithDefault = ensureDefaultChecks(checks);
       const { error: updateRentalItemError } = await supabase
         .from("rental_items")
-        .update({ post_checklist: checks, inspected_by: inspectorName || null, inspected_at: new Date().toISOString() })
+        .update({ post_checklist: checksWithDefault, inspected_by: inspectorName || null, inspected_at: new Date().toISOString() })
         .eq("id", item.id);
 
       if (updateRentalItemError) {
@@ -433,9 +435,11 @@ export default function ReturnsPage() {
                     category={item.gear.category}
                     checklist={checks}
                     onChecklistChange={(newChecks) => setPostChecks(prev => ({ ...prev, [item.id]: newChecks }))}
-                    template={Object.keys(item.gear.checklist_template_post || {}).length
-                      ? (item.gear.checklist_template_post as any)
-                      : (item.gear.category_id ? categoryTemplates[item.gear.category_id] || {} : {})}
+                    template={ensureDefaultTemplate(
+                      Object.keys(item.gear.checklist_template_post || {}).length
+                        ? (item.gear.checklist_template_post as any)
+                        : (item.gear.category_id ? categoryTemplates[item.gear.category_id] || {} : {})
+                    )}
                   />
 
                   <DamageReportForm

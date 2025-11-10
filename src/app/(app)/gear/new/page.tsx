@@ -14,6 +14,7 @@ import ManualUpload from "@/components/ManualUpload";
 import MultiPhotoUpload from "@/components/MultiPhotoUpload";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { DEFAULT_CHECK_KEY, DEFAULT_CHECK_LABEL, ensureDefaultTemplate } from "@/lib/checklists";
 
 const schema = z.object({
   internal_id: z.string().min(1),
@@ -57,8 +58,8 @@ export default function NewGearPage() {
   const [customMonths, setCustomMonths] = React.useState<number | "">("");
   const [customUsageDays, setCustomUsageDays] = React.useState<number | "">("");
   // NEW: item-level checklist templates
-  const [itemPreTemplate, setItemPreTemplate] = React.useState<Record<string, string>>({});
-  const [itemPostTemplate, setItemPostTemplate] = React.useState<Record<string, string>>({});
+  const [itemPreTemplate, setItemPreTemplate] = React.useState<Record<string, string>>({ [DEFAULT_CHECK_KEY]: DEFAULT_CHECK_LABEL });
+  const [itemPostTemplate, setItemPostTemplate] = React.useState<Record<string, string>>({ [DEFAULT_CHECK_KEY]: DEFAULT_CHECK_LABEL });
   const [newItemPreKey, setNewItemPreKey] = React.useState("");
   const [newItemPreLabel, setNewItemPreLabel] = React.useState("");
   const [newItemPostKey, setNewItemPostKey] = React.useState("");
@@ -153,8 +154,8 @@ export default function NewGearPage() {
       status: "Available",
       service_interval_months: serviceMonths,
       usage_service_threshold: usageThreshold,
-      checklist_template_pre: itemPreTemplate,
-      checklist_template_post: itemPostTemplate,
+      checklist_template_pre: ensureDefaultTemplate(itemPreTemplate),
+      checklist_template_post: ensureDefaultTemplate(itemPostTemplate),
     });
     if (error) throw error;
     toast.success("Gear added");
@@ -310,16 +311,18 @@ export default function NewGearPage() {
               {Object.entries(itemPreTemplate).map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between text-xs">
                   <span className="font-mono">{k}</span> <span>{v}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    type="button"
-                    onClick={() => {
-                      const next = { ...itemPreTemplate }; delete next[k]; setItemPreTemplate(next);
-                    }}
-                  >
-                    Remove
-                  </Button>
+                  {k !== DEFAULT_CHECK_KEY && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      onClick={() => {
+                        const next = { ...itemPreTemplate }; delete next[k]; setItemPreTemplate(next);
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  )}
                 </div>
               ))}
               {Object.keys(itemPreTemplate).length === 0 && (
@@ -349,16 +352,18 @@ export default function NewGearPage() {
               {Object.entries(itemPostTemplate).map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between text-xs">
                   <span className="font-mono">{k}</span> <span>{v}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    type="button"
-                    onClick={() => {
-                      const next = { ...itemPostTemplate }; delete next[k]; setItemPostTemplate(next);
-                    }}
-                  >
-                    Remove
-                  </Button>
+                  {k !== DEFAULT_CHECK_KEY && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      onClick={() => {
+                        const next = { ...itemPostTemplate }; delete next[k]; setItemPostTemplate(next);
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  )}
                 </div>
               ))}
               {Object.keys(itemPostTemplate).length === 0 && (

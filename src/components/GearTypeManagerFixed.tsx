@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { DEFAULT_CHECK_KEY, DEFAULT_CHECK_LABEL, ensureDefaultTemplate } from "@/lib/checklists";
 
 type Category = {
   id: string;
@@ -92,8 +93,8 @@ export default function GearTypeManagerFixed(): JSX.Element {
     }
 
     const sel = (cats || []).find((c) => c.id === selectedCategoryId);
-    setPreTemplate((sel?.checklist_template_pre as any) || {});
-    setPostTemplate((sel?.checklist_template_post as any) || {});
+    setPreTemplate(ensureDefaultTemplate((sel?.checklist_template_pre as any) || {}));
+    setPostTemplate(ensureDefaultTemplate((sel?.checklist_template_post as any) || {}));
   };
 
   useEffect(() => {
@@ -103,8 +104,8 @@ export default function GearTypeManagerFixed(): JSX.Element {
 
   useEffect(() => {
     const sel = categories.find((c) => c.id === selectedCategoryId);
-    setPreTemplate((sel?.checklist_template_pre as any) || {});
-    setPostTemplate((sel?.checklist_template_post as any) || {});
+    setPreTemplate(ensureDefaultTemplate((sel?.checklist_template_pre as any) || {}));
+    setPostTemplate(ensureDefaultTemplate((sel?.checklist_template_post as any) || {}));
   }, [selectedCategoryId, categories]);
 
   const currentSubcats = useMemo(
@@ -235,8 +236,8 @@ export default function GearTypeManagerFixed(): JSX.Element {
     const { error } = await supabase
       .from("gear_categories")
       .update({
-        checklist_template_pre: preTemplate,
-        checklist_template_post: postTemplate,
+        checklist_template_pre: ensureDefaultTemplate(preTemplate),
+        checklist_template_post: ensureDefaultTemplate(postTemplate),
         updated_at: new Date().toISOString(),
       })
       .eq("id", selectedCategoryId)
@@ -262,6 +263,7 @@ export default function GearTypeManagerFixed(): JSX.Element {
   };
 
   const removePreCheck = (key: string) => {
+    if (key === DEFAULT_CHECK_KEY) return;
     const next = { ...preTemplate };
     delete next[key];
     setPreTemplate(next);
@@ -280,6 +282,7 @@ export default function GearTypeManagerFixed(): JSX.Element {
   };
 
   const removePostCheck = (key: string) => {
+    if (key === DEFAULT_CHECK_KEY) return;
     const next = { ...postTemplate };
     delete next[key];
     setPostTemplate(next);
@@ -571,9 +574,11 @@ export default function GearTypeManagerFixed(): JSX.Element {
                   <TableCell className="font-mono">{key}</TableCell>
                   <TableCell>{label}</TableCell>
                   <TableCell>
-                    <Button variant="destructive" size="sm" onClick={() => removePreCheck(key)}>
-                      Remove
-                    </Button>
+                    {key !== DEFAULT_CHECK_KEY && (
+                      <Button variant="destructive" size="sm" onClick={() => removePreCheck(key)}>
+                        Remove
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -637,9 +642,11 @@ export default function GearTypeManagerFixed(): JSX.Element {
                   <TableCell className="font-mono">{key}</TableCell>
                   <TableCell>{label}</TableCell>
                   <TableCell>
-                    <Button variant="destructive" size="sm" onClick={() => removePostCheck(key)}>
-                      Remove
-                    </Button>
+                    {key !== DEFAULT_CHECK_KEY && (
+                      <Button variant="destructive" size="sm" onClick={() => removePostCheck(key)}>
+                        Remove
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

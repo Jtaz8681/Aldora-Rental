@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import RoleGuard from "@/components/RoleGuard";
 import CategoryPricingForm from "@/components/CategoryPricingForm";
+import GearTypeManager from "@/components/GearTypeManager";
 
 const schema = z.object({
   regulator_service_interval_months: z.coerce.number().min(1),
@@ -132,6 +133,9 @@ export default function SettingsPage() {
         </Card>
 
         <CategoryPricingForm />
+
+        {/* NEW: Gear Types & Default Service Schedule */}
+        <GearTypeManager />
       </div>
     </RoleGuard>
   );

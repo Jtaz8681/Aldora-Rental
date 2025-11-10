@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import ManualUpload from "@/components/ManualUpload";
 import MultiPhotoUpload from "@/components/MultiPhotoUpload";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 const schema = z.object({
   internal_id: z.string().min(1),
@@ -47,6 +49,48 @@ export default function NewGearPage() {
   const internalId = watch("internal_id");
   const category = watch("category");
 
+  const [categories, setCategories] = React.useState<{ id: string; name: string; service_interval_months: number | null; usage_service_threshold: number | null }[]>([]);
+  const [subcategories, setSubcategories] = React.useState<{ id: string; name: string; category_id: string; service_interval_months: number | null; usage_service_threshold: number | null }[]>([]);
+  const [categoryId, setCategoryId] = React.useState<string>("");
+  const [subcategoryId, setSubcategoryId] = React.useState<string>("");
+  const [useCustomSchedule, setUseCustomSchedule] = React.useState<boolean>(false);
+  const [customMonths, setCustomMonths] = React.useState<number | "">("");
+  const [customUsageDays, setCustomUsageDays] = React.useState<number | "">("");
+
+  React.useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: cats } = await supabase
+        .from("gear_categories")
+        .select("id, name, service_interval_months, usage_service_threshold")
+        .eq("user_id", user.id)
+        .order("name");
+      setCategories(cats || []);
+    })();
+  }, []);
+
+  React.useEffect(() => {
+    (async () => {
+      if (!categoryId) { setSubcategories([]); setSubcategoryId(""); return; }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: subs } = await supabase
+        .from("gear_subcategories")
+        .select("id, name, category_id, service_interval_months, usage_service_threshold")
+        .eq("user_id", user.id)
+        .eq("category_id", categoryId)
+        .order("name");
+      setSubcategories(subs || []);
+      setSubcategoryId("");
+      const selectedCat = (cats => cats.find(c => c.id === categoryId))(categories);
+      if (selectedCat && !useCustomSchedule) {
+        // Prefill rental price already handled; Prefill schedule preview only
+        // Do not set form fields directly; store locally
+      }
+    })();
+  }, [categoryId, categories, useCustomSchedule]);
+
   React.useEffect(() => {
     (async () => {
       const cat = (category || "").trim();
@@ -75,12 +119,24 @@ export default function NewGearPage() {
       .map(s => s.trim())
       .filter(Boolean);
 
+    const selectedCat = categories.find(c => c.id === categoryId);
+    const selectedSub = subcategories.find(s => s.id === subcategoryId);
+
+    const serviceMonths = useCustomSchedule
+      ? (customMonths === "" ? null : Number(customMonths))
+      : (selectedSub?.service_interval_months ?? selectedCat?.service_interval_months ?? null);
+    const usageThreshold = useCustomSchedule
+      ? (customUsageDays === "" ? null : Number(customUsageDays))
+      : (selectedSub?.usage_service_threshold ?? selectedCat?.usage_service_threshold ?? null);
+
     const { error } = await supabase.from("gear_items").insert({
       user_id: user.id,
       internal_id: values.internal_id,
       friendly_name: values.friendly_name || null,
-      category: values.category,
-      sub_type: values.sub_type || null,
+      category: selectedCat?.name || values.category, // keep text for readability
+      sub_type: selectedSub?.name || values.sub_type || null,
+      category_id: selectedCat?.id ?? null,
+      subcategory_id: selectedSub?.id ?? null,
       brand: values.brand || null,
       model: values.model || null,
       size: values.size || null,
@@ -91,6 +147,8 @@ export default function NewGearPage() {
       manual_url: values.manual_url || null,
       notes: values.notes || null,
       status: "Available",
+      service_interval_months: serviceMonths,
+      usage_service_threshold: usageThreshold,
     });
     if (error) throw error;
     toast.success("Gear added");
@@ -111,12 +169,26 @@ export default function NewGearPage() {
         </div>
         <div>
           <Label>Category</Label>
-          <Input {...register("category")} placeholder="BCD, Regulator, Wetsuit..." />
-          <p className="text-xs text-muted-foreground mt-1">If a default price is configured for this category, it will auto-fill.</p>
+          <Select value={categoryId} onValueChange={(v) => setCategoryId(v)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">Manage this list in Settings → Gear Types.</p>
         </div>
         <div>
           <Label>Sub-type</Label>
-          <Input {...register("sub_type")} placeholder="Jacket, Back-Inflate, Wing..." />
+          <Select value={subcategoryId} onValueChange={(v) => setSubcategoryId(v)} disabled={!categoryId || subcategories.length === 0}>
+            <SelectTrigger>
+              <SelectValue placeholder={categoryId ? (subcategories.length ? "Select subcategory" : "No subcategories") : "Pick a category first"} />
+            </SelectTrigger>
+            <SelectContent>
+              {subcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <Label>Brand</Label>
@@ -133,6 +205,40 @@ export default function NewGearPage() {
         <div>
           <Label>Rental Price (per day)</Label>
           <Input type="number" step="0.01" {...register("rental_price")} />
+        </div>
+
+        <div className="sm:col-span-2">
+          <div className="flex items-center justify-between">
+            <Label>Service Schedule</Label>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Use custom</span>
+              <Switch checked={useCustomSchedule} onCheckedChange={(v) => setUseCustomSchedule(!!v)} />
+            </div>
+          </div>
+          {useCustomSchedule ? (
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <div>
+                <Label>Service interval (months)</Label>
+                <Input type="number" value={customMonths === "" ? "" : String(customMonths)} onChange={(e) => setCustomMonths(e.target.value === "" ? "" : Number(e.target.value))} />
+              </div>
+              <div>
+                <Label>Usage threshold (days rented)</Label>
+                <Input type="number" value={customUsageDays === "" ? "" : String(customUsageDays)} onChange={(e) => setCustomUsageDays(e.target.value === "" ? "" : Number(e.target.value))} />
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground mt-2">
+              {(() => {
+                const cat = categories.find(c => c.id === categoryId);
+                const sub = subcategories.find(s => s.id === subcategoryId);
+                const months = sub?.service_interval_months ?? cat?.service_interval_months;
+                const usage = sub?.usage_service_threshold ?? cat?.usage_service_threshold;
+                return months || usage
+                  ? <>Default will be applied: {months ? `${months} months` : ""}{months && usage ? " · " : ""}{usage ? `${usage} days rented` : ""}.</>
+                  : <>No default configured; you can set a custom schedule.</>;
+              })()}
+            </div>
+          )}
         </div>
 
         <div>

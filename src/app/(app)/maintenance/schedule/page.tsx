@@ -34,7 +34,7 @@ export default function MaintenanceSchedulePage() {
 
       const { data: gearData, error: gErr } = await supabase
         .from("gear_items")
-        .select("id, internal_id, category, date_added, purchase_date")
+        .select("id, internal_id, category, date_added, purchase_date, service_interval_months")
         .eq("user_id", user.id);
 
       if (gErr) {
@@ -49,13 +49,7 @@ export default function MaintenanceSchedulePage() {
 
       const projectionsCalc: Projection[] = [];
       for (const g of gearData || []) {
-        const cat = (g.category || "").toLowerCase();
-        const months = cat.includes("reg")
-          ? regulatorMonths
-          : cat.includes("bcd")
-            ? bcdMonths
-            : 0;
-
+        const months = Number((g as any).service_interval_months ?? 0);
         if (months <= 0) continue;
 
         const lastCompleted = (tData || [])

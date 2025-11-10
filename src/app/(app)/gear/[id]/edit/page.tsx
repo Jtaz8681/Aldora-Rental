@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import ManualUpload from "@/components/ManualUpload";
 import MultiPhotoUpload from "@/components/MultiPhotoUpload";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 const schema = z.object({
   internal_id: z.string().min(1),
@@ -54,6 +56,41 @@ export default function EditGearPage() {
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [tickets, setTickets] = useState<any[]>([]);
   const [logsByTicket, setLogsByTicket] = useState<Record<string, any[]>>({});
+  const [categories, setCategories] = useState<{ id: string; name: string; service_interval_months: number | null; usage_service_threshold: number | null }[]>([]);
+  const [subcategories, setSubcategories] = useState<{ id: string; name: string; category_id: string; service_interval_months: number | null; usage_service_threshold: number | null }[]>([]);
+  const [categoryId, setCategoryId] = useState<string>("");
+  const [subcategoryId, setSubcategoryId] = useState<string>("");
+  const [useCustomSchedule, setUseCustomSchedule] = useState<boolean>(false);
+  const [customMonths, setCustomMonths] = useState<number | "">("");
+  const [customUsageDays, setCustomUsageDays] = useState<number | "">("");
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: cats } = await supabase
+        .from("gear_categories")
+        .select("id, name, service_interval_months, usage_service_threshold")
+        .eq("user_id", user.id)
+        .order("name");
+      setCategories(cats || []);
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      if (!categoryId) { setSubcategories([]); setSubcategoryId(""); return; }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: subs } = await supabase
+        .from("gear_subcategories")
+        .select("id, name, category_id, service_interval_months, usage_service_threshold")
+        .eq("user_id", user.id)
+        .eq("category_id", categoryId)
+        .order("name");
+      setSubcategories(subs || []);
+    })();
+  }, [categoryId]);
 
   useEffect(() => {
     const load = async () => {
@@ -92,6 +129,17 @@ export default function EditGearPage() {
           status: data.status,
         });
         setPhotoUrls(data.photos || []);
+        setCategoryId(data.category_id || "");
+        setSubcategoryId(data.subcategory_id || "");
+        if (data.service_interval_months != null || data.usage_service_threshold != null) {
+          setUseCustomSchedule(true);
+          setCustomMonths(data.service_interval_months ?? "");
+          setCustomUsageDays(data.usage_service_threshold ?? "");
+        } else {
+          setUseCustomSchedule(false);
+          setCustomMonths("");
+          setCustomUsageDays("");
+        }
         
         // NEW: Load maintenance history for this gear
         const { data: tData } = await supabase
@@ -136,8 +184,10 @@ export default function EditGearPage() {
       .update({
         internal_id: values.internal_id,
         friendly_name: values.friendly_name || null,
-        category: values.category,
-        sub_type: values.sub_type || null,
+        category: (categories.find(c => c.id === categoryId)?.name) || values.category,
+        sub_type: (subcategories.find(s => s.id === subcategoryId)?.name) || values.sub_type || null,
+        category_id: categoryId || null,
+        subcategory_id: subcategoryId || null,
         brand: values.brand || null,
         model: values.model || null,
         size: values.size || null,
@@ -153,6 +203,8 @@ export default function EditGearPage() {
         current_value: values.current_value ?? null,
         updated_at: new Date().toISOString(),
         status: values.status,
+        service_interval_months: useCustomSchedule ? (customMonths === "" ? null : Number(customMonths)) : null,
+        usage_service_threshold: useCustomSchedule ? (customUsageDays === "" ? null : Number(customUsageDays)) : null,
       })
       .eq("id", id)
       .eq("user_id", user.id);
@@ -194,11 +246,25 @@ export default function EditGearPage() {
         </div>
         <div>
           <Label>Category</Label>
-          <Input {...register("category")} />
+          <Select value={categoryId} onValueChange={(v) => setCategoryId(v)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <Label>Sub-type</Label>
-          <Input {...register("sub_type")} />
+          <Select value={subcategoryId} onValueChange={(v) => setSubcategoryId(v)} disabled={!categoryId || subcategories.length === 0}>
+            <SelectTrigger>
+              <SelectValue placeholder={categoryId ? (subcategories.length ? "Select subcategory" : "No subcategories") : "Pick a category first"} />
+            </SelectTrigger>
+            <SelectContent>
+              {subcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <Label>Brand</Label>
@@ -232,6 +298,40 @@ export default function EditGearPage() {
         <div>
           <Label>Current Value</Label>
           <Input type="number" step="0.01" {...register("current_value")} />
+        </div>
+
+        <div className="sm:col-span-2">
+          <div className="flex items-center justify-between">
+            <Label>Service Schedule</Label>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Use custom</span>
+              <Switch checked={useCustomSchedule} onCheckedChange={(v) => setUseCustomSchedule(!!v)} />
+            </div>
+          </div>
+          {useCustomSchedule ? (
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <div>
+                <Label>Service interval (months)</Label>
+                <Input type="number" value={customMonths === "" ? "" : String(customMonths)} onChange={(e) => setCustomMonths(e.target.value === "" ? "" : Number(e.target.value))} />
+              </div>
+              <div>
+                <Label>Usage threshold (days rented)</Label>
+                <Input type="number" value={customUsageDays === "" ? "" : String(customUsageDays)} onChange={(e) => setCustomUsageDays(e.target.value === "" ? "" : Number(e.target.value))} />
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground mt-2">
+              {(() => {
+                const cat = categories.find(c => c.id === categoryId);
+                const sub = subcategories.find(s => s.id === subcategoryId);
+                const months = sub?.service_interval_months ?? cat?.service_interval_months;
+                const usage = sub?.usage_service_threshold ?? cat?.usage_service_threshold;
+                return months || usage
+                  ? <>Default applied: {months ? `${months} months` : ""}{months && usage ? " · " : ""}{usage ? `${usage} days rented` : ""}.</>
+                  : <>No default configured.</>;
+              })()}
+            </div>
+          )}
         </div>
 
         <div className="sm:col-span-2">

@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import ServiceScheduleCalendar from "@/components/ServiceScheduleCalendar";
 import Link from "next/link";
 
-type Gear = { id: string; internal_id: string; category: string; date_added: string | null; purchase_date: string | null; rental_price: number | null };
+type Gear = { id: string; internal_id: string; category: string; date_added: string | null; purchase_date: string | null; rental_price: number | null; service_interval_months?: number | null };
 type RentalItem = { gear_id: string; rentals: { start_at: string; expected_end_at: string; status: string } | null };
 type Ticket = { id: string; gear_id: string | null; status: string; cost: number | null; updated_at: string | null; date_received: string | null };
 type Damage = { id: string; gear_id: string; user_id: string; severity: string | null; estimate_cost: number | null; reported_at: string | null };
@@ -31,7 +31,7 @@ export default function ReportsPage() {
 
       const { data: gearData } = await supabase
         .from("gear_items")
-        .select("id, internal_id, category, date_added, purchase_date, rental_price")
+        .select("id, internal_id, category, date_added, purchase_date, rental_price, service_interval_months")
         .eq("user_id", user.id);
 
       const { data: rentalItemData } = await supabase
@@ -75,21 +75,21 @@ export default function ReportsPage() {
       const bcdMonths = Number(settings?.bcd_service_interval_months ?? 12);
       const projections: any[] = [];
       for (const g of gearData || []) {
+        const monthsField = Number((g as any).service_interval_months ?? 0);
+        const months = monthsField > 0 ? monthsField : (
+          g.category.toLowerCase().includes("reg") ? regulatorMonths :
+          g.category.toLowerCase().includes("bcd") ? bcdMonths : 0
+        );
+        if (months <= 0) continue;
         const lastCompleted = (ticketData || [])
           .filter(t => t.gear_id === g.id && t.status === "completed" && t.updated_at)
           .sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime())[0];
         const anchorStr = lastCompleted?.updated_at || g.purchase_date || g.date_added || null;
         if (!anchorStr) continue;
         const nextDue = new Date(anchorStr);
-        if (g.category.toLowerCase().includes("reg")) {
-          nextDue.setMonth(nextDue.getMonth() + regulatorMonths);
-        } else if (g.category.toLowerCase().includes("bcd")) {
-          nextDue.setMonth(nextDue.getMonth() + bcdMonths);
-        } else {
-          continue;
-        }
+        nextDue.setMonth(nextDue.getMonth() + months);
         const daysAway = Math.ceil((nextDue.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-        projections.push({ gear: g, nextDue, daysAway });
+        projections.push({ gear: g as any, nextDue, daysAway });
       }
       setServiceDueSoon(projections.sort((a, b) => a.nextDue.getTime() - b.nextDue.getTime()));
       setLoading(false);

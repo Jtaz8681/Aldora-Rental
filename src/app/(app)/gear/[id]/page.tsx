@@ -7,6 +7,8 @@ import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -49,6 +51,8 @@ export default function GearHistoryPage() {
   const [rentalItems, setRentalItems] = useState<RentalItemRow[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [logsByTicket, setLogsByTicket] = useState<Record<string, WorkLog[]>>({});
+  const [monthsEdit, setMonthsEdit] = useState<number | "">("");
+  const [usageEdit, setUsageEdit] = useState<number | "">("");
 
   useEffect(() => {
     const load = async () => {
@@ -73,6 +77,12 @@ export default function GearHistoryPage() {
         return;
       }
       setGear(g as Gear);
+
+      // Prefill custom schedule editor from gear
+      if (g?.id) {
+        setMonthsEdit((g as any).service_interval_months ?? "");
+        setUsageEdit((g as any).usage_service_threshold ?? "");
+      }
 
       // Load rentals for this gear
       const { data: ri } = await supabase
@@ -117,6 +127,25 @@ export default function GearHistoryPage() {
     };
     load();
   }, [gearId, router]);
+
+  const saveCustomSchedule = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !gear) return;
+    const { error } = await supabase
+      .from("gear_items")
+      .update({
+        service_interval_months: monthsEdit === "" ? null : Number(monthsEdit),
+        usage_service_threshold: usageEdit === "" ? null : Number(usageEdit),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", gear.id)
+      .eq("user_id", user.id);
+    if (error) {
+      toast.error("Failed to save schedule: " + error.message);
+      throw error;
+    }
+    toast.success("Custom service schedule saved.");
+  };
 
   const metrics = useMemo(() => {
     // Rental metrics
@@ -181,6 +210,23 @@ export default function GearHistoryPage() {
           <Link href="/gear" className="text-sm underline">Back to Gear</Link>
         </div>
       </div>
+
+      <Card>
+        <CardHeader><CardTitle>Custom Service Schedule</CardTitle></CardHeader>
+        <CardContent className="grid sm:grid-cols-2 gap-2">
+          <div>
+            <Label>Service interval (months)</Label>
+            <Input type="number" value={monthsEdit === "" ? "" : String(monthsEdit)} onChange={(e) => setMonthsEdit(e.target.value === "" ? "" : Number(e.target.value))} />
+          </div>
+          <div>
+            <Label>Usage threshold (days rented)</Label>
+            <Input type="number" value={usageEdit === "" ? "" : String(usageEdit)} onChange={(e) => setUsageEdit(e.target.value === "" ? "" : Number(e.target.value))} />
+          </div>
+          <div className="sm:col-span-2">
+            <Button variant="outline" onClick={saveCustomSchedule}>Save Schedule</Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>

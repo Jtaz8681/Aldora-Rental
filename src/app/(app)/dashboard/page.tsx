@@ -14,7 +14,7 @@ type GearItem = {
 };
 
 // NEW: minimal gear type for service projection
-type GearLite = { id: string; internal_id?: string; category: string; date_added?: string | null; purchase_date?: string | null };
+type GearLite = { id: string; internal_id?: string; category: string; date_added?: string | null; purchase_date?: string | null; service_interval_months?: number | null };
 
 // NEW: projection type
 type ServiceProjection = { gear: GearLite; nextDue: Date; daysAway: number };
@@ -59,7 +59,7 @@ export default function DashboardPage() {
       // Fetch Gear Data
       const { data: gearData, error: gearError } = await supabase
         .from("gear_items")
-        .select("id, status, internal_id, category, date_added, purchase_date")
+        .select("id, status, internal_id, category, date_added, purchase_date, service_interval_months")
         .eq("user_id", user.id);
       if (gearError) console.error("Error fetching gear:", gearError);
       setTotalGear(gearData?.length || 0);
@@ -112,10 +112,7 @@ export default function DashboardPage() {
       // NEW: Build service projections (next due based on last completed or purchase/date_added)
       const projections: ServiceProjection[] = [];
       for (const g of gearData || []) {
-        const cat = (g.category || "").toLowerCase();
-        const isReg = cat.includes("reg");
-        const isBcd = cat.includes("bcd");
-        const months = isReg ? regulatorMonths : isBcd ? bcdMonths : 0;
+        const months = Number((g as any).service_interval_months ?? 0);
         if (months <= 0) continue;
 
         const lastCompleted = (ticketData || [])
@@ -129,7 +126,7 @@ export default function DashboardPage() {
         nextDue.setMonth(nextDue.getMonth() + months);
         const daysAway = Math.ceil((nextDue.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
         projections.push({
-          gear: { id: g.id, internal_id: g.internal_id, category: g.category, date_added: g.date_added, purchase_date: g.purchase_date },
+          gear: { id: g.id, internal_id: (g as any).internal_id, category: (g as any).category, date_added: (g as any).date_added, purchase_date: (g as any).purchase_date },
           nextDue,
           daysAway,
         });

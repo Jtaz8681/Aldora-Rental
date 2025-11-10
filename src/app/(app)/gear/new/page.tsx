@@ -18,16 +18,16 @@ import { DEFAULT_CHECK_KEY, DEFAULT_CHECK_LABEL, ensureDefaultTemplate } from "@
 
 const schema = z.object({
   internal_id: z.string().min(1),
-  friendly_name: z.string().optional(),
+  friendly_name: z.string().min(1),
   category: z.string().min(1),
-  sub_type: z.string().optional(),
+  sub_type: z.string().min(1),
   brand: z.string().optional(),
   model: z.string().optional(),
   size: z.string().optional(),
   rental_price: z.coerce.number().min(0),
   photos_csv: z.string().optional(),
-  serial_number: z.string().optional(),
-  home_location: z.string().optional(),
+  serial_number: z.string().min(1),
+  home_location: z.string().min(1),
   manual_url: z.string().url().optional(),
   notes: z.string().optional(),
   purchase_date: z.string().optional(),
@@ -167,16 +167,21 @@ export default function NewGearPage() {
       <h1 className="text-xl font-semibold">Add Gear</h1>
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
-          <Label>Internal ID</Label>
+          <Label>Internal ID <span className="text-destructive">*</span></Label>
           <Input {...register("internal_id")} placeholder="BCD-001" />
         </div>
         <div>
-          <Label>Friendly Name</Label>
+          <Label>Friendly Name <span className="text-destructive">*</span></Label>
           <Input {...register("friendly_name")} placeholder="Big Blue BCD" />
         </div>
         <div>
-          <Label>Category</Label>
-          <Select value={categoryId} onValueChange={(v) => setCategoryId(v)}>
+          <Label>Category <span className="text-destructive">*</span></Label>
+          <Select value={categoryId} onValueChange={(v) => {
+            setCategoryId(v);
+            const selected = categories.find(c => c.id === v);
+            // Ensure form value is set so schema requirement is satisfied
+            setValue("category", selected?.name || "", { shouldValidate: true });
+          }}>
             <SelectTrigger>
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
@@ -187,8 +192,13 @@ export default function NewGearPage() {
           <p className="text-xs text-muted-foreground mt-1">Manage this list in Settings → Gear Types.</p>
         </div>
         <div>
-          <Label>Sub-type</Label>
-          <Select value={subcategoryId} onValueChange={(v) => setSubcategoryId(v)} disabled={!categoryId || subcategories.length === 0}>
+          <Label>Sub-type <span className="text-destructive">*</span></Label>
+          <Select value={subcategoryId} onValueChange={(v) => {
+            setSubcategoryId(v);
+            const selected = subcategories.find(s => s.id === v);
+            // Ensure form value is set so schema requirement is satisfied
+            setValue("sub_type", selected?.name || "", { shouldValidate: true });
+          }} disabled={!categoryId || subcategories.length === 0}>
             <SelectTrigger>
               <SelectValue placeholder={categoryId ? (subcategories.length ? "Select subcategory" : "No subcategories") : "Pick a category first"} />
             </SelectTrigger>
@@ -197,6 +207,19 @@ export default function NewGearPage() {
             </SelectContent>
           </Select>
         </div>
+        <div>
+          <Label>Rental Price (per day) <span className="text-destructive">*</span></Label>
+          <Input type="number" step="0.01" {...register("rental_price")} />
+        </div>
+        <div>
+          <Label>Serial Number <span className="text-destructive">*</span></Label>
+          <Input {...register("serial_number")} />
+        </div>
+        <div>
+          <Label>Home Location <span className="text-destructive">*</span></Label>
+          <Input {...register("home_location")} placeholder="Shelf A / Bin 3" />
+        </div>
+
         <div>
           <Label>Brand</Label>
           <Input {...register("brand")} placeholder="Scubapro" />
@@ -208,10 +231,6 @@ export default function NewGearPage() {
         <div>
           <Label>Size</Label>
           <Input {...register("size")} placeholder="Medium" />
-        </div>
-        <div>
-          <Label>Rental Price (per day)</Label>
-          <Input type="number" step="0.01" {...register("rental_price")} />
         </div>
 
         <div className="sm:col-span-2">
@@ -271,14 +290,6 @@ export default function NewGearPage() {
           />
         </div>
 
-        <div>
-          <Label>Serial Number</Label>
-          <Input {...register("serial_number")} />
-        </div>
-        <div>
-          <Label>Home Location</Label>
-          <Input {...register("home_location")} placeholder="Shelf A / Bin 3" />
-        </div>
         <div className="sm:col-span-2">
           <ManualUpload
             gearInternalId={internalId}

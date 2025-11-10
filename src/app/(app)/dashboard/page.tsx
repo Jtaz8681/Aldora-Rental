@@ -58,60 +58,47 @@ export default function DashboardPage() {
         return;
       }
 
-      // Fetch Gear Data
+      // Fetch Gear Data (company-wide)
       const { data: gearData, error: gearError } = await supabase
         .from("gear_items")
-        .select("id, status, internal_id, category, date_added, purchase_date, service_interval_months")
-        .eq("user_id", user.id);
+        .select("id, status, internal_id, category, date_added, purchase_date, service_interval_months");
       if (gearError) console.error("Error fetching gear:", gearError);
       setTotalGear(gearData?.length || 0);
       setAvailableGear(gearData?.filter(g => g.status === "Available").length || 0);
 
-      // Fetch Customer Data
+      // Fetch Customer Data (company-wide)
       const { data: customerData, error: customerError } = await supabase
         .from("customers")
-        .select("id, balance_due")
-        .eq("user_id", user.id);
+        .select("id, balance_due");
       if (customerError) console.error("Error fetching customers:", customerError);
       setTotalCustomers(customerData?.length || 0);
       setTotalBalanceDue(customerData?.reduce((sum, c) => sum + Number(c.balance_due || 0), 0) || 0);
 
-      // Fetch Rental Data (recent list)
+      // Fetch Rental Data (recent list - unchanged per-user)
       const { data: rentalData, error: rentalError } = await supabase
         .from("rentals")
         .select("id, customer_id, start_at, expected_end_at, status, total_cost, customers(name)")
-        .eq("user_id", user.id)
+        .eq("user_id", user.id) // unchanged: recent list can remain scoped
         .order("created_at", { ascending: false })
         .limit(5);
       if (rentalError) console.error("Error fetching rentals:", rentalError);
-      setActiveRentalsCount(rentalData?.filter(r => r.status === "active" || r.status === "checked-out").length || 0);
       setRecentRentals((rentalData || []) as unknown as Rental[]);
 
-      // NEW: Overdue rentals count across all active/checked-out
+      // Overdue rentals count and active rentals count (company-wide)
       const { data: activeAll } = await supabase
         .from("rentals")
         .select("id, expected_end_at, status")
-        .eq("user_id", user.id)
         .in("status", ["active", "checked-out"]);
       const overdueCount = (activeAll || []).filter(r => new Date(r.expected_end_at).getTime() < Date.now()).length;
       setOverdueRentalsCount(overdueCount);
+      setActiveRentalsCount(activeAll?.length || 0);
 
-      // NEW: Service interval settings and maintenance data for projections
-      const { data: settings } = await supabase
-        .from("service_settings")
-        .select("regulator_service_interval_months, bcd_service_interval_months")
-        .eq("user_id", user.id)
-        .limit(1)
-        .maybeSingle();
-      const regulatorMonths = Number(settings?.regulator_service_interval_months ?? 12);
-      const bcdMonths = Number(settings?.bcd_service_interval_months ?? 12);
-
+      // Maintenance tickets (company-wide)
       const { data: ticketData } = await supabase
         .from("maintenance_tickets")
-        .select("gear_id, status, updated_at")
-        .eq("user_id", user.id);
+        .select("gear_id, status, updated_at");
 
-      // NEW: Build service projections (next due based on last completed or purchase/date_added)
+      // Service projections across all gear
       const projections: ServiceProjection[] = [];
       for (const g of gearData || []) {
         const months = Number((g as any).service_interval_months ?? 0);

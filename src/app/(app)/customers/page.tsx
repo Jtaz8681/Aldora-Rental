@@ -12,7 +12,16 @@ type Customer = {
   phone: string | null;
   email: string | null;
   balance_due: number;
-  rentals: { count: number }[]; // Supabase returns an array (usually length 1) for rentals(count)
+  rentalCount: number;
+};
+
+type SupabaseCustomerRow = {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  balance_due: number;
+  rentals?: { count: number }[];
 };
 
 export default function CustomersPage() {
@@ -24,11 +33,19 @@ export default function CustomersPage() {
       if (!user) return;
       const { data, error } = await supabase
         .from("customers")
-        .select("id, name, phone, email, balance_due, rentals(count)") // Fetch phone, email, and rental count
+        .select("id, name, phone, email, balance_due, rentals(count)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      setCustomers(data || []);
+      const normalized = (data as SupabaseCustomerRow[] | null)?.map(d => ({
+        id: d.id,
+        name: d.name,
+        phone: d.phone,
+        email: d.email,
+        balance_due: d.balance_due,
+        rentalCount: d.rentals?.[0]?.count ?? 0,
+      })) ?? [];
+      setCustomers(normalized);
     };
     load();
   }, []);
@@ -61,7 +78,7 @@ export default function CustomersPage() {
                 </TableCell>
                 <TableCell>{c.phone || "-"}</TableCell>
                 <TableCell>{c.email || "-"}</TableCell>
-                <TableCell>{c.rentals[0]?.count || 0}</TableCell>
+                <TableCell>{c.rentalCount}</TableCell>
                 <TableCell>${Number(c.balance_due || 0).toFixed(2)}</TableCell>
                 <TableCell className="space-x-2">
                   <Link href={`/customers/${c.id}`} className="text-sm underline">View</Link>

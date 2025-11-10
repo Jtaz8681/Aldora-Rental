@@ -46,6 +46,9 @@ export default function GearTypeManager() {
   const [newCatMonths, setNewCatMonths] = useState<number | "">("");
   const [newCatUsage, setNewCatUsage] = useState<number | "">("");
 
+  // New subcategory form
+  const [newSubName, setNewSubName] = useState(""); // Added this line
+
   // NEW: checklist template editors
   const [preTemplate, setPreTemplate] = useState<Record<string, string>>({});
   const [postTemplate, setPostTemplate] = useState<Record<string, string>>({});
@@ -533,7 +536,8 @@ export default function GearTypeManager() {
               ))}
               {Object.keys(postTemplate).length === 0 && (
                 <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground">No post-checks configured.</TableCell></TableRow>
-              )}
+              </TableRow>
+            )}
             </TableBody>
           </Table>
           <div className="flex justify-end">

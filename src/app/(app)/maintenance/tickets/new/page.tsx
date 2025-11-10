@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import MaintenanceTicketForm from "@/components/MaintenanceTicketForm";
 import RoleGuard from "@/components/RoleGuard";
 
-export default function MaintenanceNewPage() {
+export default function MaintenanceTicketNewPage() {
   return (
     <RoleGuard allow={["owner", "manager", "technician", "staff"]} title="Maintenance">
       <div className="space-y-6">

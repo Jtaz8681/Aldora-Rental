@@ -196,6 +196,9 @@ export default function MaintenanceTicketsPage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <h1 className="text-2xl font-bold">Tickets</h1>
           <div className="flex flex-wrap items-center gap-2">
+            <Button asChild>
+              <Link href="/maintenance/tickets/new">Create Ticket</Link>
+            </Button>
             <label className="text-sm flex items-center gap-2">
               <span>Status:</span>
               <select
@@ -206,7 +209,6 @@ export default function MaintenanceTicketsPage() {
                 {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </label>
-            <Link href="/maintenance/new" className="text-sm underline">Create Ticket</Link>
             <Button variant="outline" onClick={exportTicketsCsv}>Export CSV</Button>
           </div>
         </div>

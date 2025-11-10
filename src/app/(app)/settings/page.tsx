@@ -2,7 +2,6 @@
 
 import React from "react";
 import RoleGuard from "@/components/RoleGuard";
-import GearTypeManager from "@/components/GearTypeManager";
 import GearTypeManagerFixed from "@/components/GearTypeManagerFixed";
 
 export default function SettingsPage() {

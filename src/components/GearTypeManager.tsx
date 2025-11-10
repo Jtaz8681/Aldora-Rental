@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, Fragment } from "react"; // Added Fragment here
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
@@ -193,7 +193,7 @@ export default function GearTypeManager() {
           }
         })
         .eq("id", regId)
-        .eq("user.id", user.id);
+        .eq("user_id", user.id);
     }
 
     toast.success("Seeded gear categories, subcategories, and default checklist templates.");
@@ -355,7 +355,7 @@ export default function GearTypeManager() {
   };
 
   return (
-    <React.Fragment>
+    <Fragment>
       {/* Categories */}
       <Card>
         <CardHeader>
@@ -547,6 +547,6 @@ export default function GearTypeManager() {
           </div>
         </CardContent>
       </Card>
-    </React.Fragment>
+    </Fragment>
   );
 }

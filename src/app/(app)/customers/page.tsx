@@ -12,7 +12,7 @@ type Customer = {
   phone: string | null;
   email: string | null;
   balance_due: number;
-  rentals: [{ count: number }]; // Supabase returns an array for related counts
+  rentals: { count: number }[];
 };
 
 export default function CustomersPage() {

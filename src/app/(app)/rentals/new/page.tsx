@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import SignaturePad from "@/components/SignaturePad";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import PickList from "@/components/PickList";
@@ -25,6 +26,10 @@ export default function NewRentalPage() {
   const [endAt, setEndAt] = useState<string>("");
   const [selectedGearIds, setSelectedGearIds] = useState<string[]>([]);
   const [signature, setSignature] = useState<string>("");
+
+  // NEW: package pricing state
+  const [isPackage, setIsPackage] = useState(false);
+  const [packageTotal, setPackageTotal] = useState<string>("");
 
   const [checklist, setChecklist] = useState<Record<string, Record<string, boolean>>>({}); // gearId -> checks
   const [conflictsByGear, setConflictsByGear] = useState<Record<string, { rentalId: string; start_at: string; expected_end_at: string }[]>>({});
@@ -119,12 +124,17 @@ export default function NewRentalPage() {
     return Math.max(d, 1);
   }, [startAt, endAt]);
 
+  // UPDATED: total calculation (supports package)
   const total = useMemo(() => {
+    if (isPackage) {
+      const val = Number(packageTotal || 0);
+      return isNaN(val) ? 0 : Math.max(val, 0);
+    }
     return selectedGearIds.reduce((sum, id) => {
       const g = gear.find(x => x.id === id);
-      return sum + (g?.rental_price || 0) * days;
+      return sum + (Number(g?.rental_price || 0) * days);
     }, 0);
-  }, [selectedGearIds, gear, days]);
+  }, [isPackage, packageTotal, selectedGearIds, gear, days]);
 
   const toggleGear = (id: string) => {
     setSelectedGearIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -139,6 +149,10 @@ export default function NewRentalPage() {
   const submitRental = async () => {
     if (!customerId || !startAt || !endAt || selectedGearIds.length === 0 || !signature) {
       toast.error("Please complete all fields and capture a signature.");
+      return;
+    }
+    if (isPackage && (!packageTotal || Number(packageTotal) <= 0)) {
+      toast.error("Enter a valid package total price.");
       return;
     }
     const { data: { user } } = await supabase.auth.getUser();
@@ -156,19 +170,37 @@ export default function NewRentalPage() {
     }).select("*").single();
     if (rentalErr) throw rentalErr;
 
-    for (const gearId of selectedGearIds) {
+    // Insert rental items
+    for (let idx = 0; idx < selectedGearIds.length; idx++) {
+      const gearId = selectedGearIds[idx];
       const g = gear.find(x => x.id === gearId);
+      const preChecklist = checklist[gearId] || {};
+
+      // Per-item price handling
+      let perItemPricePerDay = Number(g?.rental_price || 0);
+      let packageShareTotal: number | null = null;
+
+      if (isPackage) {
+        const shareTotal = roundToTwo(total / selectedGearIds.length);
+        packageShareTotal = shareTotal;
+        perItemPricePerDay = shareTotal / days; // per-day derived from share
+      }
+
       await supabase.from("rental_items").insert({
         user_id: user.id,
         rental_id: rental.id,
         gear_id: gearId,
-        price: g?.rental_price || 0,
-        pre_checklist: checklist[gearId] || {}
+        price: perItemPricePerDay,
+        pre_checklist: preChecklist,
+        package_share_total: packageShareTotal
       });
-      await supabase.from("gear_items").update({ status: "Checked-Out" }).eq("id", gearId).eq("user_id", user.id);
+
+      await supabase.from("gear_items")
+        .update({ status: "Checked-Out" })
+        .eq("id", gearId).eq("user_id", user.id);
     }
 
-    // apply bill to customer account
+    // Apply bill to customer account (use total which respects package)
     const { error: balanceErr } = await supabase.rpc("increment_customer_balance", {
       p_user_id: user.id,
       p_customer_id: customerId,
@@ -176,7 +208,6 @@ export default function NewRentalPage() {
     });
 
     if (balanceErr) {
-      // Fallback if function not present: direct update
       const { data: cust } = await supabase
         .from("customers")
         .select("balance_due")
@@ -232,6 +263,29 @@ export default function NewRentalPage() {
             <Input type="datetime-local" value={endAt} onChange={e => setEndAt(e.target.value)} />
           </div>
         </div>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-2">
+        {/* NEW: Package pricing controls */}
+        <div className="flex items-center justify-between">
+          <Label htmlFor="isPackage">Price as package</Label>
+          <Switch id="isPackage" checked={isPackage} onCheckedChange={(v) => setIsPackage(!!v)} />
+        </div>
+        {isPackage && (
+          <div>
+            <Label htmlFor="packageTotal">Package total price</Label>
+            <Input
+              id="packageTotal"
+              type="number"
+              step="0.01"
+              value={packageTotal}
+              onChange={(e) => setPackageTotal(e.target.value)}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Total of ${Number(total || 0).toFixed(2)} will be divided across {selectedGearIds.length || 0} item(s).
+            </p>
+          </div>
+        )}
       </div>
 
       <div>
@@ -315,7 +369,9 @@ export default function NewRentalPage() {
       </div>
 
       <div className="flex items-center justify-between">
-        <p className="text-sm">Total: <span className="font-semibold">${total.toFixed(2)}</span> ({days} day{days > 1 ? "s" : ""})</p>
+        <p className="text-sm">
+          Total: <span className="font-semibold">${Number(total || 0).toFixed(2)}</span> ({days} day{days > 1 ? "s" : ""})
+        </p>
         <div className="flex gap-2">
           <PickList
             customerName={customers.find(c => c.id === customerId)?.name || ""}
@@ -323,7 +379,9 @@ export default function NewRentalPage() {
             endAt={endAt}
             items={selectedGearIds.map(id => {
               const gItem = gear.find(x => x.id === id);
-              return { internal_id: gItem?.internal_id || "", category: gItem?.category || "", price: Number(gItem?.rental_price || 0) };
+              const shareTotal = isPackage ? roundToTwo(total / selectedGearIds.length) : Number(gItem?.rental_price || 0) * days;
+              const pricePerDay = isPackage ? shareTotal / days : Number(gItem?.rental_price || 0);
+              return { internal_id: gItem?.internal_id || "", category: gItem?.category || "", price: Number(pricePerDay || 0) };
             })}
             total={total}
           />
@@ -335,3 +393,5 @@ export default function NewRentalPage() {
     </div>
   );
 }
+
+const roundToTwo = (n: number) => Math.round(n * 100) / 100;

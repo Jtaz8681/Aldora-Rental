@@ -27,6 +27,7 @@ type Gear = {
 type RentalItemRow = {
   id: string;
   price: number | null;
+  package_share_total: number | null; // NEW: per-item total share for package rentals
   rentals: { start_at: string; expected_end_at: string; status: string } | null;
 };
 
@@ -120,7 +121,7 @@ export default function GearHistoryPage() {
       // Load rentals for this gear
       const { data: ri } = await supabase
         .from("rental_items")
-        .select("id, price, rentals(start_at, expected_end_at, status)")
+        .select("id, price, package_share_total, rentals(start_at, expected_end_at, status)")
         .eq("user_id", user.id)
         .eq("gear_id", gearId)
         .order("created_at", { ascending: false });
@@ -174,7 +175,10 @@ export default function GearHistoryPage() {
         const d = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
         times += 1;
         days += d;
-        income += d * Number(r.price || 0);
+        const perItemIncome = r.package_share_total != null
+          ? Number(r.package_share_total || 0)
+          : d * Number(r.price || 0);
+        income += perItemIncome;
       }
     }
 
@@ -324,15 +328,20 @@ export default function GearHistoryPage() {
                 const s = r.rentals?.start_at ? new Date(r.rentals.start_at) : null;
                 const e = r.rentals?.expected_end_at ? new Date(r.rentals.expected_end_at) : null;
                 const d = s && e ? Math.max(1, Math.ceil((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24))) : 0;
-                const income = d * Number(r.price || 0);
+                const perDay = r.package_share_total != null && d > 0
+                  ? Number(r.package_share_total) / d
+                  : Number(r.price || 0);
+                const income = r.package_share_total != null
+                  ? Number(r.package_share_total)
+                  : d * Number(r.price || 0);
                 return (
                   <TableRow key={r.id}>
                     <TableCell>{s ? format(s, "PPP p") : "-"}</TableCell>
                     <TableCell>{e ? format(e, "PPP p") : "-"}</TableCell>
                     <TableCell>{r.rentals?.status || "-"}</TableCell>
                     <TableCell>{d}</TableCell>
-                    <TableCell>${Number(r.price || 0).toFixed(2)}</TableCell>
-                    <TableCell>${income.toFixed(2)}</TableCell>
+                    <TableCell>${Number(perDay || 0).toFixed(2)}</TableCell>
+                    <TableCell>${Number(income || 0).toFixed(2)}</TableCell>
                   </TableRow>
                 );
               })}
@@ -341,6 +350,67 @@ export default function GearHistoryPage() {
               )}
             </TableBody>
           </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Custom Checklist Templates (This Item)</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <div className="text-sm font-medium mb-2">Pre-Checkout Checklist</div>
+            <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2 mb-2">
+              <Input placeholder="key" value={newItemPreKey} onChange={(e) => setNewItemPreKey(e.target.value)} />
+              <Input placeholder="label" value={newItemPreLabel} onChange={(e) => setNewItemPreLabel(e.target.value)} />
+              <Button variant="outline" onClick={() => {
+                if (!newItemPreKey.trim() || !newItemPreLabel.trim()) return;
+                setItemPreTemplate(prev => ({ ...prev, [newItemPreKey.trim()]: newItemPreLabel.trim() }));
+                setNewItemPreKey(""); setNewItemPreLabel("");
+              }}>Add</Button>
+            </div>
+            <div className="space-y-1">
+              {Object.entries(itemPreTemplate).map(([k, v]) => (
+                <div key={k} className="flex items-center justify-between text-xs">
+                  <span className="font-mono">{k}</span> <span>{v}</span>
+                  <Button variant="ghost" size="sm" onClick={() => {
+                    const next = { ...itemPreTemplate }; delete next[k]; setItemPreTemplate(next);
+                  }}>Remove</Button>
+                </div>
+              ))}
+              {Object.keys(itemPreTemplate).length === 0 && (
+                <div className="text-xs text-muted-foreground">No pre-checks configured.</div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-sm font-medium mb-2">Post-Check-In Checklist</div>
+            <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2 mb-2">
+              <Input placeholder="key" value={newItemPostKey} onChange={(e) => setNewItemPostKey(e.target.value)} />
+              <Input placeholder="label" value={newItemPostLabel} onChange={(e) => setNewItemPostLabel(e.target.value)} />
+              <Button variant="outline" onClick={() => {
+                if (!newItemPostKey.trim() || !newItemPostLabel.trim()) return;
+                setItemPostTemplate(prev => ({ ...prev, [newItemPostKey.trim()]: newItemPostLabel.trim() }));
+                setNewItemPostKey(""); setNewItemPostLabel("");
+              }}>Add</Button>
+            </div>
+            <div className="space-y-1">
+              {Object.entries(itemPostTemplate).map(([k, v]) => (
+                <div key={k} className="flex items-center justify-between text-xs">
+                  <span className="font-mono">{k}</span> <span>{v}</span>
+                  <Button variant="ghost" size="sm" onClick={() => {
+                    const next = { ...itemPostTemplate }; delete next[k]; setItemPostTemplate(next);
+                  }}>Remove</Button>
+                </div>
+              ))}
+              {Object.keys(itemPostTemplate).length === 0 && (
+                <div className="text-xs text-muted-foreground">No post-checks configured.</div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={saveItemTemplates}>Save Templates</Button>
+          </div>
         </CardContent>
       </Card>
 

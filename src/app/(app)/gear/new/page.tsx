@@ -128,16 +128,16 @@ export default function NewGearPage() {
 
     const serviceMonths = useCustomSchedule
       ? (customMonths === "" ? null : Number(customMonths))
-      : (selectedSub?.service_interval_months ?? selectedCat?.service_interval_months ?? null);
+      : (selectedCat?.service_interval_months ?? null);
     const usageThreshold = useCustomSchedule
       ? (customUsageDays === "" ? null : Number(customUsageDays))
-      : (selectedSub?.usage_service_threshold ?? selectedCat?.usage_service_threshold ?? null);
+      : (selectedCat?.usage_service_threshold ?? null);
 
     const { error } = await supabase.from("gear_items").insert({
       user_id: user.id,
       internal_id: values.internal_id,
       friendly_name: values.friendly_name || null,
-      category: selectedCat?.name || values.category, // keep text for readability
+      category: selectedCat?.name || values.category,
       sub_type: selectedSub?.name || values.sub_type || null,
       category_id: selectedCat?.id ?? null,
       subcategory_id: selectedSub?.id ?? null,
@@ -153,7 +153,6 @@ export default function NewGearPage() {
       status: "Available",
       service_interval_months: serviceMonths,
       usage_service_threshold: usageThreshold,
-      // NEW: include item-level templates
       checklist_template_pre: itemPreTemplate,
       checklist_template_post: itemPostTemplate,
     });
@@ -237,9 +236,8 @@ export default function NewGearPage() {
             <div className="text-xs text-muted-foreground mt-2">
               {(() => {
                 const cat = categories.find(c => c.id === categoryId);
-                const sub = subcategories.find(s => s.id === subcategoryId);
-                const months = sub?.service_interval_months ?? cat?.service_interval_months;
-                const usage = sub?.usage_service_threshold ?? cat?.usage_service_threshold;
+                const months = cat?.service_interval_months;
+                const usage = cat?.usage_service_threshold;
                 return months || usage
                   ? <>Default will be applied: {months ? `${months} months` : ""}{months && usage ? " · " : ""}{usage ? `${usage} days rented` : ""}.</>
                   : <>No default configured; you can set a custom schedule.</>;

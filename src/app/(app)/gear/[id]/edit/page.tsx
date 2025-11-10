@@ -332,9 +332,8 @@ export default function EditGearPage() {
             <div className="text-xs text-muted-foreground mt-2">
               {(() => {
                 const cat = categories.find(c => c.id === categoryId);
-                const sub = subcategories.find(s => s.id === subcategoryId);
-                const months = sub?.service_interval_months ?? cat?.service_interval_months;
-                const usage = sub?.usage_service_threshold ?? cat?.usage_service_threshold;
+                const months = cat?.service_interval_months;
+                const usage = cat?.usage_service_threshold;
                 return months || usage
                   ? <>Default applied: {months ? `${months} months` : ""}{months && usage ? " · " : ""}{usage ? `${usage} days rented` : ""}.</>
                   : <>No default configured.</>;

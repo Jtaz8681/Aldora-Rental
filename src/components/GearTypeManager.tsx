@@ -46,11 +46,6 @@ export default function GearTypeManager() {
   const [newCatMonths, setNewCatMonths] = useState<number | "">("");
   const [newCatUsage, setNewCatUsage] = useState<number | "">("");
 
-  // New subcategory form
-  const [newSubName, setNewSubName] = useState("");
-  const [newSubMonths, setNewSubMonths] = useState<number | "">("");
-  const [newSubUsage, setNewSubUsage] = useState<number | "">("");
-
   // NEW: checklist template editors
   const [preTemplate, setPreTemplate] = useState<Record<string, string>>({});
   const [postTemplate, setPostTemplate] = useState<Record<string, string>>({});
@@ -259,8 +254,6 @@ export default function GearTypeManager() {
 
   const addSubcategory = async () => {
     const name = newSubName.trim();
-    const months = newSubMonths === "" ? null : Number(newSubMonths);
-    const usage = newSubUsage === "" ? null : Number(newSubUsage);
     if (!selectedCategoryId) {
       toast.error("Select a category first.");
       return;
@@ -273,31 +266,13 @@ export default function GearTypeManager() {
     if (!user) return;
     const { error } = await supabase
       .from("gear_subcategories")
-      .insert({ user_id: user.id, category_id: selectedCategoryId, name, service_interval_months: months, usage_service_threshold: usage });
+      .insert({ user_id: user.id, category_id: selectedCategoryId, name });
     if (error) {
       toast.error("Failed to add subcategory: " + error.message);
       throw error;
     }
     setNewSubName("");
-    setNewSubMonths("");
-    setNewSubUsage("");
     toast.success("Subcategory added.");
-    await loadData();
-  };
-
-  const updateSubcategory = async (id: string, months: number | null, usage: number | null) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { error } = await supabase
-      .from("gear_subcategories")
-      .update({ service_interval_months: months, usage_service_threshold: usage, updated_at: new Date().toISOString() })
-      .eq("id", id)
-      .eq("user_id", user.id);
-    if (error) {
-      toast.error("Failed to update subcategory: " + error.message);
-      throw error;
-    }
-    toast.success("Subcategory updated.");
     await loadData();
   };
 
@@ -446,7 +421,7 @@ export default function GearTypeManager() {
         <CardContent className="space-y-6">
           <div>
             <div className="text-sm font-medium mb-2">Add Subcategory</div>
-            <div className="grid grid-cols-[1.5fr,1.5fr,1fr,1fr,auto] gap-2 mb-3">
+            <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2 mb-3">
               <Select value={selectedCategoryId} onValueChange={(v) => setSelectedCategoryId(v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Pick a category" />
@@ -456,8 +431,6 @@ export default function GearTypeManager() {
                 </SelectContent>
               </Select>
               <Input placeholder="Subcategory name (e.g., Jacket Style BCD)" value={newSubName} onChange={(e) => setNewSubName(e.target.value)} />
-              <Input type="number" placeholder="Months" value={newSubMonths === "" ? "" : String(newSubMonths)} onChange={(e) => setNewSubMonths(e.target.value === "" ? "" : Number(e.target.value))} />
-              <Input type="number" placeholder="Usage (days)" value={newSubUsage === "" ? "" : String(newSubUsage)} onChange={(e) => setNewSubUsage(e.target.value === "" ? "" : Number(e.target.value))} />
               <Button variant="outline" onClick={addSubcategory} disabled={!selectedCategoryId}>Add</Button>
             </div>
 
@@ -465,8 +438,6 @@ export default function GearTypeManager() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Subcategory</TableHead>
-                  <TableHead>Months</TableHead>
-                  <TableHead>Usage (days)</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -475,34 +446,18 @@ export default function GearTypeManager() {
                   <TableRow key={sc.id}>
                     <TableCell className="font-mono">{sc.name}</TableCell>
                     <TableCell>
-                      <Input
-                        type="number"
-                        className="w-24"
-                        defaultValue={sc.service_interval_months ?? ""}
-                        onBlur={(e) => updateSubcategory(sc.id, e.target.value === "" ? null : Number(e.target.value), sc.usage_service_threshold)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        className="w-28"
-                        defaultValue={sc.usage_service_threshold ?? ""}
-                        onBlur={(e) => updateSubcategory(sc.id, sc.service_interval_months, e.target.value === "" ? null : Number(e.target.value))}
-                      />
-                    </TableCell>
-                    <TableCell>
                       <Button variant="destructive" size="sm" onClick={() => deleteSubcategory(sc.id)}>Remove</Button>
                     </TableCell>
                   </TableRow>
                 ))}
                 {selectedCategoryId && currentSubcats.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">No subcategories for this category yet.</TableCell>
+                    <TableCell colSpan={2} className="text-center text-sm text-muted-foreground">No subcategories for this category yet.</TableCell>
                   </TableRow>
                 )}
                 {!selectedCategoryId && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">Select a category to view or add subcategories.</TableCell>
+                    <TableCell colSpan={2} className="text-center text-sm text-muted-foreground">Select a category to view or add subcategories.</TableCell>
                   </TableRow>
                 )}
               </TableBody>

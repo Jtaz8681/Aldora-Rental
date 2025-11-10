@@ -375,201 +375,214 @@ export default function GearTypeManager() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Gear Types & Default Service Schedule</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={seedDefaults}>Seed common scuba gear categories</Button>
-          <span className="text-xs text-muted-foreground">Adds a comprehensive list (BCD, Regulator, Fins, Computers, Lights, Tanks, etc.).</span>
-        </div>
+    <>
+      {/* Gear Types & Default Service Schedule */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Gear Types & Default Service Schedule</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={seedDefaults}>Seed common scuba gear categories</Button>
+            <span className="text-xs text-muted-foreground">Adds a comprehensive list (BCD, Regulator, Fins, Computers, Lights, Tanks, etc.).</span>
+          </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <div>
-            <div className="text-sm font-medium mb-2">Categories</div>
-            <div className="grid grid-cols-[2fr,1fr,1fr,auto] gap-2 mb-3">
-              <Input placeholder="Category name (e.g., BCD)" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} />
-              <Input type="number" placeholder="Months" value={newCatMonths === "" ? "" : String(newCatMonths)} onChange={(e) => setNewCatMonths(e.target.value === "" ? "" : Number(e.target.value))} />
-              <Input type="number" placeholder="Usage (days)" value={newCatUsage === "" ? "" : String(newCatUsage)} onChange={(e) => setNewCatUsage(e.target.value === "" ? "" : Number(e.target.value))} />
-              <Button variant="outline" onClick={addCategory}>Add</Button>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Months</TableHead>
-                  <TableHead>Usage (days)</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {categories.map(cat => (
-                  <TableRow key={cat.id} className="align-top">
-                    <TableCell>
-                      <button className="font-mono underline" onClick={() => setSelectedCategoryId(cat.id)}>{cat.name}</button>
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        className="w-24"
-                        defaultValue={cat.service_interval_months ?? ""}
-                        onBlur={(e) => updateCategory(cat.id, e.target.value === "" ? null : Number(e.target.value), cat.usage_service_threshold)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        className="w-28"
-                        defaultValue={cat.usage_service_threshold ?? ""}
-                        onBlur={(e) => updateCategory(cat.id, cat.service_interval_months, e.target.value === "" ? null : Number(e.target.value))}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="destructive" size="sm" onClick={() => deleteCategory(cat.id)}>Remove</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {categories.length === 0 && (
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <div className="text-sm font-medium mb-2">Categories</div>
+              <div className="grid grid-cols-[2fr,1fr,1fr,auto] gap-2 mb-3">
+                <Input placeholder="Category name (e.g., BCD)" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} />
+                <Input type="number" placeholder="Months" value={newCatMonths === "" ? "" : String(newCatMonths)} onChange={(e) => setNewCatMonths(e.target.value === "" ? "" : Number(e.target.value))} />
+                <Input type="number" placeholder="Usage (days)" value={newCatUsage === "" ? "" : String(newCatUsage)} onChange={(e) => setNewCatUsage(e.target.value === "" ? "" : Number(e.target.value))} />
+                <Button variant="outline" onClick={addCategory}>Add</Button>
+              </div>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">No categories configured.</TableCell>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Months</TableHead>
+                    <TableHead>Usage (days)</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          <div>
-            <div className="text-sm font-medium mb-2">Subcategories</div>
-            <div className="grid grid-cols-[1.5fr,1.5fr,1fr,1fr,auto] gap-2 mb-3">
-              <Select value={selectedCategoryId} onValueChange={(v) => setSelectedCategoryId(v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pick a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Input placeholder="Subcategory name (e.g., Jacket Style BCD)" value={newSubName} onChange={(e) => setNewSubName(e.target.value)} />
-              <Input type="number" placeholder="Months" value={newSubMonths === "" ? "" : String(newSubMonths)} onChange={(e) => setNewSubMonths(e.target.value === "" ? "" : Number(e.target.value))} />
-              <Input type="number" placeholder="Usage (days)" value={newSubUsage === "" ? "" : String(newSubUsage)} onChange={(e) => setNewSubUsage(e.target.value === "" ? "" : Number(e.target.value))} />
-              <Button variant="outline" onClick={addSubcategory}>Add</Button>
+                </TableHeader>
+                <TableBody>
+                  {categories.map(cat => (
+                    <TableRow key={cat.id} className="align-top">
+                      <TableCell>
+                        <button className="font-mono underline" onClick={() => setSelectedCategoryId(cat.id)}>{cat.name}</button>
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          className="w-24"
+                          defaultValue={cat.service_interval_months ?? ""}
+                          onBlur={(e) => updateCategory(cat.id, e.target.value === "" ? null : Number(e.target.value), cat.usage_service_threshold)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          className="w-28"
+                          defaultValue={cat.usage_service_threshold ?? ""}
+                          onBlur={(e) => updateCategory(cat.id, cat.service_interval_months, e.target.value === "" ? null : Number(e.target.value))}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="destructive" size="sm" onClick={() => deleteCategory(cat.id)}>Remove</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {categories.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">No categories configured.</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Subcategory</TableHead>
-                  <TableHead>Months</TableHead>
-                  <TableHead>Usage (days)</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {currentSubcats.map(sc => (
-                  <TableRow key={sc.id}>
-                    <TableCell className="font-mono">{sc.name}</TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        className="w-24"
-                        defaultValue={sc.service_interval_months ?? ""}
-                        onBlur={(e) => updateSubcategory(sc.id, e.target.value === "" ? null : Number(e.target.value), sc.usage_service_threshold)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        className="w-28"
-                        defaultValue={sc.usage_service_threshold ?? ""}
-                        onBlur={(e) => updateSubcategory(sc.id, sc.service_interval_months, e.target.value === "" ? null : Number(e.target.value))}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="destructive" size="sm" onClick={() => deleteSubcategory(sc.id)}>Remove</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {selectedCategoryId && currentSubcats.length === 0 && (
+
+            <div>
+              <div className="text-sm font-medium mb-2">Subcategories</div>
+              <div className="grid grid-cols-[1.5fr,1.5fr,1fr,1fr,auto] gap-2 mb-3">
+                <Select value={selectedCategoryId} onValueChange={(v) => setSelectedCategoryId(v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pick a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Input placeholder="Subcategory name (e.g., Jacket Style BCD)" value={newSubName} onChange={(e) => setNewSubName(e.target.value)} />
+                <Input type="number" placeholder="Months" value={newSubMonths === "" ? "" : String(newSubMonths)} onChange={(e) => setNewSubMonths(e.target.value === "" ? "" : Number(e.target.value))} />
+                <Input type="number" placeholder="Usage (days)" value={newSubUsage === "" ? "" : String(newSubUsage)} onChange={(e) => setNewSubUsage(e.target.value === "" ? "" : Number(e.target.value))} />
+                <Button variant="outline" onClick={addSubcategory}>Add</Button>
+              </div>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">No subcategories for this category.</TableCell>
+                    <TableHead>Subcategory</TableHead>
+                    <TableHead>Months</TableHead>
+                    <TableHead>Usage (days)</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                )}
-                {!selectedCategoryId && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">Select a category to view subcategories.</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-
-        {/* NEW: Checklist Templates Editor */}
-        <div className="grid md:grid-cols-2 gap-6">
-          <div>
-            <div className="text-sm font-medium mb-2">Pre-Checkout Checklist (Default for Category)</div>
-            <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2 mb-2">
-              <Input placeholder="key (e.g., bcd_inflate_ok)" value={newPreKey} onChange={(e) => setNewPreKey(e.target.value)} />
-              <Input placeholder="Label (e.g., Inflates/deflates smoothly)" value={newPreLabel} onChange={(e) => setNewPreLabel(e.target.value)} />
-              <Button variant="outline" onClick={addPreCheck}>Add</Button>
+                </TableHeader>
+                <TableBody>
+                  {currentSubcats.map(sc => (
+                    <TableRow key={sc.id}>
+                      <TableCell className="font-mono">{sc.name}</TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          className="w-24"
+                          defaultValue={sc.service_interval_months ?? ""}
+                          onBlur={(e) => updateSubcategory(sc.id, e.target.value === "" ? null : Number(e.target.value), sc.usage_service_threshold)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          className="w-28"
+                          defaultValue={sc.usage_service_threshold ?? ""}
+                          onBlur={(e) => updateSubcategory(sc.id, sc.service_interval_months, e.target.value === "" ? null : Number(e.target.value))}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="destructive" size="sm" onClick={() => deleteSubcategory(sc.id)}>Remove</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {selectedCategoryId && currentSubcats.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">No subcategories for this category.</TableCell>
+                    </TableRow>
+                  )}
+                  {!selectedCategoryId && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">Select a category to view subcategories.</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Key</TableHead>
-                  <TableHead>Label</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Object.entries(preTemplate).map(([key, label]) => (
-                  <TableRow key={key}>
-                    <TableCell className="font-mono">{key}</TableCell>
-                    <TableCell>{label}</TableCell>
-                    <TableCell><Button variant="destructive" size="sm" onClick={() => removePreCheck(key)}>Remove</Button></TableCell>
-                  </TableRow>
-                ))}
-                {Object.keys(preTemplate).length === 0 && (
-                  <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground">No pre-checks configured.</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
           </div>
-          <div>
-            <div className="text-sm font-medium mb-2">Post-Check-In Checklist (Default for Category)</div>
-            <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2 mb-2">
-              <Input placeholder="key (e.g., regs_rinsed)" value={newPostKey} onChange={(e) => setNewPostKey(e.target.value)} />
-              <Input placeholder="Label (e.g., Rinsed & cleaned)" value={newPostLabel} onChange={(e) => setNewPostLabel(e.target.value)} />
-              <Button variant="outline" onClick={addPostCheck}>Add</Button>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Key</TableHead>
-                  <TableHead>Label</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Object.entries(postTemplate).map(([key, label]) => (
-                  <TableRow key={key}>
-                    <TableCell className="font-mono">{key}</TableCell>
-                    <TableCell>{label}</TableCell>
-                    <TableCell><Button variant="destructive" size="sm" onClick={() => removePostCheck(key)}>Remove</Button></TableCell>
-                  </TableRow>
-                ))}
-                {Object.keys(postTemplate).length === 0 && (
-                  <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground">No post-checks configured.</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        <div className="flex justify-end">
-          <Button onClick={saveTemplates}>Save Templates</Button>
-        </div>
-      </CardContent>
-    </Card>
+      {/* Pre-Checkout Checklist (Default for Category) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Pre-Checkout Checklist (Default for Category)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2">
+            <Input placeholder="key (e.g., bcd_inflate_ok)" value={newPreKey} onChange={(e) => setNewPreKey(e.target.value)} />
+            <Input placeholder="Label (e.g., Inflates/deflates smoothly)" value={newPreLabel} onChange={(e) => setNewPreLabel(e.target.value)} />
+            <Button variant="outline" onClick={addPreCheck}>Add</Button>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Key</TableHead>
+                <TableHead>Label</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(preTemplate).map(([key, label]) => (
+                <TableRow key={key}>
+                  <TableCell className="font-mono">{key}</TableCell>
+                  <TableCell>{label}</TableCell>
+                  <TableCell><Button variant="destructive" size="sm" onClick={() => removePreCheck(key)}>Remove</Button></TableCell>
+                </TableRow>
+              ))}
+              {Object.keys(preTemplate).length === 0 && (
+                <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground">No pre-checks configured.</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+          <div className="flex justify-end">
+            <Button onClick={saveTemplates}>Save Templates</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Post-Check-In Checklist (Default for Category) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Post-Check-In Checklist (Default for Category)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2">
+            <Input placeholder="key (e.g., regs_rinsed)" value={newPostKey} onChange={(e) => setNewPostKey(e.target.value)} />
+            <Input placeholder="Label (e.g., Rinsed & cleaned)" value={newPostLabel} onChange={(e) => setNewPostLabel(e.target.value)} />
+            <Button variant="outline" onClick={addPostCheck}>Add</Button>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Key</TableHead>
+                <TableHead>Label</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(postTemplate).map(([key, label]) => (
+                <TableRow key={key}>
+                  <TableCell className="font-mono">{key}</TableCell>
+                  <TableCell>{label}</TableCell>
+                  <TableCell><Button variant="destructive" size="sm" onClick={() => removePostCheck(key)}>Remove</Button></TableCell>
+                </TableRow>
+              ))}
+              {Object.keys(postTemplate).length === 0 && (
+                <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground">No post-checks configured.</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+          <div className="flex justify-end">
+            <Button onClick={saveTemplates}>Save Templates</Button>
+          </div>
+        </CardContent>
+      </Card>
+    </>
   );
 }

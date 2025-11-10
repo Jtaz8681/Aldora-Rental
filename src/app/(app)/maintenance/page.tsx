@@ -574,9 +574,9 @@ export default function MaintenancePage() {
   return (
     <RoleGuard allow={["owner", "manager", "technician", "staff"]} title="Maintenance">
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <h1 className="text-2xl font-bold">Maintenance</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <label className="text-sm flex items-center gap-2">
               <span>Status filter:</span>
               <select
@@ -620,127 +620,129 @@ export default function MaintenancePage() {
             <CardTitle>Tickets</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Gear</TableHead>
-                  <TableHead>Received</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Technician</TableHead>
-                  <TableHead>Estimate</TableHead>
-                  <TableHead>Cost</TableHead>
-                  <TableHead>Charge?</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleTickets.map(t => (
-                  <TableRow key={t.id}>
-                    <TableCell>
-                      {t.gear_items?.internal_id ? (
-                        <Link href={`/gear/${t.gear_id}`} className="underline font-mono">
-                          {t.gear_items.internal_id}
-                        </Link>
-                      ) : (
-                        <span className="text-muted-foreground">N/A</span>
-                      )}
-                      <div className="text-xs text-muted-foreground">
-                        {t.problem_description || "No description"}
-                      </div>
-                    </TableCell>
-                    <TableCell>{t.date_received ? format(new Date(t.date_received), "PPP") : "-"}</TableCell>
-                    <TableCell>
-                      <Badge variant={STATUS_VARIANT(t.status)}>{t.status}</Badge>
-                      <div className="mt-1">
-                        <select
-                          className="border rounded px-2 py-1 text-xs"
-                          value={statusUpdate[t.id] ?? t.status}
-                          onChange={(e) => setStatusUpdate(prev => ({ ...prev, [t.id]: e.target.value }))}
-                        >
-                          {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      <div className="flex items-center gap-2">
-                        <Input
-                          className="w-40"
-                          placeholder="Technician"
-                          value={techUpdate[t.id] ?? (t.assigned_technician || "")}
-                          onChange={(e) => setTechUpdate(prev => ({ ...prev, [t.id]: e.target.value }))}
-                        />
-                        {/* NEW: quick picker from Profiles */}
-                        <select
-                          className="border rounded px-2 py-1 text-xs"
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val) setTechUpdate(prev => ({ ...prev, [t.id]: val }));
-                          }}
-                          value=""
-                        >
-                          <option value="">Pick</option>
-                          {technicians.map(name => (
-                            <option key={name} value={name}>{name}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      <Input
-                        type="date"
-                        className="w-40"
-                        value={etaUpdate[t.id] ?? (t.estimated_completion_date ? t.estimated_completion_date.split("T")[0] : "")}
-                        onChange={(e) => setEtaUpdate(prev => ({ ...prev, [t.id]: e.target.value }))}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        className="w-28"
-                        value={(costUpdate[t.id] ?? (t.cost ?? 0)).toString()}
-                        onChange={(e) => setCostUpdate(prev => ({ ...prev, [t.id]: Number(e.target.value) }))}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <label className="flex items-center gap-2 text-xs">
-                        <input
-                          type="checkbox"
-                          checked={chargeFlag[t.id] ?? !!t.charge_customer}
-                          onChange={(e) => setChargeFlag(prev => ({ ...prev, [t.id]: e.target.checked }))}
-                        />
-                        Charge customer
-                      </label>
-                    </TableCell>
-                    <TableCell className="space-x-2">
-                      <Button size="sm" variant="outline" onClick={() => updateTicket(t)}>Save</Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="destructive">Delete</Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete this ticket?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will permanently delete the ticket and its work logs and parts will no longer be visible. This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => deleteTicket(t.id)}>
-                              Confirm Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </TableCell>
+            <div className="w-full overflow-x-auto">
+              <Table className="min-w-[900px] md:min-w-0">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Gear</TableHead>
+                    <TableHead>Received</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Technician</TableHead>
+                    <TableHead>Estimate</TableHead>
+                    <TableHead>Cost</TableHead>
+                    <TableHead>Charge?</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-                {visibleTickets.length === 0 && (
-                  <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground">No tickets.</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {visibleTickets.map(t => (
+                    <TableRow key={t.id}>
+                      <TableCell>
+                        {t.gear_items?.internal_id ? (
+                          <Link href={`/gear/${t.gear_id}`} className="underline font-mono">
+                            {t.gear_items.internal_id}
+                          </Link>
+                        ) : (
+                          <span className="text-muted-foreground">N/A</span>
+                        )}
+                        <div className="text-xs text-muted-foreground">
+                          {t.problem_description || "No description"}
+                        </div>
+                      </TableCell>
+                      <TableCell>{t.date_received ? format(new Date(t.date_received), "PPP") : "-"}</TableCell>
+                      <TableCell>
+                        <Badge variant={STATUS_VARIANT(t.status)}>{t.status}</Badge>
+                        <div className="mt-1">
+                          <select
+                            className="border rounded px-2 py-1 text-xs"
+                            value={statusUpdate[t.id] ?? t.status}
+                            onChange={(e) => setStatusUpdate(prev => ({ ...prev, [t.id]: e.target.value }))}
+                          >
+                            {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        <div className="flex items-center gap-2">
+                          <Input
+                            className="w-28 md:w-40"
+                            placeholder="Technician"
+                            value={techUpdate[t.id] ?? (t.assigned_technician || "")}
+                            onChange={(e) => setTechUpdate(prev => ({ ...prev, [t.id]: e.target.value }))}
+                          />
+                          {/* NEW: quick picker from Profiles */}
+                          <select
+                            className="border rounded px-2 py-1 text-xs"
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val) setTechUpdate(prev => ({ ...prev, [t.id]: val }));
+                            }}
+                            value=""
+                          >
+                            <option value="">Pick</option>
+                            {technicians.map(name => (
+                              <option key={name} value={name}>{name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        <Input
+                          type="date"
+                          className="w-28 md:w-40"
+                          value={etaUpdate[t.id] ?? (t.estimated_completion_date ? t.estimated_completion_date.split("T")[0] : "")}
+                          onChange={(e) => setEtaUpdate(prev => ({ ...prev, [t.id]: e.target.value }))}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          className="w-24 md:w-28"
+                          value={(costUpdate[t.id] ?? (t.cost ?? 0)).toString()}
+                          onChange={(e) => setCostUpdate(prev => ({ ...prev, [t.id]: Number(e.target.value) }))}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <label className="flex items-center gap-2 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={chargeFlag[t.id] ?? !!t.charge_customer}
+                            onChange={(e) => setChargeFlag(prev => ({ ...prev, [t.id]: e.target.checked }))}
+                          />
+                          Charge customer
+                        </label>
+                      </TableCell>
+                      <TableCell className="flex flex-wrap gap-2">
+                        <Button size="sm" variant="outline" onClick={() => updateTicket(t)}>Save</Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="destructive">Delete</Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete this ticket?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete the ticket and its work logs and parts will no longer be visible. This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteTicket(t.id)}>
+                                Confirm Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {visibleTickets.length === 0 && (
+                    <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground">No tickets.</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
 
@@ -792,7 +794,7 @@ export default function MaintenancePage() {
                   </div>
                   <div>
                     <Label>Add Part</Label>
-                    <div className="grid grid-cols-[2fr,1fr,1fr,auto] gap-2 mt-1">
+                    <div className="grid grid-cols-2 md:grid-cols-[2fr,1fr,1fr,auto] gap-2 mt-1">
                       <Input id={`ptn-${t.id}`} placeholder="Part name" />
                       <Input id={`ptq-${t.id}`} type="number" placeholder="Qty" />
                       <Input id={`ptc-${t.id}`} type="number" step="0.01" placeholder="Unit cost" />

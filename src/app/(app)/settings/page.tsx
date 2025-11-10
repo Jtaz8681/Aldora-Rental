@@ -3,6 +3,7 @@
 import React from "react";
 import RoleGuard from "@/components/RoleGuard";
 import GearTypeManager from "@/components/GearTypeManager";
+import GearTypeManagerFixed from "@/components/GearTypeManagerFixed";
 
 export default function SettingsPage() {
   return (
@@ -11,7 +12,7 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-bold mb-4">Settings</h1>
 
         <div className="mx-auto max-w-screen-md space-y-6">
-          <GearTypeManager />
+          <GearTypeManagerFixed />
         </div>
       </div>
     </RoleGuard>

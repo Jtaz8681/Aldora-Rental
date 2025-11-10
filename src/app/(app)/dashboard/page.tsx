@@ -7,6 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { format } from "date-fns";
+import { badgeVariantForRentalStatus } from "@/lib/status";
+import { formatCurrency } from "@/lib/format";
 
 type GearItem = {
   id: string;
@@ -141,17 +143,6 @@ export default function DashboardPage() {
     loadDashboardData();
   }, []);
 
-  const statusVariant = (status: string) => {
-    switch (status) {
-      case "returned": return "secondary";
-      case "checked-out": return "default";
-      case "overdue": return "destructive";
-      case "draft": return "outline";
-      case "active": return "default";
-      default: return "outline";
-    }
-  };
-
   if (loading) {
     return <div className="text-center text-muted-foreground">Loading dashboard...</div>;
   }
@@ -179,7 +170,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{totalCustomers}</div>
             <p className="text-xs text-muted-foreground">
-              ${totalBalanceDue.toFixed(2)} outstanding balance
+              {formatCurrency(totalBalanceDue)} outstanding balance
             </p>
           </CardContent>
         </Card>
@@ -282,7 +273,7 @@ export default function DashboardPage() {
                     {format(new Date(r.expected_end_at), 'PPP')}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={statusVariant(r.status)}>
+                    <Badge variant={badgeVariantForRentalStatus(r.status)}>
                       {overdue ? "Overdue" : r.status}
                     </Badge>
                   </TableCell>

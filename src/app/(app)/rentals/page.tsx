@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatDateTime, formatCurrency } from "@/lib/format";
+import { badgeVariantForRentalStatus } from "@/lib/status";
 
 type Rental = {
   id: string;
@@ -67,16 +69,6 @@ export default function RentalsPage() {
     });
   }, [rentals, customers, search, statusFilter]);
 
-  const statusVariant = (status: string) => {
-    switch (status) {
-      case "returned": return "secondary";
-      case "checked-out": return "default";
-      case "overdue": return "destructive";
-      case "draft": return "outline";
-      default: return "outline";
-    }
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -127,17 +119,17 @@ export default function RentalsPage() {
                     <span className="text-xs text-muted-foreground">{r.id}</span>
                   </div>
                 </TableCell>
-                <TableCell>{new Date(r.start_at).toLocaleString()}</TableCell>
+                <TableCell>{formatDateTime(r.start_at)}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <span>{new Date(r.expected_end_at).toLocaleString()}</span>
+                    <span>{formatDateTime(r.expected_end_at)}</span>
                     {overdue && <Badge variant="destructive">Overdue</Badge>}
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={statusVariant(r.status)}>{r.status}</Badge>
+                  <Badge variant={badgeVariantForRentalStatus(r.status)}>{r.status}</Badge>
                 </TableCell>
-                <TableCell>${Number(r.total_cost || 0).toFixed(2)}</TableCell>
+                <TableCell>{formatCurrency(r.total_cost)}</TableCell>
                 <TableCell className="space-x-2">
                   <Link className="underline text-sm" href={`/rentals/${r.id}`}>View Rental</Link> {/* Added this link */}
                   <Link className="underline text-sm" href={`/customers/${r.customer_id}`}>View Customer</Link>

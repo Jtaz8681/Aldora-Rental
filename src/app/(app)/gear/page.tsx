@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { badgeVariantForGearStatus } from "@/lib/status";
+import { formatCurrency } from "@/lib/format";
 
 type GearItem = {
   id: string;
@@ -89,8 +91,8 @@ export default function GearPage() {
                 <TableCell>{g.category}{g.sub_type ? ` / ${g.sub_type}` : ""}</TableCell>
                 <TableCell>{[g.brand, g.model].filter(Boolean).join(" ") || "-"}</TableCell>
                 <TableCell>{g.size || "-"}</TableCell>
-                <TableCell><Badge variant="secondary">{g.status}</Badge></TableCell>
-                <TableCell>${Number(g.rental_price || 0).toFixed(2)}</TableCell>
+                <TableCell><Badge variant={badgeVariantForGearStatus(g.status)}>{g.status}</Badge></TableCell>
+                <TableCell>{formatCurrency(g.rental_price)}</TableCell>
                 <TableCell className="space-x-2">
                   {g.manual_url ? (
                     <a href={g.manual_url} target="_blank" rel="noopener noreferrer" className="text-sm underline">Manual</a>

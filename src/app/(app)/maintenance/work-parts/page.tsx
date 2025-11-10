@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import Link from "next/link";
 import { Trash2 } from "lucide-react";
+import { badgeVariantForTicketStatus } from "@/lib/status";
 
 type Ticket = {
   id: string;
@@ -23,16 +24,6 @@ type Ticket = {
 
 type WorkLog = { id: string; description: string; created_at: string; ticket_id: string };
 type Part = { id: string; part_name: string; quantity: number; unit_cost: number | null; ticket_id: string };
-
-const STATUS_VARIANT = (status: string) => {
-  switch (status) {
-    case "pending": return "outline";
-    case "in_progress": return "default";
-    case "awaiting_parts": return "secondary";
-    case "completed": return "secondary";
-    default: return "outline";
-  }
-};
 
 export default function MaintenanceWorkPartsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -223,7 +214,7 @@ export default function MaintenanceWorkPartsPage() {
                       "N/A"
                     )}
                   </div>
-                  <Badge variant={STATUS_VARIANT(t.status)}>{t.status}</Badge>
+                  <Badge variant={badgeVariantForTicketStatus(t.status)}>{t.status}</Badge>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-2 mt-3">
                   <div>

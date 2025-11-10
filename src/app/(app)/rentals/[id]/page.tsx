@@ -23,6 +23,8 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import ReportDamageDialog from "@/components/ReportDamageDialog"; // Import the new component
+import { badgeVariantForRentalStatus } from "@/lib/status";
+import { formatCurrency } from "@/lib/format";
 
 type Rental = {
   id: string;
@@ -150,17 +152,6 @@ export default function RentalDetailPage() {
     await loadRentalData();
   };
 
-  const statusVariant = (status: string) => {
-    switch (status) {
-      case "returned": return "secondary";
-      case "checked-out": return "default";
-      case "overdue": return "destructive";
-      case "draft": return "outline";
-      case "active": return "default";
-      default: return "outline";
-    }
-  };
-
   const renderChecklist = (checklist: Record<string, boolean>) => (
     <div className="grid grid-cols-2 gap-1 text-xs">
       {Object.entries(checklist).map(([key, value]) => (
@@ -199,8 +190,8 @@ export default function RentalDetailPage() {
           {rental.customers?.phone && <p><strong>Phone:</strong> {rental.customers.phone}</p>}
           <p><strong>Start Date:</strong> {format(new Date(rental.start_at), 'PPP p')}</p>
           <div><strong>Expected End Date:</strong> {format(new Date(rental.expected_end_at), 'PPP p')} {isOverdue && <Badge variant="destructive" className="ml-2">Overdue</Badge>}</div>
-          <div><strong>Status:</strong> <Badge variant={statusVariant(rental.status)}>{rental.status}</Badge></div>
-          <p><strong>Total Cost:</strong> ${Number(rental.total_cost || 0).toFixed(2)}</p>
+          <div><strong>Status:</strong> <Badge variant={badgeVariantForRentalStatus(rental.status)}>{rental.status}</Badge></div>
+          <p><strong>Total Cost:</strong> {formatCurrency(rental.total_cost)}</p>
           {rental.signed_at && <p><strong>Signed At:</strong> {format(new Date(rental.signed_at), 'PPP p')}</p>}
           {rental.signature_data_url && (
             <div>
@@ -260,7 +251,7 @@ export default function RentalDetailPage() {
                           <div key={dr.id} className="border rounded p-1 text-xs">
                             <div><strong>Type:</strong> {dr.damage_type || "N/A"}</div>
                             <div><strong>Severity:</strong> <Badge variant={dr.severity === "Critical" ? "destructive" : "secondary"}>{dr.severity || "N/A"}</Badge></div>
-                            {dr.estimate_cost && <div><strong>Estimate:</strong> ${Number(dr.estimate_cost).toFixed(2)}</div>}
+                            {dr.estimate_cost && <div><strong>Estimate:</strong> {formatCurrency(dr.estimate_cost)}</div>}
                             {dr.notes && <div><strong>Notes:</strong> {dr.notes}</div>}
                             {dr.photos && dr.photos.length > 0 && (
                               <div className="flex gap-1 mt-1">

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import Link from "next/link";
 import { Trash2 } from "lucide-react";
+import { badgeVariantForTicketStatus } from "@/lib/status";
 
 type Ticket = {
   id: string;
@@ -32,16 +33,6 @@ type Ticket = {
 
 type WorkLog = { id: string; description: string; created_at: string; ticket_id: string };
 type Part = { id: string; part_name: string; quantity: number; unit_cost: number | null; ticket_id: string };
-
-const STATUS_VARIANT = (status: string) => {
-  switch (status) {
-    case "pending": return "outline";
-    case "in_progress": return "default";
-    case "awaiting_parts": return "secondary";
-    case "completed": return "secondary";
-    default: return "outline";
-  }
-};
 
 export default function MaintenanceTicketDetailPage() {
   const params = useParams();
@@ -348,7 +339,7 @@ export default function MaintenanceTicketDetailPage() {
               <div>
                 <div className="text-xs text-muted-foreground">Status</div>
                 <div className="flex items-center gap-2 mt-1">
-                  <Badge variant={STATUS_VARIANT(statusUpdate)}>{statusUpdate}</Badge>
+                  <Badge variant={badgeVariantForTicketStatus(statusUpdate)}>{statusUpdate}</Badge>
                   <select
                     className="border rounded px-2 py-1 text-xs"
                     value={statusUpdate}

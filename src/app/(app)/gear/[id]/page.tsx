@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { badgeVariantForGearStatus } from "@/lib/status";
 
 type Gear = {
   id: string;
@@ -168,18 +169,6 @@ export default function GearHistoryPage() {
     return <div className="text-center text-destructive">Gear not found.</div>;
   }
 
-  const statusVariant = (status: string) => {
-    switch (status) {
-      case "Available": return "secondary";
-      case "Checked-Out": return "default";
-      case "Overdue": return "destructive";
-      case "In Maintenance": return "secondary";
-      case "Quarantined": return "destructive";
-      case "Retired": return "outline";
-      default: return "outline";
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -187,7 +176,7 @@ export default function GearHistoryPage() {
           <h1 className="text-2xl font-bold">Gear History</h1>
           <div className="text-sm text-muted-foreground">
             <span className="font-mono">{gear.internal_id}</span>
-            {gear.friendly_name ? <> • {gear.friendly_name}</> : null} • {gear.category} • <Badge variant={statusVariant(gear.status)}>{gear.status}</Badge>
+            {gear.friendly_name ? <> • {gear.friendly_name}</> : null} • {gear.category} • <Badge variant={badgeVariantForGearStatus(gear.status)}>{gear.status}</Badge>
           </div>
         </div>
         <div className="flex items-center gap-2">

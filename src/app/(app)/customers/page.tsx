@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatCurrency } from "@/lib/format";
 
 type Customer = {
   id: string;
@@ -80,7 +81,7 @@ export default function CustomersPage() {
                 <TableCell>{c.phone || "-"}</TableCell>
                 <TableCell>{c.email || "-"}</TableCell>
                 <TableCell>{c.rentalCount}</TableCell>
-                <TableCell>${Number(c.balance_due || 0).toFixed(2)}</TableCell>
+                <TableCell>{formatCurrency(c.balance_due)}</TableCell>
                 <TableCell className="space-x-2">
                   <Link href={`/customers/${c.id}`} className="text-sm underline">View</Link>
                   <Link href={`/customers/${c.id}/edit`} className="text-sm underline">Edit</Link>

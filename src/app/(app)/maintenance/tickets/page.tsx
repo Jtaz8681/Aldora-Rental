@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import Link from "next/link";
 import RoleGuard from "@/components/RoleGuard";
 import { Trash2 } from "lucide-react";
+import { badgeVariantForTicketStatus } from "@/lib/status";
 
 type Ticket = {
   id: string;
@@ -25,16 +26,6 @@ type Ticket = {
   charge_customer: boolean | null;
   updated_at: string;
   gear_items?: { internal_id: string; category: string } | null;
-};
-
-const STATUS_VARIANT = (status: string) => {
-  switch (status) {
-    case "pending": return "outline";
-    case "in_progress": return "default";
-    case "awaiting_parts": return "secondary";
-    case "completed": return "secondary";
-    default: return "outline";
-  }
 };
 
 export default function MaintenanceTicketsPage() {
@@ -229,7 +220,7 @@ export default function MaintenanceTicketsPage() {
                           <span className="text-muted-foreground">N/A</span>
                         )}
                       </div>
-                      <Badge variant={STATUS_VARIANT(t.status)}>{t.status}</Badge>
+                      <Badge variant={badgeVariantForTicketStatus(t.status)}>{t.status}</Badge>
                     </div>
                     <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
                       <div>

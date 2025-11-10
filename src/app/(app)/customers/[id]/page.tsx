@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import RecordPaymentDialog from "@/components/RecordPaymentDialog";
 import Link from "next/link";
+import { formatCurrency } from "@/lib/format";
 
 export default function CustomerDetailPage() {
   const params = useParams();
@@ -37,7 +38,7 @@ export default function CustomerDetailPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">{customer.name}</h1>
-          <p className="text-sm text-muted-foreground">Balance: ${Number(customer.balance_due || 0).toFixed(2)}</p>
+          <p className="text-sm text-muted-foreground">Balance: {formatCurrency(customer.balance_due)}</p>
         </div>
         <Button onClick={() => setShowPaymentDialog(true)}>Record Payment</Button>
       </div>
@@ -60,7 +61,7 @@ export default function CustomerDetailPage() {
                 <TableCell>{new Date(r.start_at).toLocaleString()}</TableCell>
                 <TableCell>{new Date(r.expected_end_at).toLocaleString()}</TableCell>
                 <TableCell>{r.status}</TableCell>
-                <TableCell>${Number(r.total_cost || 0).toFixed(2)}</TableCell>
+                <TableCell>{formatCurrency(r.total_cost || 0)}</TableCell>
                 <TableCell>
                   <Link className="underline text-sm" href={`/rentals/${r.id}`}>View</Link>
                 </TableCell>
@@ -88,7 +89,7 @@ export default function CustomerDetailPage() {
             {payments.map(p => (
               <TableRow key={p.id}>
                 <TableCell>{new Date(p.created_at).toLocaleString()}</TableCell>
-                <TableCell>${Number(p.amount || 0).toFixed(2)}</TableCell>
+                <TableCell>{formatCurrency(p.amount || 0)}</TableCell>
                 <TableCell>{p.method || "-"}</TableCell>
                 <TableCell>{p.note || "-"}</TableCell>
               </TableRow>

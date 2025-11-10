@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import PickList from "@/components/PickList";
+import { roundToTwo } from "@/lib/format";
 
 type Customer = { id: string; name: string; };
 type Gear = { id: string; internal_id: string; category: string; rental_price: number; status: string; category_id?: string; checklist_template_pre?: Record<string, string> | null };
@@ -393,5 +394,3 @@ export default function NewRentalPage() {
     </div>
   );
 }
-
-const roundToTwo = (n: number) => Math.round(n * 100) / 100;

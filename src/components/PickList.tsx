@@ -2,6 +2,7 @@
 
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/lib/format";
 
 type Item = {
   internal_id: string;
@@ -95,7 +96,7 @@ export default function PickList({ customerName, startAt, endAt, items, total }:
               <tr key={idx}>
                 <td>{i.internal_id}</td>
                 <td>{i.category}</td>
-                <td>${Number(i.price || 0).toFixed(2)}</td>
+                <td>{formatCurrency(i.price)}</td>
               </tr>
             ))}
             {items.length === 0 && (
@@ -108,11 +109,11 @@ export default function PickList({ customerName, startAt, endAt, items, total }:
 
         <div className="flex-between" style={{ marginTop: 8 }}>
           <span className="muted">Subtotal:</span>
-          <span>${total.toFixed(2)}</span>
+          <span>{formatCurrency(total)}</span>
         </div>
         <div className="flex-between">
           <span className="total">Total ({days} day{days > 1 ? "s" : ""}):</span>
-          <span className="total">${total.toFixed(2)}</span>
+          <span className="total">{formatCurrency(total)}</span>
         </div>
 
         <p className="muted" style={{ marginTop: 12 }}>

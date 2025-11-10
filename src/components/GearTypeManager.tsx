@@ -15,6 +15,8 @@ type Category = {
   name: string;
   service_interval_months: number | null;
   usage_service_threshold: number | null;
+  checklist_template_pre?: Record<string, string> | null;
+  checklist_template_post?: Record<string, string> | null;
 };
 type Subcategory = {
   id: string;
@@ -47,7 +49,7 @@ export default function GearTypeManager() {
   const [newCatUsage, setNewCatUsage] = useState<number | "">("");
 
   // New subcategory form
-  const [newSubName, setNewSubName] = useState(""); // Added this line
+  const [newSubName, setNewSubName] = useState("");
 
   // NEW: checklist template editors
   const [preTemplate, setPreTemplate] = useState<Record<string, string>>({});
@@ -191,7 +193,7 @@ export default function GearTypeManager() {
           }
         })
         .eq("id", regId)
-        .eq("user_id", user.id);
+        .eq("user.id", user.id);
     }
 
     toast.success("Seeded gear categories, subcategories, and default checklist templates.");
@@ -353,7 +355,7 @@ export default function GearTypeManager() {
   };
 
   return (
-    <>
+    <React.Fragment>
       {/* Categories */}
       <Card>
         <CardHeader>
@@ -545,6 +547,6 @@ export default function GearTypeManager() {
           </div>
         </CardContent>
       </Card>
-    </>
+    </React.Fragment>
   );
 }

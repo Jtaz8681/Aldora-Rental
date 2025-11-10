@@ -30,42 +30,10 @@ const defaultCategorySeeds: string[] = [
   "Fins",
   "Mask",
   "Snorkel",
-  "Exposure Protection",
-  "Wetsuit",
-  "Drysuit",
-  "Boots",
-  "Gloves",
-  "Hood",
   "Dive Computer",
-  "Analog Gauges",
-  "Compass",
   "Lights",
-  "Primary Light",
-  "Backup Light",
-  "Underwater Camera",
-  "Housing",
-  "Strobe",
-  "Tray/Arms",
-  "Weights",
-  "Weight System",
   "Tank",
-  "Valve",
-  "Octopus",
-  "Alternate Air Source",
-  "Regulator Hoses",
-  "SPG (Pressure Gauge)",
-  "BCD Inflator Hose",
-  "Surface Marker Buoy (SMB)",
-  "Reel/Spool",
-  "Knife/Cutter",
-  "Pointer",
-  "Lift Bag",
-  "DPV (Scooter)",
-  "Rebreather Component",
-  "BCD Accessories",
-  "Regulator Accessories",
-  "Camera Accessories",
-  "Miscellaneous"
+  "Weights"
 ];
 
 export default function GearTypeManager() {
@@ -83,13 +51,21 @@ export default function GearTypeManager() {
   const [newSubMonths, setNewSubMonths] = useState<number | "">("");
   const [newSubUsage, setNewSubUsage] = useState<number | "">("");
 
+  // NEW: checklist template editors
+  const [preTemplate, setPreTemplate] = useState<Record<string, string>>({});
+  const [postTemplate, setPostTemplate] = useState<Record<string, string>>({});
+  const [newPreKey, setNewPreKey] = useState("");
+  const [newPreLabel, setNewPreLabel] = useState("");
+  const [newPostKey, setNewPostKey] = useState("");
+  const [newPostLabel, setNewPostLabel] = useState("");
+
   const loadData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     const { data: cats, error: cErr } = await supabase
       .from("gear_categories")
-      .select("id, name, service_interval_months, usage_service_threshold")
+      .select("id, name, service_interval_months, usage_service_threshold, checklist_template_pre, checklist_template_post")
       .eq("user_id", user.id)
       .order("name", { ascending: true });
     if (cErr) {
@@ -108,11 +84,22 @@ export default function GearTypeManager() {
       return;
     }
     setSubcategories(subs || []);
+
+    // Populate template editors when a category is selected
+    const sel = (cats || []).find(c => c.id === selectedCategoryId);
+    setPreTemplate((sel?.checklist_template_pre as any) || {});
+    setPostTemplate((sel?.checklist_template_post as any) || {});
   };
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    const sel = categories.find(c => c.id === selectedCategoryId);
+    setPreTemplate((sel?.checklist_template_pre as any) || {});
+    setPostTemplate((sel?.checklist_template_post as any) || {});
+  }, [selectedCategoryId, categories]);
 
   const currentSubcats = useMemo(
     () => subcategories.filter(s => s.category_id === selectedCategoryId),
@@ -126,18 +113,90 @@ export default function GearTypeManager() {
       toast.info("Categories already exist; seeding skipped.");
       return;
     }
-    const rows = defaultCategorySeeds.map(name => ({
+
+    // Insert base categories
+    const baseRows = defaultCategorySeeds.map(name => ({
       user_id: user.id,
       name,
       service_interval_months: null,
       usage_service_threshold: null,
+      checklist_template_pre: {},
+      checklist_template_post: {},
     }));
-    const { error } = await supabase.from("gear_categories").insert(rows);
-    if (error) {
-      toast.error("Seeding failed: " + error.message);
-      throw error;
+    const { data: insertedCats, error: catsErr } = await supabase.from("gear_categories").insert(baseRows).select("id, name");
+    if (catsErr) {
+      toast.error("Seeding categories failed: " + catsErr.message);
+      throw catsErr;
     }
-    toast.success("Default gear categories seeded.");
+
+    // Helper to find inserted IDs
+    const getCatId = (nm: string) => insertedCats?.find(c => c.name === nm)?.id;
+
+    // Define example subcategories
+    const subRows: any[] = [
+      // BCD subcategories
+      { user_id: user.id, category_id: getCatId("BCD"), name: "Jacket Style BCD" },
+      { user_id: user.id, category_id: getCatId("BCD"), name: "Back-Inflation BCD" },
+      { user_id: user.id, category_id: getCatId("BCD"), name: "Wing (with Backplate & Harness)" },
+      // Regulator subcategories
+      { user_id: user.id, category_id: getCatId("Regulator"), name: "First Stage" },
+      { user_id: user.id, category_id: getCatId("Regulator"), name: "Primary Second Stage" },
+      { user_id: user.id, category_id: getCatId("Regulator"), name: "Alternate Air Source (Octopus)" },
+      { user_id: user.id, category_id: getCatId("Regulator"), name: "Low-Pressure Inflator Hose" },
+      { user_id: user.id, category_id: getCatId("Regulator"), name: "Submersible Pressure Gauge (SPG)" },
+    ].filter(r => r.category_id);
+
+    if (subRows.length) {
+      const { error: subsErr } = await supabase.from("gear_subcategories").insert(subRows);
+      if (subsErr) {
+        toast.error("Seeding subcategories failed: " + subsErr.message);
+        throw subsErr;
+      }
+    }
+
+    // Set sensible default checklist templates for BCD and Regulator
+    const bcdId = getCatId("BCD");
+    const regId = getCatId("Regulator");
+    if (bcdId) {
+      await supabase.from("gear_categories")
+        .update({
+          checklist_template_pre: {
+            bcd_inflate_ok: "Inflates/deflates smoothly",
+            holds_pressure_5min: "Holds pressure (5 min)",
+            opv_ok: "OPV releases properly",
+            power_inflator_ok: "Power inflator works",
+          },
+          checklist_template_post: {
+            bcd_rinsed: "Rinsed & cleaned",
+            holds_pressure_5min: "Holds pressure (5 min)",
+            hose_inspected: "Hoses inspected",
+            visual_ok: "Visual check OK",
+          }
+        })
+        .eq("id", bcdId)
+        .eq("user_id", user.id);
+    }
+    if (regId) {
+      await supabase.from("gear_categories")
+        .update({
+          checklist_template_pre: {
+            regulator_breathes_ok: "Breathes freely",
+            ip_check_ok: "Intermediate pressure OK",
+            octopus_ok: "Octopus function OK",
+            spg_ok: "SPG reads correctly",
+            lp_inflator_hose_ok: "LP inflator hose OK",
+          },
+          checklist_template_post: {
+            regs_rinsed: "Rinsed & cleaned",
+            mouthpiece_ok: "Mouthpiece good",
+            spg_ok: "SPG reads correctly",
+          }
+        })
+        .eq("id", regId)
+        .eq("user_id", user.id);
+    }
+
+    toast.success("Seeded gear categories, subcategories, and default checklist templates.");
     await loadData();
   };
 
@@ -256,6 +315,63 @@ export default function GearTypeManager() {
     }
     toast.success("Subcategory deleted.");
     await loadData();
+  };
+
+  const saveTemplates = async () => {
+    if (!selectedCategoryId) {
+      toast.error("Select a category to edit templates.");
+      return;
+    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase
+      .from("gear_categories")
+      .update({
+        checklist_template_pre: preTemplate,
+        checklist_template_post: postTemplate,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", selectedCategoryId)
+      .eq("user_id", user.id);
+    if (error) {
+      toast.error("Failed to save templates: " + error.message);
+      throw error;
+    }
+    toast.success("Templates saved.");
+    await loadData();
+  };
+
+  const addPreCheck = () => {
+    const key = newPreKey.trim();
+    const label = newPreLabel.trim();
+    if (!key || !label) {
+      toast.error("Provide both key and label for pre-check.");
+      return;
+    }
+    setPreTemplate(prev => ({ ...prev, [key]: label }));
+    setNewPreKey("");
+    setNewPreLabel("");
+  };
+  const removePreCheck = (key: string) => {
+    const next = { ...preTemplate };
+    delete next[key];
+    setPreTemplate(next);
+  };
+  const addPostCheck = () => {
+    const key = newPostKey.trim();
+    const label = newPostLabel.trim();
+    if (!key || !label) {
+      toast.error("Provide both key and label for post-check.");
+      return;
+    }
+    setPostTemplate(prev => ({ ...prev, [key]: label }));
+    setNewPostKey("");
+    setNewPostLabel("");
+  };
+  const removePostCheck = (key: string) => {
+    const next = { ...postTemplate };
+    delete next[key];
+    setPostTemplate(next);
   };
 
   return (
@@ -386,6 +502,72 @@ export default function GearTypeManager() {
               </TableBody>
             </Table>
           </div>
+        </div>
+
+        {/* NEW: Checklist Templates Editor */}
+        <div className="grid md:grid-cols-2 gap-6">
+          <div>
+            <div className="text-sm font-medium mb-2">Pre-Checkout Checklist (Default for Category)</div>
+            <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2 mb-2">
+              <Input placeholder="key (e.g., bcd_inflate_ok)" value={newPreKey} onChange={(e) => setNewPreKey(e.target.value)} />
+              <Input placeholder="Label (e.g., Inflates/deflates smoothly)" value={newPreLabel} onChange={(e) => setNewPreLabel(e.target.value)} />
+              <Button variant="outline" onClick={addPreCheck}>Add</Button>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Key</TableHead>
+                  <TableHead>Label</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(preTemplate).map(([key, label]) => (
+                  <TableRow key={key}>
+                    <TableCell className="font-mono">{key}</TableCell>
+                    <TableCell>{label}</TableCell>
+                    <TableCell><Button variant="destructive" size="sm" onClick={() => removePreCheck(key)}>Remove</Button></TableCell>
+                  </TableRow>
+                ))}
+                {Object.keys(preTemplate).length === 0 && (
+                  <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground">No pre-checks configured.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <div>
+            <div className="text-sm font-medium mb-2">Post-Check-In Checklist (Default for Category)</div>
+            <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2 mb-2">
+              <Input placeholder="key (e.g., regs_rinsed)" value={newPostKey} onChange={(e) => setNewPostKey(e.target.value)} />
+              <Input placeholder="Label (e.g., Rinsed & cleaned)" value={newPostLabel} onChange={(e) => setNewPostLabel(e.target.value)} />
+              <Button variant="outline" onClick={addPostCheck}>Add</Button>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Key</TableHead>
+                  <TableHead>Label</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(postTemplate).map(([key, label]) => (
+                  <TableRow key={key}>
+                    <TableCell className="font-mono">{key}</TableCell>
+                    <TableCell>{label}</TableCell>
+                    <TableCell><Button variant="destructive" size="sm" onClick={() => removePostCheck(key)}>Remove</Button></TableCell>
+                  </TableRow>
+                ))}
+                {Object.keys(postTemplate).length === 0 && (
+                  <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground">No post-checks configured.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <Button onClick={saveTemplates}>Save Templates</Button>
         </div>
       </CardContent>
     </Card>

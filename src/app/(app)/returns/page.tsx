@@ -49,7 +49,7 @@ export default function ReturnsPage() {
   const [items, setItems] = useState<(RentalItem & { gear: Gear })[]>([]);
   const [postChecks, setPostChecks] = useState<PostChecks>({});
   const [damage, setDamage] = useState<DamageMap>({});
-  const [inspector, setInspector] = useState<string>("");
+  const [inspectorName, setInspectorName] = useState<string>("");
   const [activeRentals, setActiveRentals] = useState<Rental[]>([]);
   const [lateFeePerDay, setLateFeePerDay] = useState<number>(0);
   const [lateDays, setLateDays] = useState<number>(0);
@@ -61,6 +61,16 @@ export default function ReturnsPage() {
     const loadActiveRentals = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      // NEW: set inspector to logged-in user's profile name (fallback to email)
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("first_name, last_name")
+        .eq("id", user.id)
+        .limit(1)
+        .maybeSingle();
+      const name = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ").trim();
+      setInspectorName(name || user.email || "Inspector");
 
       const { data, error } = await supabase
         .from("rentals")
@@ -100,13 +110,37 @@ export default function ReturnsPage() {
 
     setRental(theRental);
 
-    const { data: rItemsFull } = await supabase.from("rental_items").select("id, gear_id, price, pre_checklist, post_checklist").eq("user_id", user.id).eq("rental_id", theRental.id);
-    const gearIds = (rItemsFull || []).map(ri => ri.gear_id);
-    const { data: gears } = await supabase.from("gear_items").select("id, internal_id, category").in("id", gearIds);
-    const map = new Map<string, Gear>((gears || []).map(g => [g.id, g]));
-    const enriched = (rItemsFull || []).map(ri => ({ ...ri, gear: map.get(ri.gear_id)! }));
-    setItems(enriched);
+    const { data: rItemsFull } = await supabase
+      .from("rental_items")
+      .select("id, gear_id, price, pre_checklist, post_checklist")
+      .eq("user_id", user.id)
+      .eq("rental_id", theRental.id);
 
+    const gearIds = (rItemsFull || []).map(ri => ri.gear_id);
+    const { data: gears } = await supabase
+      .from("gear_items")
+      .select("id, internal_id, category, category_id, checklist_template_post")
+      .in("id", gearIds);
+
+    const map = new Map<string, any>((gears || []).map(g => [g.id, g]));
+    const enriched = (rItemsFull || []).map(ri => ({ ...ri, gear: map.get(ri.gear_id)! }));
+    setItems(enriched as any);
+
+    // Load category-level templates for all categories involved
+    const catIds = Array.from(new Set((gears || []).map(g => g.category_id).filter(Boolean)));
+    let catsMap: Record<string, Record<string, string>> = {};
+    if (catIds.length) {
+      const { data: cats } = await supabase
+        .from("gear_categories")
+        .select("id, checklist_template_post")
+        .in("id", catIds);
+      (cats || []).forEach(c => {
+        catsMap[c.id] = (c.checklist_template_post as any) || {};
+      });
+    }
+    setCategoryTemplates(catsMap);
+
+    // Initialize per-item post-checks with existing values
     const defaults: Record<string, Record<string, boolean>> = {};
     enriched.forEach(ri => {
       defaults[ri.id] = ri.post_checklist || {};
@@ -115,7 +149,7 @@ export default function ReturnsPage() {
 
     const damageDefaults: DamageMap = {};
     enriched.forEach(ri => {
-      damageDefaults[ri.id] = { hasDamage: false, photos: [] }; // Initialize damage state with empty photos array
+      damageDefaults[ri.id] = { hasDamage: false, photos: [] };
     });
     setDamage(damageDefaults);
   };
@@ -205,7 +239,6 @@ export default function ReturnsPage() {
     const expected = new Date(rental.expected_end_at);
     const lateDays = Math.max(Math.ceil((now.getTime() - expected.getTime()) / (1000 * 60 * 60 * 24)), 0);
 
-    // Fetch settings for late fee per day
     const { data: settings } = await supabase
       .from("service_settings")
       .select("late_fee_per_day")
@@ -219,10 +252,11 @@ export default function ReturnsPage() {
 
     for (const item of items) {
       const checks = postChecks[item.id] || {};
-      const { error: updateRentalItemError } = await supabase.from("rental_items")
-        .update({ post_checklist: checks, inspected_by: inspector || null, inspected_at: new Date().toISOString() })
-        .eq("id", item.id).eq("user_id", user.id);
-      
+      const { error: updateRentalItemError } = await supabase
+        .from("rental_items")
+        .update({ post_checklist: checks, inspected_by: inspectorName || null, inspected_at: new Date().toISOString() })
+        .eq("id", item.id)
+        .eq("user_id", user.id);
       if (updateRentalItemError) {
         toast.error("Failed to update rental item checklist: " + updateRentalItemError.message);
         throw updateRentalItemError;
@@ -230,7 +264,7 @@ export default function ReturnsPage() {
 
       const d = damage[item.id];
       if (d?.hasDamage) {
-        const photos = d.photos || []; // Use the photos array directly
+        const photos = d.photos || [];
         const { data: newDamage, error: insertDamageError } = await supabase
           .from("damage_reports")
           .insert({
@@ -246,13 +280,11 @@ export default function ReturnsPage() {
           })
           .select("*")
           .single();
-        
         if (insertDamageError) {
           toast.error("Failed to insert damage report: " + insertDamageError.message);
           throw insertDamageError;
         }
 
-        // NEW: Auto-create maintenance ticket linked to this damage report
         if (!insertDamageError && newDamage) {
           const problem = [d.type, d.notes].filter(Boolean).join(" - ") || "Damage reported";
           await supabase.from("maintenance_tickets").insert({
@@ -269,14 +301,22 @@ export default function ReturnsPage() {
         }
 
         const newStatus = d.severity === "Critical" ? "Quarantined" : "In Maintenance";
-        const { error: updateGearStatusError } = await supabase.from("gear_items").update({ status: newStatus }).eq("id", item.gear_id).eq("user_id", user.id);
+        const { error: updateGearStatusError } = await supabase
+          .from("gear_items")
+          .update({ status: newStatus })
+          .eq("id", item.gear_id)
+          .eq("user_id", user.id);
         if (updateGearStatusError) {
           toast.error("Failed to update gear status after damage: " + updateGearStatusError.message);
           throw updateGearStatusError;
         }
         extraCharges += Number(d.estimate || 0);
       } else {
-        const { error: updateGearStatusError } = await supabase.from("gear_items").update({ status: "Available" }).eq("id", item.gear_id).eq("user_id", user.id);
+        const { error: updateGearStatusError } = await supabase
+          .from("gear_items")
+          .update({ status: "Available" })
+          .eq("id", item.gear_id)
+          .eq("user_id", user.id);
         if (updateGearStatusError) {
           toast.error("Failed to update gear status to available: " + updateGearStatusError.message);
           throw updateGearStatusError;
@@ -284,22 +324,19 @@ export default function ReturnsPage() {
       }
     }
 
-    // Calculate late charges using configured late fee per day
     const lateCharges = lateFeePerDay * lateDays;
-
-    // Update rental as returned and adjust total_cost
     const newTotal = Number(rental.total_cost || 0) + lateCharges + extraCharges;
+
     const { error: updateRentalError } = await supabase
       .from("rentals")
       .update({ status: "returned", updated_at: new Date().toISOString(), total_cost: newTotal })
-      .eq("id", rental.id).eq("user_id", user.id);
-
+      .eq("id", rental.id)
+      .eq("user_id", user.id);
     if (updateRentalError) {
       toast.error("Failed to update rental status: " + updateRentalError.message);
       throw updateRentalError;
     }
 
-    // Increase customer balance by late/damage charges
     if (lateCharges + extraCharges > 0) {
       const { error: incrementBalanceError } = await supabase.rpc("increment_customer_balance", {
         p_user_id: user.id,
@@ -317,9 +354,7 @@ export default function ReturnsPage() {
     setItems([]);
     setPostChecks({});
     setDamage({});
-    setQuery("");
     setActiveRentals(prev => prev.filter(r => r.id !== rental.id));
-    
     router.push("/rentals");
     router.refresh();
   };
@@ -386,15 +421,6 @@ export default function ReturnsPage() {
         <div className="flex items-end">
           <Button onClick={handleSearch}>Find Rental</Button>
         </div>
-        <div className="sm:col-span-2">
-          <Label htmlFor="inspector-name">Inspector Name</Label>
-          <Input 
-            id="inspector-name"
-            value={inspector} 
-            onChange={(e) => setInspector(e.target.value)} 
-            placeholder="Your name" 
-          />
-        </div>
       </div>
 
       {rental && (
@@ -414,6 +440,9 @@ export default function ReturnsPage() {
                     category={item.gear.category}
                     checklist={checks}
                     onChecklistChange={(newChecks) => setPostChecks(prev => ({ ...prev, [item.id]: newChecks }))}
+                    template={Object.keys(item.gear.checklist_template_post || {}).length
+                      ? (item.gear.checklist_template_post as any)
+                      : (item.gear.category_id ? categoryTemplates[item.gear.category_id] || {} : {})}
                   />
 
                   <DamageReportForm
@@ -458,7 +487,7 @@ export default function ReturnsPage() {
           <div className="flex items-center justify-end">
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button disabled={!inspector.trim()} variant={inspector.trim() ? "default" : "secondary"}>
+                <Button>
                   Finalize Return
                 </Button>
               </AlertDialogTrigger>

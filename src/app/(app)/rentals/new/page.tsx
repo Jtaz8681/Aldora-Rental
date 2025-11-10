@@ -13,12 +13,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import PickList from "@/components/PickList";
 
 type Customer = { id: string; name: string; };
-type Gear = { id: string; internal_id: string; category: string; rental_price: number; status: string; };
+type Gear = { id: string; internal_id: string; category: string; rental_price: number; status: string; category_id?: string; checklist_template_pre?: Record<string, string> | null };
 
 export default function NewRentalPage() {
   const router = useRouter();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [gear, setGear] = useState<Gear[]>([]);
+  const [categoryPreTemplates, setCategoryPreTemplates] = useState<Record<string, Record<string, string>>>({});
   const [customerId, setCustomerId] = useState("");
   const [startAt, setStartAt] = useState<string>("");
   const [endAt, setEndAt] = useState<string>("");
@@ -35,8 +36,27 @@ export default function NewRentalPage() {
       if (!user) return;
       const { data: c } = await supabase.from("customers").select("id,name").eq("user_id", user.id).order("name");
       setCustomers(c || []);
-      const { data: g } = await supabase.from("gear_items").select("id, internal_id, category, rental_price, status").eq("user_id", user.id).eq("status", "Available").order("internal_id");
+      const { data: g } = await supabase
+        .from("gear_items")
+        .select("id, internal_id, category, rental_price, status, category_id, checklist_template_pre")
+        .eq("user_id", user.id)
+        .eq("status", "Available")
+        .order("internal_id");
       setGear(g || []);
+
+      // Load category pre-check templates
+      const catIds = Array.from(new Set((g || []).map((x: any) => x.category_id).filter(Boolean)));
+      if (catIds.length) {
+        const { data: cats } = await supabase
+          .from("gear_categories")
+          .select("id, checklist_template_pre")
+          .in("id", catIds);
+        const map: Record<string, Record<string, string>> = {};
+        (cats || []).forEach((cat: any) => {
+          map[cat.id] = (cat.checklist_template_pre as any) || {};
+        });
+        setCategoryPreTemplates(map);
+      }
     };
     load();
   }, []);
@@ -108,7 +128,12 @@ export default function NewRentalPage() {
 
   const toggleGear = (id: string) => {
     setSelectedGearIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-    setChecklist(prev => ({ ...prev, [id]: prev[id] || { regulator_ok: false, bcd_ok: false, computer_ok: false, wetsuit_ok: false } }));
+    const gItem = gear.find(x => x.id === id);
+    const tmpl = (gItem?.checklist_template_pre && Object.keys(gItem.checklist_template_pre).length
+      ? gItem.checklist_template_pre
+      : (gItem?.category_id ? categoryPreTemplates[gItem.category_id] || {} : {})) as Record<string, string>;
+    const defaults = Object.fromEntries(Object.keys(tmpl).map(k => [k, false]));
+    setChecklist(prev => ({ ...prev, [id]: prev[id] || defaults }));
   };
 
   const submitRental = async () => {
@@ -256,28 +281,27 @@ export default function NewRentalPage() {
         <div className="space-y-3">
           <h2 className="text-lg font-semibold">Pre-Rental Inspection</h2>
           {selectedGearIds.map(id => {
-            const g = gear.find(x => x.id === id);
+            const gItem = gear.find(x => x.id === id);
             const c = checklist[id] || {};
+            const tmpl = (gItem?.checklist_template_pre && Object.keys(gItem.checklist_template_pre || {}).length
+              ? (gItem?.checklist_template_pre as any)
+              : (gItem?.category_id ? categoryPreTemplates[gItem.category_id] || {} : {})) as Record<string, string>;
             return (
               <div key={id} className="border rounded p-3">
-                <p className="font-medium text-sm mb-2">{g?.internal_id} · {g?.category}</p>
+                <p className="font-medium text-sm mb-2">{gItem?.internal_id} · {gItem?.category}</p>
                 <div className="grid sm:grid-cols-2 gap-2">
-                  <label className="flex items-center gap-2 text-sm">
-                    <Checkbox checked={!!c.regulator_ok} onCheckedChange={(v) => setChecklist(prev => ({ ...prev, [id]: { ...prev[id], regulator_ok: !!v } }))} />
-                    Regulator breathes freely
-                  </label>
-                  <label className="flex items-center gap-2 text-sm">
-                    <Checkbox checked={!!c.bcd_ok} onCheckedChange={(v) => setChecklist(prev => ({ ...prev, [id]: { ...prev[id], bcd_ok: !!v } }))} />
-                    BCD inflates/deflates and holds air
-                  </label>
-                  <label className="flex items-center gap-2 text-sm">
-                    <Checkbox checked={!!c.computer_ok} onCheckedChange={(v) => setChecklist(prev => ({ ...prev, [id]: { ...prev[id], computer_ok: v === true } }))} />
-                    Computer powers on
-                  </label>
-                  <label className="flex items-center gap-2 text-sm">
-                    <Checkbox checked={!!c.wetsuit_ok} onCheckedChange={(v) => setChecklist(prev => ({ ...prev, [id]: { ...prev[id], wetsuit_ok: v === true } }))} />
-                    Wetsuit has no major tears
-                  </label>
+                  {Object.entries(tmpl).map(([key, label]) => (
+                    <label key={key} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={!!c[key]}
+                        onCheckedChange={(v) => setChecklist(prev => ({ ...prev, [id]: { ...prev[id], [key]: !!v } }))}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                  {Object.keys(tmpl).length === 0 && (
+                    <span className="text-xs text-muted-foreground">No pre-checks configured for this category.</span>
+                  )}
                 </div>
               </div>
             );

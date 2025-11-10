@@ -15,11 +15,13 @@ import { toast } from "sonner";
 
 type Gear = {
   id: string;
-  internal_id: string;
+  internal_id: string | null;
   friendly_name: string | null;
   category: string;
   status: string;
   rental_price: number | null;
+  checklist_template_pre?: Record<string, string> | null;
+  checklist_template_post?: Record<string, string> | null;
 };
 
 type RentalItemRow = {
@@ -53,6 +55,13 @@ export default function GearHistoryPage() {
   const [logsByTicket, setLogsByTicket] = useState<Record<string, WorkLog[]>>({});
   const [monthsEdit, setMonthsEdit] = useState<number | "">("");
   const [usageEdit, setUsageEdit] = useState<number | "">("");
+  // NEW: checklist templates per item
+  const [itemPreTemplate, setItemPreTemplate] = useState<Record<string, string>>({});
+  const [itemPostTemplate, setItemPostTemplate] = useState<Record<string, string>>({});
+  const [newItemPreKey, setNewItemPreKey] = useState("");
+  const [newItemPreLabel, setNewItemPreLabel] = useState("");
+  const [newItemPostKey, setNewItemPostKey] = useState("");
+  const [newItemPostLabel, setNewItemPostLabel] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -66,7 +75,7 @@ export default function GearHistoryPage() {
       // Load gear (confirm ownership)
       const { data: g, error: gErr } = await supabase
         .from("gear_items")
-        .select("id, internal_id, friendly_name, category, status, rental_price")
+        .select("id, internal_id, friendly_name, category, status, rental_price, checklist_template_pre, checklist_template_post")
         .eq("user_id", user.id)
         .eq("id", gearId)
         .single();
@@ -77,6 +86,8 @@ export default function GearHistoryPage() {
         return;
       }
       setGear(g as Gear);
+      setItemPreTemplate(((g as any).checklist_template_pre as any) || {});
+      setItemPostTemplate(((g as any).checklist_template_post as any) || {});
 
       // Prefill custom schedule editor from gear
       if (g?.id) {
@@ -147,6 +158,25 @@ export default function GearHistoryPage() {
     toast.success("Custom service schedule saved.");
   };
 
+  const saveItemTemplates = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !gear) return;
+    const { error } = await supabase
+      .from("gear_items")
+      .update({
+        checklist_template_pre: itemPreTemplate,
+        checklist_template_post: itemPostTemplate,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", gear.id)
+      .eq("user_id", user.id);
+    if (error) {
+      toast.error("Failed to save item checklist templates: " + error.message);
+      throw error;
+    }
+    toast.success("Item checklist templates saved.");
+  };
+
   const metrics = useMemo(() => {
     // Rental metrics
     let times = 0;
@@ -210,6 +240,67 @@ export default function GearHistoryPage() {
           <Link href="/gear" className="text-sm underline">Back to Gear</Link>
         </div>
       </div>
+
+      <Card>
+        <CardHeader><CardTitle>Custom Checklist Templates (This Item)</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <div className="text-sm font-medium mb-2">Pre-Checkout Checklist</div>
+            <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2 mb-2">
+              <Input placeholder="key" value={newItemPreKey} onChange={(e) => setNewItemPreKey(e.target.value)} />
+              <Input placeholder="label" value={newItemPreLabel} onChange={(e) => setNewItemPreLabel(e.target.value)} />
+              <Button variant="outline" onClick={() => {
+                if (!newItemPreKey.trim() || !newItemPreLabel.trim()) return;
+                setItemPreTemplate(prev => ({ ...prev, [newItemPreKey.trim()]: newItemPreLabel.trim() }));
+                setNewItemPreKey(""); setNewItemPreLabel("");
+              }}>Add</Button>
+            </div>
+            <div className="space-y-1">
+              {Object.entries(itemPreTemplate).map(([k, v]) => (
+                <div key={k} className="flex items-center justify-between text-xs">
+                  <span className="font-mono">{k}</span> <span>{v}</span>
+                  <Button variant="ghost" size="sm" onClick={() => {
+                    const next = { ...itemPreTemplate }; delete next[k]; setItemPreTemplate(next);
+                  }}>Remove</Button>
+                </div>
+              ))}
+              {Object.keys(itemPreTemplate).length === 0 && (
+                <div className="text-xs text-muted-foreground">No pre-checks configured.</div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-sm font-medium mb-2">Post-Check-In Checklist</div>
+            <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2 mb-2">
+              <Input placeholder="key" value={newItemPostKey} onChange={(e) => setNewItemPostKey(e.target.value)} />
+              <Input placeholder="label" value={newItemPostLabel} onChange={(e) => setNewItemPostLabel(e.target.value)} />
+              <Button variant="outline" onClick={() => {
+                if (!newItemPostKey.trim() || !newItemPostLabel.trim()) return;
+                setItemPostTemplate(prev => ({ ...prev, [newItemPostKey.trim()]: newItemPostLabel.trim() }));
+                setNewItemPostKey(""); setNewItemPostLabel("");
+              }}>Add</Button>
+            </div>
+            <div className="space-y-1">
+              {Object.entries(itemPostTemplate).map(([k, v]) => (
+                <div key={k} className="flex items-center justify-between text-xs">
+                  <span className="font-mono">{k}</span> <span>{v}</span>
+                  <Button variant="ghost" size="sm" onClick={() => {
+                    const next = { ...itemPostTemplate }; delete next[k]; setItemPostTemplate(next);
+                  }}>Remove</Button>
+                </div>
+              ))}
+              {Object.keys(itemPostTemplate).length === 0 && (
+                <div className="text-xs text-muted-foreground">No post-checks configured.</div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={saveItemTemplates}>Save Templates</Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle>Custom Service Schedule</CardTitle></CardHeader>

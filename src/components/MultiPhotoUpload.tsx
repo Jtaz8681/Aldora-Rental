@@ -26,22 +26,36 @@ export default function MultiPhotoUpload({ onUploaded, initialUrls = [], gearInt
     if (!files || files.length === 0) return toast.error("Please select one or more images.");
     setUploading(true);
 
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setUploading(false);
+      return toast.error("You must be signed in to upload.");
+    }
+
     const safeName = (gearInternalId || "gear").replace(/[^a-zA-Z0-9-_]/g, "_");
     const uploaded: string[] = [];
 
     for (const file of Array.from(files)) {
       const path = `${safeName}/${Date.now()}_${file.name}`;
-      const { error } = await supabase.storage.from("gear-photos").upload(path, file, {
-        contentType: file.type || "image/*",
-        upsert: false,
+      const res = await fetch("https://dsnimoewqcyeegvedion.supabase.co/functions/v1/upload-gear-photo", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": file.type || "application/octet-stream",
+          "X-File-Path": path,
+        },
+        body: await file.arrayBuffer(),
       });
-      if (error) {
-        toast.error("Upload failed: " + error.message);
+
+      if (!res.ok) {
+        const text = await res.text();
+        toast.error("Upload failed: " + text);
         setUploading(false);
-        throw error;
+        throw new Error(text);
       }
-      const { data: pub } = supabase.storage.from("gear-photos").getPublicUrl(path);
-      if (pub?.publicUrl) uploaded.push(pub.publicUrl);
+
+      const json = await res.json();
+      if (json?.publicUrl) uploaded.push(json.publicUrl);
     }
 
     const merged = [...currentUrls, ...uploaded];

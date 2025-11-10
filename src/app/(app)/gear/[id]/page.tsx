@@ -63,6 +63,28 @@ export default function GearHistoryPage() {
   const [newItemPostKey, setNewItemPostKey] = useState("");
   const [newItemPostLabel, setNewItemPostLabel] = useState("");
 
+  const saveItemTemplates = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !gear) return;
+
+    const { error } = await supabase
+      .from("gear_items")
+      .update({
+        checklist_template_pre: itemPreTemplate,
+        checklist_template_post: itemPostTemplate,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", user.id)
+      .eq("id", gear.id);
+
+    if (error) {
+      toast.error("Failed to save templates: " + error.message);
+      throw error;
+    }
+
+    toast.success("Templates saved.");
+  };
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);

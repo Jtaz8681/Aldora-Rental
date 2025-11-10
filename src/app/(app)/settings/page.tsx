@@ -15,9 +15,6 @@ import CategoryPricingForm from "@/components/CategoryPricingForm";
 import GearTypeManager from "@/components/GearTypeManager";
 
 const schema = z.object({
-  regulator_service_interval_months: z.coerce.number().min(1),
-  bcd_service_interval_months: z.coerce.number().min(1),
-  max_dives_before_service: z.coerce.number().min(1),
   late_fee_per_day: z.coerce.number().min(0),
 });
 
@@ -27,9 +24,6 @@ export default function SettingsPage() {
   const { register, handleSubmit, setValue, formState: { isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      regulator_service_interval_months: 12,
-      bcd_service_interval_months: 12,
-      max_dives_before_service: 100,
       late_fee_per_day: 0,
     },
   });
@@ -47,9 +41,6 @@ export default function SettingsPage() {
         .maybeSingle();
 
       if (settings) {
-        setValue("regulator_service_interval_months", Number(settings.regulator_service_interval_months ?? 12));
-        setValue("bcd_service_interval_months", Number(settings.bcd_service_interval_months ?? 12));
-        setValue("max_dives_before_service", Number(settings.max_dives_before_service ?? 100));
         setValue("late_fee_per_day", Number(settings.late_fee_per_day ?? 0));
       } else {
         // Initialize settings row
@@ -70,9 +61,6 @@ export default function SettingsPage() {
       .maybeSingle();
 
     const payload = {
-      regulator_service_interval_months: values.regulator_service_interval_months,
-      bcd_service_interval_months: values.bcd_service_interval_months,
-      max_dives_before_service: values.max_dives_before_service,
       late_fee_per_day: values.late_fee_per_day,
       updated_at: new Date().toISOString(),
     };
@@ -109,21 +97,9 @@ export default function SettingsPage() {
         <div className="mx-auto max-w-screen-md space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Service Intervals</CardTitle>
+              <CardTitle>Late Fee</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3">
-              <div>
-                <Label>Regulator service interval (months)</Label>
-                <Input type="number" {...register("regulator_service_interval_months")} />
-              </div>
-              <div>
-                <Label>BCD service interval (months)</Label>
-                <Input type="number" {...register("bcd_service_interval_months")} />
-              </div>
-              <div>
-                <Label>Usage threshold before service (days rented)</Label>
-                <Input type="number" {...register("max_dives_before_service")} />
-              </div>
               <div>
                 <Label>Late fee per day</Label>
                 <Input type="number" step="0.01" {...register("late_fee_per_day")} />

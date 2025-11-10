@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams, useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,7 @@ const schema = z.object({
   brand: z.string().optional(),
   model: z.string().optional(),
   size: z.string().optional(),
-  rental_price: z.coerce.number().min(0).default(0),
+  rental_price: z.coerce.number().min(0),
   photos_csv: z.string().optional(),
   serial_number: z.string().optional(),
   home_location: z.string().optional(),
@@ -42,6 +42,12 @@ export default function EditGearPage() {
   const id = params?.id as string;
   const { register, handleSubmit, formState: { errors, isSubmitting }, setValue, reset, watch } = useForm<FormValues>({
     resolver: zodResolver(schema),
+    defaultValues: {
+      internal_id: "",
+      category: "",
+      rental_price: 0,
+      status: "Available",
+    },
   });
   const internalId = watch("internal_id");
   const [loading, setLoading] = useState(true);
@@ -117,7 +123,7 @@ export default function EditGearPage() {
     load();
   }, [id, reset, router]);
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit: SubmitHandler<FormValues> = async (values: FormValues) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const photos = (values.photos_csv || "")

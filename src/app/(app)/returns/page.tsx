@@ -73,7 +73,7 @@ export default function ReturnsPage() {
         toast.error("Failed to load active rentals: " + error.message);
         return;
       }
-      setActiveRentals(data || []);
+      setActiveRentals((data || []) as unknown as Rental[]);
     };
     loadActiveRentals();
   }, []);

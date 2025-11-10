@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,10 +14,10 @@ import RoleGuard from "@/components/RoleGuard";
 import CategoryPricingForm from "@/components/CategoryPricingForm";
 
 const schema = z.object({
-  regulator_service_interval_months: z.coerce.number().min(1).default(12),
-  bcd_service_interval_months: z.coerce.number().min(1).default(12),
-  max_dives_before_service: z.coerce.number().min(1).default(100),
-  late_fee_per_day: z.coerce.number().min(0).default(0),
+  regulator_service_interval_months: z.coerce.number().min(1),
+  bcd_service_interval_months: z.coerce.number().min(1),
+  max_dives_before_service: z.coerce.number().min(1),
+  late_fee_per_day: z.coerce.number().min(0),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -25,6 +25,12 @@ type FormValues = z.infer<typeof schema>;
 export default function SettingsPage() {
   const { register, handleSubmit, setValue, formState: { isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
+    defaultValues: {
+      regulator_service_interval_months: 12,
+      bcd_service_interval_months: 12,
+      max_dives_before_service: 100,
+      late_fee_per_day: 0,
+    },
   });
 
   useEffect(() => {
@@ -51,7 +57,7 @@ export default function SettingsPage() {
     })();
   }, [setValue]);
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit: SubmitHandler<FormValues> = async (values: FormValues) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 

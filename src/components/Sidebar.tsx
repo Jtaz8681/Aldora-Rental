@@ -28,7 +28,7 @@ const NavLink = ({ href, icon: Icon, label, currentPath, onClick }: NavLinkProps
   return (
     <Link href={href} passHref>
       <Button
-        variant={isActive ? "sidebar-primary" : "sidebar-ghost"}
+        variant={isActive ? "default" : "ghost"}
         className="w-full justify-start gap-3"
         onClick={onClick}
       >
@@ -101,7 +101,7 @@ export default function Sidebar() {
             ))}
           </nav>
           <div className="p-4 border-t border-sidebar-border">
-            <Button variant="sidebar-ghost" className="w-full justify-start gap-3 text-destructive" onClick={handleSignOut}>
+            <Button variant="ghost" className="w-full justify-start gap-3 text-destructive" onClick={handleSignOut}>
               <LogOut className="h-5 w-5" />
               <span>Sign Out</span>
             </Button>
@@ -126,7 +126,7 @@ export default function Sidebar() {
           ))}
         </nav>
         <div className="mt-auto pt-4 border-t border-sidebar-border">
-          <Button variant="sidebar-ghost" className="w-full justify-start gap-3 text-destructive" onClick={handleSignOut}>
+          <Button variant="ghost" className="w-full justify-start gap-3 text-destructive" onClick={handleSignOut}>
             <LogOut className="h-5 w-5" />
             <span>Sign Out</span>
           </Button>

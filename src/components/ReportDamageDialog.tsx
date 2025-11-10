@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import MultiPhotoUpload from "@/components/MultiPhotoUpload";
 
 const schema = z.object({
   damage_type: z.string().optional(),
-  severity: z.enum(["Cosmetic", "Functional", "Critical"]).default("Functional"),
+  severity: z.enum(["Cosmetic", "Functional", "Critical"]),
   notes: z.string().optional(),
   estimate_cost: z.coerce.number().min(0).optional(),
   photos_csv: z.string().optional(),
@@ -58,7 +58,7 @@ export default function ReportDamageDialog({
 
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit: SubmitHandler<FormValues> = async (values: FormValues) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 

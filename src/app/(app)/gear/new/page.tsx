@@ -2,7 +2,7 @@
 
 import React from "react";
 import { supabase } from "@/integrations/supabase/client"; // Changed from default to named import
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,7 @@ const schema = z.object({
   brand: z.string().optional(),
   model: z.string().optional(),
   size: z.string().optional(),
-  rental_price: z.coerce.number().min(0).default(0),
+  rental_price: z.coerce.number().min(0),
   photos_csv: z.string().optional(),
   serial_number: z.string().optional(),
   home_location: z.string().optional(),
@@ -37,7 +37,12 @@ type FormValues = z.infer<typeof schema>;
 
 export default function NewGearPage() {
   const router = useRouter();
-  const { register, handleSubmit, formState: { errors, isSubmitting }, setValue, watch } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setValue, watch } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      rental_price: 0,
+    },
+  });
 
   const internalId = watch("internal_id");
   const category = watch("category");
@@ -62,7 +67,7 @@ export default function NewGearPage() {
     })();
   }, [category, setValue]);
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit: SubmitHandler<FormValues> = async (values: FormValues) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const photos = (values.photos_csv || "")

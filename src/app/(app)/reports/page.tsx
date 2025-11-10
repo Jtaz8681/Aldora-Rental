@@ -62,7 +62,7 @@ export default function ReportsPage() {
         .maybeSingle();
 
       setGear(gearData || []);
-      setRentalItems(rentalItemData || []);
+      setRentalItems((rentalItemData || []) as unknown as RentalItem[]);
       setTickets(ticketData || []);
       setDamages(damageData || []);
 

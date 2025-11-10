@@ -29,7 +29,7 @@ export default function SessionProvider({ children }: Props) {
 
     handleAuth(); // Run once on client mount
 
-    const { data: { subscription } = {} } = supabase.auth.onAuthStateChange((event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (event === "SIGNED_IN" && (pathname?.startsWith("/login") || pathname === "/")) {
         router.replace("/dashboard");
       } else if (event === "SIGNED_OUT") {

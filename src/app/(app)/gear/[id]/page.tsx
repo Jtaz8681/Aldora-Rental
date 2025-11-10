@@ -82,7 +82,7 @@ export default function GearHistoryPage() {
         .eq("gear_id", gearId)
         .order("created_at", { ascending: false });
 
-      setRentalItems((ri || []) as RentalItemRow[]);
+      setRentalItems((ri || []) as unknown as RentalItemRow[]);
 
       // Load maintenance tickets and logs
       const { data: tix } = await supabase

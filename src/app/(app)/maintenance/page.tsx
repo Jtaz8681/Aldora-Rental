@@ -526,7 +526,8 @@ export default function MaintenancePage() {
         .eq("gear_id", g.id);
 
       let usageDays = 0;
-      for (const ri of rentalsForGear || []) {
+      const rentalsArr = (rentalsForGear || []) as { rentals: { start_at: string; expected_end_at: string } | null }[];
+      for (const ri of rentalsArr) {
         const s = ri.rentals?.start_at ? new Date(ri.rentals.start_at) : null;
         const e = ri.rentals?.expected_end_at ? new Date(ri.rentals.expected_end_at) : null;
         if (s && e) {

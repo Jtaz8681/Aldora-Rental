@@ -83,7 +83,7 @@ export default function DashboardPage() {
         .limit(5);
       if (rentalError) console.error("Error fetching rentals:", rentalError);
       setActiveRentalsCount(rentalData?.filter(r => r.status === "active" || r.status === "checked-out").length || 0);
-      setRecentRentals(rentalData || []);
+      setRecentRentals((rentalData || []) as unknown as Rental[]);
 
       // NEW: Overdue rentals count across all active/checked-out
       const { data: activeAll } = await supabase

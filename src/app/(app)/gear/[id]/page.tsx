@@ -139,44 +139,6 @@ export default function GearHistoryPage() {
     load();
   }, [gearId, router]);
 
-  const saveCustomSchedule = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !gear) return;
-    const { error } = await supabase
-      .from("gear_items")
-      .update({
-        service_interval_months: monthsEdit === "" ? null : Number(monthsEdit),
-        usage_service_threshold: usageEdit === "" ? null : Number(usageEdit),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", gear.id)
-      .eq("user_id", user.id);
-    if (error) {
-      toast.error("Failed to save schedule: " + error.message);
-      throw error;
-    }
-    toast.success("Custom service schedule saved.");
-  };
-
-  const saveItemTemplates = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !gear) return;
-    const { error } = await supabase
-      .from("gear_items")
-      .update({
-        checklist_template_pre: itemPreTemplate,
-        checklist_template_post: itemPostTemplate,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", gear.id)
-      .eq("user_id", user.id);
-    if (error) {
-      toast.error("Failed to save item checklist templates: " + error.message);
-      throw error;
-    }
-    toast.success("Item checklist templates saved.");
-  };
-
   const metrics = useMemo(() => {
     // Rental metrics
     let times = 0;
@@ -298,23 +260,6 @@ export default function GearHistoryPage() {
 
           <div className="flex justify-end">
             <Button variant="outline" onClick={saveItemTemplates}>Save Templates</Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle>Custom Service Schedule</CardTitle></CardHeader>
-        <CardContent className="grid sm:grid-cols-2 gap-2">
-          <div>
-            <Label>Service interval (months)</Label>
-            <Input type="number" value={monthsEdit === "" ? "" : String(monthsEdit)} onChange={(e) => setMonthsEdit(e.target.value === "" ? "" : Number(e.target.value))} />
-          </div>
-          <div>
-            <Label>Usage threshold (days rented)</Label>
-            <Input type="number" value={usageEdit === "" ? "" : String(usageEdit)} onChange={(e) => setUsageEdit(e.target.value === "" ? "" : Number(e.target.value))} />
-          </div>
-          <div className="sm:col-span-2">
-            <Button variant="outline" onClick={saveCustomSchedule}>Save Schedule</Button>
           </div>
         </CardContent>
       </Card>

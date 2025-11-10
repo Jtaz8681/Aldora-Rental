@@ -56,6 +56,13 @@ export default function NewGearPage() {
   const [useCustomSchedule, setUseCustomSchedule] = React.useState<boolean>(false);
   const [customMonths, setCustomMonths] = React.useState<number | "">("");
   const [customUsageDays, setCustomUsageDays] = React.useState<number | "">("");
+  // NEW: item-level checklist templates
+  const [itemPreTemplate, setItemPreTemplate] = React.useState<Record<string, string>>({});
+  const [itemPostTemplate, setItemPostTemplate] = React.useState<Record<string, string>>({});
+  const [newItemPreKey, setNewItemPreKey] = React.useState("");
+  const [newItemPreLabel, setNewItemPreLabel] = React.useState("");
+  const [newItemPostKey, setNewItemPostKey] = React.useState("");
+  const [newItemPostLabel, setNewItemPostLabel] = React.useState("");
 
   React.useEffect(() => {
     (async () => {
@@ -149,6 +156,9 @@ export default function NewGearPage() {
       status: "Available",
       service_interval_months: serviceMonths,
       usage_service_threshold: usageThreshold,
+      // NEW: include item-level templates
+      checklist_template_pre: itemPreTemplate,
+      checklist_template_post: itemPostTemplate,
     });
     if (error) throw error;
     toast.success("Gear added");
@@ -279,6 +289,90 @@ export default function NewGearPage() {
             onUploaded={(url) => setValue("manual_url", url)}
           />
         </div>
+
+        {/* NEW: Custom Checklist Templates (This Item) - placed above Notes */}
+        <div className="sm:col-span-2 space-y-3">
+          <h2 className="text-sm font-medium">Custom Checklist Templates (This Item)</h2>
+
+          <div>
+            <div className="text-xs font-semibold mb-1">Pre-Checkout Checklist</div>
+            <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2 mb-2">
+              <Input placeholder="key" value={newItemPreKey} onChange={(e) => setNewItemPreKey(e.target.value)} />
+              <Input placeholder="label" value={newItemPreLabel} onChange={(e) => setNewItemPreLabel(e.target.value)} />
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => {
+                  if (!newItemPreKey.trim() || !newItemPreLabel.trim()) return;
+                  setItemPreTemplate(prev => ({ ...prev, [newItemPreKey.trim()]: newItemPreLabel.trim() }));
+                  setNewItemPreKey(""); setNewItemPreLabel("");
+                }}
+              >
+                Add
+              </Button>
+            </div>
+            <div className="space-y-1">
+              {Object.entries(itemPreTemplate).map(([k, v]) => (
+                <div key={k} className="flex items-center justify-between text-xs">
+                  <span className="font-mono">{k}</span> <span>{v}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    type="button"
+                    onClick={() => {
+                      const next = { ...itemPreTemplate }; delete next[k]; setItemPreTemplate(next);
+                    }}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ))}
+              {Object.keys(itemPreTemplate).length === 0 && (
+                <div className="text-xs text-muted-foreground">No pre-checks configured.</div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-xs font-semibold mb-1">Post-Check-In Checklist</div>
+            <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2 mb-2">
+              <Input placeholder="key" value={newItemPostKey} onChange={(e) => setNewItemPostKey(e.target.value)} />
+              <Input placeholder="label" value={newItemPostLabel} onChange={(e) => setNewItemPostLabel(e.target.value)} />
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => {
+                  if (!newItemPostKey.trim() || !newItemPostLabel.trim()) return;
+                  setItemPostTemplate(prev => ({ ...prev, [newItemPostKey.trim()]: newItemPostLabel.trim() }));
+                  setNewItemPostKey(""); setNewItemPostLabel("");
+                }}
+              >
+                Add
+              </Button>
+            </div>
+            <div className="space-y-1">
+              {Object.entries(itemPostTemplate).map(([k, v]) => (
+                <div key={k} className="flex items-center justify-between text-xs">
+                  <span className="font-mono">{k}</span> <span>{v}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    type="button"
+                    onClick={() => {
+                      const next = { ...itemPostTemplate }; delete next[k]; setItemPostTemplate(next);
+                    }}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ))}
+              {Object.keys(itemPostTemplate).length === 0 && (
+                <div className="text-xs text-muted-foreground">No post-checks configured.</div>
+              )}
+            </div>
+          </div>
+        </div>
+
         <div className="sm:col-span-2">
           <Label>Notes</Label>
           <Input {...register("notes")} placeholder="Any misc info" />

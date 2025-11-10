@@ -49,6 +49,7 @@ export default function ReturnsPage() {
   const [items, setItems] = useState<(RentalItem & { gear: Gear })[]>([]);
   const [postChecks, setPostChecks] = useState<PostChecks>({});
   const [damage, setDamage] = useState<DamageMap>({});
+  const [categoryTemplates, setCategoryTemplates] = useState<Record<string, any>>({});
   const [inspectorName, setInspectorName] = useState<string>("");
   const [activeRentals, setActiveRentals] = useState<Rental[]>([]);
   const [lateFeePerDay, setLateFeePerDay] = useState<number>(0);

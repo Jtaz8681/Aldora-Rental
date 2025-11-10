@@ -14,6 +14,7 @@ type Profile = {
   last_name: string | null;
   role: string | null;
   updated_at?: string | null;
+  email: string | null;
 };
 
 export default function AdminUsersPage() {
@@ -23,8 +24,8 @@ export default function AdminUsersPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Managers/Owners can view all via secure RPC; others see their own profile
-    const { data, error } = await supabase.rpc("list_profiles_for_admin");
+    // Managers/Owners/Devs can view all via secure RPC; others see their own profile
+    const { data, error } = await supabase.rpc("list_profiles_with_email");
 
     if (error) {
       toast.error("Failed to load users: " + error.message);
@@ -70,7 +71,7 @@ export default function AdminUsersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User</TableHead>
+                  <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
                 </TableRow>
               </TableHeader>
@@ -78,7 +79,7 @@ export default function AdminUsersPage() {
                 {profiles.map(p => (
                   <TableRow key={p.id}>
                     <TableCell>
-                      {p.first_name || p.last_name ? `${p.first_name || ""} ${p.last_name || ""}`.trim() : p.id}
+                      {p.email || `${p.first_name || ""} ${p.last_name || ""}`.trim() || "Unknown"}
                     </TableCell>
                     <TableCell>
                       <Select

@@ -102,40 +102,46 @@ export default function SettingsPage() {
 
   return (
     <RoleGuard allow={["owner", "manager"]} title="Settings">
-      <div className="space-y-6 max-w-xl">
-        <h1 className="text-2xl font-bold">Settings</h1>
+      <div className="container mx-auto px-4 py-6">
+        <h1 className="text-2xl font-bold mb-4">Settings</h1>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Service Intervals</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3">
-            <div>
-              <Label>Regulator service interval (months)</Label>
-              <Input type="number" {...register("regulator_service_interval_months")} />
-            </div>
-            <div>
-              <Label>BCD service interval (months)</Label>
-              <Input type="number" {...register("bcd_service_interval_months")} />
-            </div>
-            <div>
-              <Label>Usage threshold before service (days rented)</Label>
-              <Input type="number" {...register("max_dives_before_service")} />
-            </div>
-            <div>
-              <Label>Late fee per day</Label>
-              <Input type="number" step="0.01" {...register("late_fee_per_day")} />
-            </div>
-            <div>
-              <Button type="button" onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>Save Settings</Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Service Intervals</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3">
+                <div>
+                  <Label>Regulator service interval (months)</Label>
+                  <Input type="number" {...register("regulator_service_interval_months")} />
+                </div>
+                <div>
+                  <Label>BCD service interval (months)</Label>
+                  <Input type="number" {...register("bcd_service_interval_months")} />
+                </div>
+                <div>
+                  <Label>Usage threshold before service (days rented)</Label>
+                  <Input type="number" {...register("max_dives_before_service")} />
+                </div>
+                <div>
+                  <Label>Late fee per day</Label>
+                  <Input type="number" step="0.01" {...register("late_fee_per_day")} />
+                </div>
+                <div>
+                  <Button type="button" onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>Save Settings</Button>
+                </div>
+              </CardContent>
+            </Card>
 
-        <CategoryPricingForm />
+            <CategoryPricingForm />
+          </div>
 
-        {/* NEW: Gear Types & Default Service Schedule */}
-        <GearTypeManager />
+          <div className="space-y-6">
+            {/* NEW: Gear Types & Default Service Schedule */}
+            <GearTypeManager />
+          </div>
+        </div>
       </div>
     </RoleGuard>
   );

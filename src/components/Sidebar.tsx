@@ -127,7 +127,7 @@ export default function Sidebar() {
                   <DropdownMenuLabel>Maintenance</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/maintenance/new" onClick={() => setIsOpen(false)}>Create Ticket</Link>
+                    <Link href="/maintenance/tickets/new" onClick={() => setIsOpen(false)}>Create Ticket</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/maintenance/tickets" onClick={() => setIsOpen(false)}>Tickets</Link>
@@ -187,7 +187,7 @@ export default function Sidebar() {
                 <DropdownMenuLabel>Maintenance</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/maintenance/new">Create Ticket</Link>
+                  <Link href="/maintenance/tickets/new">Create Ticket</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/maintenance/tickets">Tickets</Link>

@@ -577,7 +577,7 @@ export default function MaintenancePage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <h1 className="text-2xl font-bold">Maintenance</h1>
           <div className="flex flex-wrap items-center gap-2">
-            <Link href="/maintenance/new" className="text-sm underline">Create Ticket</Link>
+            <Link href="/maintenance/tickets/new" className="text-sm underline">Create Ticket</Link>
             <Link href="/maintenance/tickets" className="text-sm underline">Tickets</Link>
             <Link href="/maintenance/schedule" className="text-sm underline">Service Schedule</Link>
             <Link href="/maintenance/work-parts" className="text-sm underline">Work & Parts</Link>
@@ -594,7 +594,7 @@ export default function MaintenancePage() {
                 Start a new maintenance ticket for a gear item.
               </p>
               <div className="mt-3">
-                <Link href="/maintenance/new" className="underline">Go to Create Ticket</Link>
+                <Link href="/maintenance/tickets/new" className="underline">Go to Create Ticket</Link>
               </div>
             </CardContent>
           </Card>

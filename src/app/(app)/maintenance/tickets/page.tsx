@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -218,112 +217,39 @@ export default function MaintenanceTicketsPage() {
             <CardTitle>Tickets</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="w-full overflow-x-auto">
-              <Table className="min-w-[900px] md:min-w-0">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Gear</TableHead>
-                    <TableHead>Received</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Technician</TableHead>
-                    <TableHead>Estimate</TableHead>
-                    <TableHead>Cost</TableHead>
-                    <TableHead>Charge?</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {visibleTickets.map(t => (
-                    <TableRow key={t.id}>
-                      <TableCell>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+              {visibleTickets.map(t => (
+                <Link key={t.id} href={`/maintenance/tickets/${t.id}`} className="block">
+                  <div className="border rounded p-3 hover:bg-muted transition">
+                    <div className="flex items-center justify-between">
+                      <div className="font-medium">
                         {t.gear_items?.internal_id ? (
-                          <Link href={`/gear/${t.gear_id}`} className="underline font-mono">
-                            {t.gear_items.internal_id}
-                          </Link>
+                          <span className="font-mono">{t.gear_items.internal_id}</span>
                         ) : (
                           <span className="text-muted-foreground">N/A</span>
                         )}
-                        <div className="text-xs text-muted-foreground">
-                          {t.problem_description || "No description"}
-                        </div>
-                      </TableCell>
-                      <TableCell>{t.date_received ? format(new Date(t.date_received), "PPP") : "-"}</TableCell>
-                      <TableCell>
-                        <Badge variant={STATUS_VARIANT(t.status)}>{t.status}</Badge>
-                        <div className="mt-1">
-                          <select
-                            className="border rounded px-2 py-1 text-xs"
-                            value={statusUpdate[t.id] ?? t.status}
-                            onChange={(e) => setStatusUpdate(prev => ({ ...prev, [t.id]: e.target.value }))}
-                          >
-                            {statusOptions.filter(s => s !== "all").map(s => <option key={s} value={s}>{s}</option>)}
-                          </select>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        <div className="flex items-center gap-2">
-                          <Input
-                            className="w-28 md:w-40"
-                            placeholder="Technician"
-                            value={techUpdate[t.id] ?? (t.assigned_technician || "")}
-                            onChange={(e) => setTechUpdate(prev => ({ ...prev, [t.id]: e.target.value }))}
-                          />
-                          <select
-                            className="border rounded px-2 py-1 text-xs"
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              if (val) setTechUpdate(prev => ({ ...prev, [t.id]: val }));
-                            }}
-                            value=""
-                          >
-                            <option value="">Pick</option>
-                            {technicians.map(name => (
-                              <option key={name} value={name}>{name}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        <Input
-                          type="date"
-                          className="w-28 md:w-40"
-                          value={etaUpdate[t.id] ?? (t.estimated_completion_date ? t.estimated_completion_date.split("T")[0] : "")}
-                          onChange={(e) => setEtaUpdate(prev => ({ ...prev, [t.id]: e.target.value }))}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          className="w-24 md:w-28"
-                          value={(costUpdate[t.id] ?? (t.cost ?? 0)).toString()}
-                          onChange={(e) => setCostUpdate(prev => ({ ...prev, [t.id]: Number(e.target.value) }))}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <label className="flex items-center gap-2 text-xs">
-                          <input
-                            type="checkbox"
-                            checked={chargeFlag[t.id] ?? !!t.charge_customer}
-                            onChange={(e) => setChargeFlag(prev => ({ ...prev, [t.id]: e.target.checked }))}
-                          />
-                          Charge customer
-                        </label>
-                      </TableCell>
-                      <TableCell className="flex flex-wrap gap-2">
-                        <Button size="sm" variant="outline" onClick={() => updateTicket(t)}>Save</Button>
-                        <Button size="sm" variant="destructive" onClick={() => deleteTicket(t.id)}>
-                          <Trash2 className="h-4 w-4" />
-                          Delete
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {visibleTickets.length === 0 && (
-                    <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground">No tickets.</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                      </div>
+                      <Badge variant={STATUS_VARIANT(t.status)}>{t.status}</Badge>
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Received</div>
+                        <div>{t.date_received ? format(new Date(t.date_received), "PPP") : "-"}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">Technician</div>
+                        <div>{t.assigned_technician || "-"}</div>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground line-clamp-2">
+                      {t.problem_description || "No description"}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+              {visibleTickets.length === 0 && (
+                <div className="text-sm text-muted-foreground">No tickets.</div>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -37,6 +37,7 @@ export default function CustomersPage() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
+      // Normalize Supabase rows into our Customer shape
       const normalized = (data as SupabaseCustomerRow[] | null)?.map(d => ({
         id: d.id,
         name: d.name,

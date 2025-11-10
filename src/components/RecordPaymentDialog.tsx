@@ -31,7 +31,7 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   customerId: string;
   customerName?: string;
-  onRecorded?: () => void;
+  onRecorded?: (newPayment?: any) => void;
 };
 
 export default function RecordPaymentDialog({
@@ -49,22 +49,23 @@ export default function RecordPaymentDialog({
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error: insertErr } = await supabase
+    const { data: inserted, error: insertErr } = await supabase
       .from("payments")
       .insert({
         user_id: user.id,
         customer_id: customerId,
         amount: values.amount,
-        method: values.method || null,
-        note: values.note || null,
-      });
+        method: (values.method ?? "").trim(),
+        note: (values.note ?? "").trim(),
+      })
+      .select("*")
+      .single();
 
     if (insertErr) {
       toast.error("Failed to record payment: " + insertErr.message);
       throw insertErr;
     }
 
-    // Decrease balance (use existing RPC with a negative amount)
     await supabase
       .rpc("increment_customer_balance", {
         p_user_id: user.id,
@@ -75,7 +76,7 @@ export default function RecordPaymentDialog({
     toast.success("Payment recorded");
     reset();
     onOpenChange(false);
-    onRecorded?.();
+    onRecorded?.(inserted);
   };
 
   return (

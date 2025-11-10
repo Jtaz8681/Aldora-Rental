@@ -106,15 +106,31 @@ export default function CustomerDetailPage() {
         onOpenChange={setShowPaymentDialog}
         customerId={id}
         customerName={customer.name}
-        onRecorded={() => {
-          // Refresh balance and list
+        onRecorded={(newPayment) => {
           (async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
-            const { data: cust } = await supabase.from("customers").select("*").eq("user_id", user.id).eq("id", id).single();
+
+            if (newPayment) {
+              setPayments(prev => [newPayment, ...prev].slice(0, 10));
+            } else {
+              const { data: pays } = await supabase
+                .from("payments")
+                .select("*")
+                .eq("user_id", user.id)
+                .eq("customer_id", id)
+                .order("created_at", { ascending: false })
+                .limit(10);
+              setPayments(pays || []);
+            }
+
+            const { data: cust } = await supabase
+              .from("customers")
+              .select("*")
+              .eq("user_id", user.id)
+              .eq("id", id)
+              .single();
             setCustomer(cust);
-            const { data: pays } = await supabase.from("payments").select("*").eq("user_id", user.id).eq("customer_id", id).order("created_at", { ascending: false }).limit(10);
-            setPayments(pays || []);
           })();
         }}
       />

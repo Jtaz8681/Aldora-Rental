@@ -14,6 +14,14 @@ import { Button } from "@/components/ui/button";
 import { Menu, LayoutDashboard, Wrench, Users, PlusCircle, ArrowLeftRight, LogOut, Settings, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 type NavLinkProps = {
   href: string;
@@ -69,7 +77,6 @@ export default function Sidebar() {
     { href: "/rentals/new", icon: PlusCircle, label: "New Rental" },
     { href: "/rentals", icon: ArrowLeftRight, label: "All Rentals" },
     { href: "/returns", icon: ArrowLeftRight, label: "Process Returns" },
-    { href: "/maintenance", icon: Wrench, label: "Maintenance" },
     { href: "/reports", icon: BarChart3, label: "Reports" },
     ...(role === "manager" || role === "owner" ? [{ href: "/admin/users", icon: Users, label: "Users" }] : []),
     { href: "/settings", icon: Settings, label: "Settings" }
@@ -99,6 +106,34 @@ export default function Sidebar() {
                 onClick={() => setIsOpen(false)}
               />
             ))}
+            {/* Maintenance dropdown (mobile) */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={pathname.startsWith("/maintenance") ? "default" : "ghost"}
+                  className="w-full justify-start gap-3"
+                >
+                  <Wrench className="h-5 w-5" />
+                  <span>Maintenance</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                <DropdownMenuLabel>Maintenance</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/maintenance/new" onClick={() => setIsOpen(false)}>Create Ticket</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/maintenance/tickets" onClick={() => setIsOpen(false)}>Tickets</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/maintenance/schedule" onClick={() => setIsOpen(false)}>Service Schedule</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/maintenance/work-parts" onClick={() => setIsOpen(false)}>Work & Parts</Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </nav>
           <div className="p-4 border-t border-sidebar-border">
             <Button variant="ghost" className="w-full justify-start gap-3 text-destructive" onClick={handleSignOut}>
@@ -124,6 +159,34 @@ export default function Sidebar() {
               currentPath={pathname}
             />
           ))}
+          {/* Maintenance dropdown (desktop) */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant={pathname.startsWith("/maintenance") ? "default" : "ghost"}
+                className="w-full justify-start gap-3"
+              >
+                <Wrench className="h-5 w-5" />
+                <span>Maintenance</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56">
+              <DropdownMenuLabel>Maintenance</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/maintenance/new">Create Ticket</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/maintenance/tickets">Tickets</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/maintenance/schedule">Service Schedule</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/maintenance/work-parts">Work & Parts</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </nav>
         <div className="mt-auto pt-4 border-t border-sidebar-border">
           <Button variant="ghost" className="w-full justify-start gap-3 text-destructive" onClick={handleSignOut}>

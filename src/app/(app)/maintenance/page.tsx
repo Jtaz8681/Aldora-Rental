@@ -577,276 +577,70 @@ export default function MaintenancePage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <h1 className="text-2xl font-bold">Maintenance</h1>
           <div className="flex flex-wrap items-center gap-2">
-            <label className="text-sm flex items-center gap-2">
-              <span>Status filter:</span>
-              <select
-                className="border rounded px-2 py-1 text-sm"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
-                <option value="all">All</option>
-                <option value="pending">pending</option>
-                <option value="in_progress">in_progress</option>
-                <option value="awaiting_parts">awaiting_parts</option>
-                <option value="completed">completed</option>
-              </select>
-            </label>
-            <Link href="/gear" className="text-sm underline">Go to Gear</Link>
-            <Button variant="outline" onClick={runTriggerScan}>Run Service Trigger Scan</Button>
-            <Button variant="outline" onClick={exportTicketsCsv}>Export CSV</Button>
+            <Link href="/maintenance/new" className="text-sm underline">Create Ticket</Link>
+            <Link href="/maintenance/tickets" className="text-sm underline">Tickets</Link>
+            <Link href="/maintenance/schedule" className="text-sm underline">Service Schedule</Link>
+            <Link href="/maintenance/work-parts" className="text-sm underline">Work & Parts</Link>
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Create Maintenance Ticket</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MaintenanceTicketForm onCreated={loadData} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Service Schedule</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ServiceScheduleCalendar projections={projections} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Tickets</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="w-full overflow-x-auto">
-              <Table className="min-w-[900px] md:min-w-0">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Gear</TableHead>
-                    <TableHead>Received</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Technician</TableHead>
-                    <TableHead>Estimate</TableHead>
-                    <TableHead>Cost</TableHead>
-                    <TableHead>Charge?</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {visibleTickets.map(t => (
-                    <TableRow key={t.id}>
-                      <TableCell>
-                        {t.gear_items?.internal_id ? (
-                          <Link href={`/gear/${t.gear_id}`} className="underline font-mono">
-                            {t.gear_items.internal_id}
-                          </Link>
-                        ) : (
-                          <span className="text-muted-foreground">N/A</span>
-                        )}
-                        <div className="text-xs text-muted-foreground">
-                          {t.problem_description || "No description"}
-                        </div>
-                      </TableCell>
-                      <TableCell>{t.date_received ? format(new Date(t.date_received), "PPP") : "-"}</TableCell>
-                      <TableCell>
-                        <Badge variant={STATUS_VARIANT(t.status)}>{t.status}</Badge>
-                        <div className="mt-1">
-                          <select
-                            className="border rounded px-2 py-1 text-xs"
-                            value={statusUpdate[t.id] ?? t.status}
-                            onChange={(e) => setStatusUpdate(prev => ({ ...prev, [t.id]: e.target.value }))}
-                          >
-                            {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
-                          </select>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        <div className="flex items-center gap-2">
-                          <Input
-                            className="w-28 md:w-40"
-                            placeholder="Technician"
-                            value={techUpdate[t.id] ?? (t.assigned_technician || "")}
-                            onChange={(e) => setTechUpdate(prev => ({ ...prev, [t.id]: e.target.value }))}
-                          />
-                          {/* NEW: quick picker from Profiles */}
-                          <select
-                            className="border rounded px-2 py-1 text-xs"
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              if (val) setTechUpdate(prev => ({ ...prev, [t.id]: val }));
-                            }}
-                            value=""
-                          >
-                            <option value="">Pick</option>
-                            {technicians.map(name => (
-                              <option key={name} value={name}>{name}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        <Input
-                          type="date"
-                          className="w-28 md:w-40"
-                          value={etaUpdate[t.id] ?? (t.estimated_completion_date ? t.estimated_completion_date.split("T")[0] : "")}
-                          onChange={(e) => setEtaUpdate(prev => ({ ...prev, [t.id]: e.target.value }))}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          className="w-24 md:w-28"
-                          value={(costUpdate[t.id] ?? (t.cost ?? 0)).toString()}
-                          onChange={(e) => setCostUpdate(prev => ({ ...prev, [t.id]: Number(e.target.value) }))}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <label className="flex items-center gap-2 text-xs">
-                          <input
-                            type="checkbox"
-                            checked={chargeFlag[t.id] ?? !!t.charge_customer}
-                            onChange={(e) => setChargeFlag(prev => ({ ...prev, [t.id]: e.target.checked }))}
-                          />
-                          Charge customer
-                        </label>
-                      </TableCell>
-                      <TableCell className="flex flex-wrap gap-2">
-                        <Button size="sm" variant="outline" onClick={() => updateTicket(t)}>Save</Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="destructive">Delete</Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete this ticket?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will permanently delete the ticket and its work logs and parts will no longer be visible. This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteTicket(t.id)}>
-                                Confirm Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {visibleTickets.length === 0 && (
-                    <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground">No tickets.</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Work Performed & Parts Used</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {tickets.map(t => (
-              <div key={t.id} className="border rounded p-3">
-                <div className="flex items-center justify-between">
-                  <div className="font-medium">
-                    Ticket: {t.id.slice(0, 8)} • {t.gear_items?.internal_id ? (
-                      <Link href={`/gear/${t.gear_id}`} className="underline font-mono">
-                        {t.gear_items.internal_id}
-                      </Link>
-                    ) : (
-                      "N/A"
-                    )}
-                  </div>
-                  <Badge variant={STATUS_VARIANT(t.status)}>{t.status}</Badge>
-                </div>
-                <div className="grid sm:grid-cols-2 gap-2 mt-3">
-                  <div>
-                    <Label>Add Work Log</Label>
-                    <div className="flex gap-2 mt-1">
-                      <Input id={`wl-${t.id}`} placeholder='e.g. "Overhauled 1st stage"' />
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          const el = document.getElementById(`wl-${t.id}`) as HTMLInputElement | null;
-                          addWorkLog(t.id, el?.value || "");
-                        }}
-                      >
-                        Add
-                      </Button>
-                    </div>
-                    <div className="mt-2 space-y-1">
-                      {(workLogs[t.id] || []).map(wl => (
-                        <div key={wl.id} className="text-xs">
-                          <span className="text-muted-foreground">{format(new Date(wl.created_at), "PPp")} • </span>
-                          {wl.description}
-                        </div>
-                      ))}
-                      {(workLogs[t.id] || []).length === 0 && (
-                        <div className="text-xs text-muted-foreground">No work logs.</div>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Add Part</Label>
-                    <div className="grid grid-cols-2 md:grid-cols-[2fr,1fr,1fr,auto] gap-2 mt-1">
-                      <Input id={`ptn-${t.id}`} placeholder="Part name" />
-                      <Input id={`ptq-${t.id}`} type="number" placeholder="Qty" />
-                      <Input id={`ptc-${t.id}`} type="number" step="0.01" placeholder="Unit cost" />
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          const ptn = document.getElementById(`ptn-${t.id}`) as HTMLInputElement | null;
-                          const ptq = document.getElementById(`ptq-${t.id}`) as HTMLInputElement | null;
-                          const ptc = document.getElementById(`ptc-${t.id}`) as HTMLInputElement | null;
-                          const qty = Number(ptq?.value || 0);
-                          const cost = ptc?.value ? Number(ptc.value) : undefined;
-                          addPart(t.id, ptn?.value || "", qty, cost);
-                        }}
-                      >
-                        Add
-                      </Button>
-                    </div>
-                    <div className="mt-2 space-y-1">
-                      {(parts[t.id] || []).map(pt => (
-                        <div key={pt.id} className="text-xs flex items-center justify-between">
-                          <div>
-                            {pt.part_name} × {pt.quantity} {pt.unit_cost != null ? `@ $${Number(pt.unit_cost).toFixed(2)}` : ""}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => removePart(t.id, pt.id)}
-                            aria-label="Remove part"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                      {(parts[t.id] || []).length === 0 && (
-                        <div className="text-xs text-muted-foreground">No parts added.</div>
-                      )}
-                      {/* NEW: parts total display */}
-                      <div className="text-xs mt-2 font-medium">
-                        Parts total: $
-                        {((parts[t.id] || []).reduce((sum, p) => sum + Number(p.quantity || 0) * Number(p.unit_cost || 0), 0)).toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Create Maintenance Ticket</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Start a new maintenance ticket for a gear item.
+              </p>
+              <div className="mt-3">
+                <Link href="/maintenance/new" className="underline">Go to Create Ticket</Link>
               </div>
-            ))}
-            {tickets.length === 0 && (
-              <div className="text-sm text-muted-foreground">No maintenance records yet.</div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Tickets</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                View and update all maintenance tickets.
+              </p>
+              <div className="mt-3">
+                <Link href="/maintenance/tickets" className="underline">Go to Tickets</Link>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Service Schedule</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                See upcoming service dates per gear.
+              </p>
+              <div className="mt-3">
+                <Link href="/maintenance/schedule" className="underline">Go to Service Schedule</Link>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Work Performed & Parts Used</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Track work performed and parts used for tickets.
+              </p>
+              <div className="mt-3">
+                <Link href="/maintenance/work-parts" className="underline">Go to Work & Parts</Link>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </RoleGuard>
   );

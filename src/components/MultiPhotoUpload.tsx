@@ -38,22 +38,18 @@ export default function MultiPhotoUpload({ onUploaded, initialUrls = [], gearInt
     for (const file of Array.from(files)) {
       const path = `${safeName}/${Date.now()}_${file.name}`;
 
-      const { data, error } = await supabase.functions.invoke("upload-gear-photo", {
-        body: await file.arrayBuffer(),
-        headers: {
-          "Content-Type": file.type || "application/octet-stream",
-          "X-File-Path": path,
-        },
-      });
+      const { error: uploadError } = await supabase.storage
+        .from("gear-photos")
+        .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
 
-      if (error) {
-        toast.error("Upload failed: " + (error.message || "Unknown error"));
+      if (uploadError) {
+        toast.error("Upload failed: " + (uploadError.message || "Unknown error"));
         setUploading(false);
-        throw error;
+        throw uploadError;
       }
 
-      const json = data as { path?: string; publicUrl?: string };
-      if (json?.publicUrl) uploaded.push(json.publicUrl);
+      const { data: pub } = supabase.storage.from("gear-photos").getPublicUrl(path);
+      if (pub?.publicUrl) uploaded.push(pub.publicUrl);
     }
 
     const merged = [...currentUrls, ...uploaded];

@@ -77,6 +77,8 @@ export default function RentalDetailPage() {
   const [rental, setRental] = useState<Rental | null>(null);
   const [rentalItems, setRentalItems] = useState<RentalItem[]>([]);
   const [loading, setLoading] = useState(true);
+  // NEW: email to name mapping for legacy inspected_by values
+  const [emailToName, setEmailToName] = useState<Record<string, string>>({});
 
   const [showReportDamageDialog, setShowReportDamageDialog] = useState(false);
   const [selectedGearForDamage, setSelectedGearForDamage] = useState<{ rentalItemId: string; gearId: string; gearInternalId: string } | null>(null);
@@ -121,6 +123,18 @@ export default function RentalDetailPage() {
       console.error("Error fetching rental items:", itemsError);
     }
     setRentalItems(itemsData || []);
+
+    // NEW: load mapping for email->full name
+    const { data: profiles } = await supabase.rpc("list_profiles_with_email");
+    const map: Record<string, string> = {};
+    (profiles || []).forEach((p: any) => {
+      const full = [p.first_name, p.last_name].filter(Boolean).join(" ").trim();
+      if (p.email && full) {
+        map[p.email] = full;
+      }
+    });
+    setEmailToName(map);
+
     setLoading(false);
   };
 
@@ -238,7 +252,13 @@ export default function RentalDetailPage() {
                     {item.inspected_at ? (
                       <>
                         {renderChecklist(item.post_checklist)}
-                        <p className="text-xs text-muted-foreground mt-1">Inspected by {item.inspected_by || "N/A"} on {format(new Date(item.inspected_at), 'PPP')}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Inspected by {
+                            (item.inspected_by && item.inspected_by.includes("@"))
+                              ? (emailToName[item.inspected_by] || item.inspected_by)
+                              : (item.inspected_by || "N/A")
+                          } on {format(new Date(item.inspected_at), 'PPP')}
+                        </p>
                       </>
                     ) : (
                       <span className="text-muted-foreground text-xs">Not returned yet</span>

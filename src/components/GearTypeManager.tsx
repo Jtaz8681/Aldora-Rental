@@ -343,7 +343,7 @@ export default function GearTypeManager() {
   };
 
   return (
-    <>
+    <div>
       {/* Categories */}
       <Card>
         <CardHeader>
@@ -660,6 +660,6 @@ export default function GearTypeManager() {
           </div>
         </CardContent>
       </Card>
-    </>
+    </div>
   );
 }

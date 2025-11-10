@@ -11,7 +11,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, LayoutDashboard, Wrench, Users, PlusCircle, ArrowLeftRight, LogOut, Settings, BarChart3 } from "lucide-react";
+import { Menu, LayoutDashboard, Wrench, Users, PlusCircle, ArrowLeftRight, LogOut, Settings, BarChart3, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -106,9 +106,9 @@ export default function Sidebar() {
                 onClick={() => setIsOpen(false)}
               />
             ))}
-            {/* Maintenance dropdown (mobile) */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            {/* Maintenance link + dropdown (mobile) */}
+            <div className="flex items-center gap-1">
+              <Link href="/maintenance" passHref onClick={() => setIsOpen(false)} className="flex-1">
                 <Button
                   variant={pathname.startsWith("/maintenance") ? "default" : "ghost"}
                   className="w-full justify-start gap-3"
@@ -116,24 +116,31 @@ export default function Sidebar() {
                   <Wrench className="h-5 w-5" />
                   <span>Maintenance</span>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56">
-                <DropdownMenuLabel>Maintenance</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/maintenance/new" onClick={() => setIsOpen(false)}>Create Ticket</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/maintenance/tickets" onClick={() => setIsOpen(false)}>Tickets</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/maintenance/schedule" onClick={() => setIsOpen(false)}>Service Schedule</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/maintenance/work-parts" onClick={() => setIsOpen(false)}>Work & Parts</Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" aria-label="Open maintenance menu">
+                    <ChevronDown className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                  <DropdownMenuLabel>Maintenance</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/maintenance/new" onClick={() => setIsOpen(false)}>Create Ticket</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/maintenance/tickets" onClick={() => setIsOpen(false)}>Tickets</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/maintenance/schedule" onClick={() => setIsOpen(false)}>Service Schedule</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/maintenance/work-parts" onClick={() => setIsOpen(false)}>Work & Parts</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </nav>
           <div className="p-4 border-t border-sidebar-border">
             <Button variant="ghost" className="w-full justify-start gap-3 text-destructive" onClick={handleSignOut}>
@@ -159,9 +166,9 @@ export default function Sidebar() {
               currentPath={pathname}
             />
           ))}
-          {/* Maintenance dropdown (desktop) */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          {/* Maintenance link + dropdown (desktop) */}
+          <div className="flex items-center gap-1">
+            <Link href="/maintenance" passHref className="flex-1">
               <Button
                 variant={pathname.startsWith("/maintenance") ? "default" : "ghost"}
                 className="w-full justify-start gap-3"
@@ -169,24 +176,31 @@ export default function Sidebar() {
                 <Wrench className="h-5 w-5" />
                 <span>Maintenance</span>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56">
-              <DropdownMenuLabel>Maintenance</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/maintenance/new">Create Ticket</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/maintenance/tickets">Tickets</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/maintenance/schedule">Service Schedule</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/maintenance/work-parts">Work & Parts</Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Open maintenance menu">
+                  <ChevronDown className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                <DropdownMenuLabel>Maintenance</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/maintenance/new">Create Ticket</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/maintenance/tickets">Tickets</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/maintenance/schedule">Service Schedule</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/maintenance/work-parts">Work & Parts</Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </nav>
         <div className="mt-auto pt-4 border-t border-sidebar-border">
           <Button variant="ghost" className="w-full justify-start gap-3 text-destructive" onClick={handleSignOut}>

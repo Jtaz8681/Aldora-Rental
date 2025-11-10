@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-type Role = "owner" | "manager" | "staff" | "technician" | null;
+type Role = "owner" | "manager" | "dev" | "staff" | "technician" | null;
 
 type Props = {
   allow: Role[]; // roles allowed to view children

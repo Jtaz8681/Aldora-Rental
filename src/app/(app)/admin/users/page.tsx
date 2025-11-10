@@ -56,10 +56,10 @@ export default function AdminUsersPage() {
     await load();
   };
 
-  const roleOptions = ["owner", "manager", "staff", "technician"];
+  const roleOptions = ["owner", "manager", "dev", "technician", "staff"];
 
   return (
-    <RoleGuard allow={["owner", "manager"]} title="Users & Roles">
+    <RoleGuard allow={["owner", "manager", "dev"]} title="Users & Roles">
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Users & Roles</h1>
         <Card>

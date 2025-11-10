@@ -78,7 +78,7 @@ export default function Sidebar() {
     { href: "/rentals", icon: ArrowLeftRight, label: "All Rentals" },
     { href: "/returns", icon: ArrowLeftRight, label: "Process Returns" },
     { href: "/reports", icon: BarChart3, label: "Reports" },
-    ...(role === "manager" || role === "owner" ? [{ href: "/admin/users", icon: Users, label: "Users" }] : []),
+    ...(role === "manager" || role === "owner" || role === "dev" ? [{ href: "/admin/users", icon: Users, label: "Users" }] : []),
     { href: "/settings", icon: Settings, label: "Settings" }
   ];
 

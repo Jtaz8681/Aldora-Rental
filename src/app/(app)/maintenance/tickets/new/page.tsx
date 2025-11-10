@@ -7,7 +7,7 @@ import RoleGuard from "@/components/RoleGuard";
 
 export default function MaintenanceTicketNewPage() {
   return (
-    <RoleGuard allow={["owner", "manager", "technician", "staff"]} title="Maintenance">
+    <RoleGuard allow={["owner", "manager", "dev", "technician", "staff"]} title="Maintenance">
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <h1 className="text-2xl font-bold">Create Maintenance Ticket</h1>

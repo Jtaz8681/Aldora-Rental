@@ -139,7 +139,7 @@ export default function MaintenancePage() {
     const { data: techProfiles } = await supabase
       .from("profiles")
       .select("first_name, last_name, role")
-      .in("role", ["technician", "manager", "owner"])
+      .in("role", ["technician", "manager", "owner", "dev"])
       .order("first_name", { ascending: true });
 
     const names = (techProfiles || [])
@@ -572,7 +572,7 @@ export default function MaintenancePage() {
   }
 
   return (
-    <RoleGuard allow={["owner", "manager", "technician", "staff"]} title="Maintenance">
+    <RoleGuard allow={["owner", "manager", "dev", "technician", "staff"]} title="Maintenance">
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <h1 className="text-2xl font-bold">Maintenance</h1>

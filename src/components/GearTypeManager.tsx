@@ -27,18 +27,6 @@ type Subcategory = {
   usage_service_threshold: number | null;
 };
 
-const defaultCategorySeeds: string[] = [
-  "BCD",
-  "Regulator",
-  "Fins",
-  "Mask",
-  "Snorkel",
-  "Dive Computer",
-  "Lights",
-  "Tank",
-  "Weights",
-];
-
 export default function GearTypeManager() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
@@ -52,13 +40,16 @@ export default function GearTypeManager() {
   // New subcategory form
   const [newSubName, setNewSubName] = useState("");
 
-  // Checklist template editors
+  // Checklist template editors (for selected category)
   const [preTemplate, setPreTemplate] = useState<Record<string, string>>({});
   const [postTemplate, setPostTemplate] = useState<Record<string, string>>({});
   const [newPreKey, setNewPreKey] = useState("");
   const [newPreLabel, setNewPreLabel] = useState("");
   const [newPostKey, setNewPostKey] = useState("");
   const [newPostLabel, setNewPostLabel] = useState("");
+
+  // Category pricing map: category name -> price
+  const [catPrices, setCatPrices] = useState<Record<string, number>>({});
 
   const loadData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -86,6 +77,20 @@ export default function GearTypeManager() {
     }
     setSubcategories(subs || []);
 
+    const { data: prices, error: pErr } = await supabase
+      .from("category_pricing")
+      .select("category, price")
+      .eq("user_id", user.id);
+    if (pErr) {
+      toast.error("Failed to load category prices: " + pErr.message);
+    } else {
+      const map: Record<string, number> = {};
+      (prices || []).forEach((row: any) => {
+        map[row.category] = Number(row.price || 0);
+      });
+      setCatPrices(map);
+    }
+
     const sel = (cats || []).find((c) => c.id === selectedCategoryId);
     setPreTemplate((sel?.checklist_template_pre as any) || {});
     setPostTemplate((sel?.checklist_template_post as any) || {});
@@ -93,6 +98,7 @@ export default function GearTypeManager() {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -105,104 +111,6 @@ export default function GearTypeManager() {
     () => subcategories.filter((s) => s.category_id === selectedCategoryId),
     [subcategories, selectedCategoryId]
   );
-
-  const seedDefaults = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    if (categories.length > 0) {
-      toast.info("Categories already exist; seeding skipped.");
-      return;
-    }
-
-    // Insert base categories
-    const baseRows = defaultCategorySeeds.map((name) => ({
-      user_id: user.id,
-      name,
-      service_interval_months: null,
-      usage_service_threshold: null,
-      checklist_template_pre: {},
-      checklist_template_post: {},
-    }));
-    const { data: insertedCats, error: catsErr } = await supabase
-      .from("gear_categories")
-      .insert(baseRows)
-      .select("id, name");
-    if (catsErr) {
-      toast.error("Seeding categories failed: " + catsErr.message);
-      throw catsErr;
-    }
-
-    const getCatId = (nm: string) => insertedCats?.find((c) => c.name === nm)?.id;
-
-    // Define example subcategories
-    const subRows: any[] = [
-      // BCD subcategories
-      { user_id: user.id, category_id: getCatId("BCD"), name: "Jacket Style BCD" },
-      { user_id: user.id, category_id: getCatId("BCD"), name: "Back-Inflation BCD" },
-      { user_id: user.id, category_id: getCatId("BCD"), name: "Wing (with Backplate & Harness)" },
-      // Regulator subcategories
-      { user_id: user.id, category_id: getCatId("Regulator"), name: "First Stage" },
-      { user_id: user.id, category_id: getCatId("Regulator"), name: "Primary Second Stage" },
-      { user_id: user.id, category_id: getCatId("Regulator"), name: "Alternate Air Source (Octopus)" },
-      { user_id: user.id, category_id: getCatId("Regulator"), name: "Low-Pressure Inflator Hose" },
-      { user_id: user.id, category_id: getCatId("Regulator"), name: "Submersible Pressure Gauge (SPG)" },
-    ].filter((r) => r.category_id);
-
-    if (subRows.length) {
-      const { error: subsErr } = await supabase.from("gear_subcategories").insert(subRows);
-      if (subsErr) {
-        toast.error("Seeding subcategories failed: " + subsErr.message);
-        throw subsErr;
-      }
-    }
-
-    // Set sensible default checklist templates for BCD and Regulator
-    const bcdId = getCatId("BCD");
-    const regId = getCatId("Regulator");
-    if (bcdId) {
-      await supabase
-        .from("gear_categories")
-        .update({
-          checklist_template_pre: {
-            bcd_inflate_ok: "Inflates/deflates smoothly",
-            holds_pressure_5min: "Holds pressure (5 min)",
-            opv_ok: "OPV releases properly",
-            power_inflator_ok: "Power inflator works",
-          },
-          checklist_template_post: {
-            bcd_rinsed: "Rinsed & cleaned",
-            holds_pressure_5min: "Holds pressure (5 min)",
-            hose_inspected: "Hoses inspected",
-            visual_ok: "Visual check OK",
-          },
-        })
-        .eq("id", bcdId)
-        .eq("user_id", user.id);
-    }
-    if (regId) {
-      await supabase
-        .from("gear_categories")
-        .update({
-          checklist_template_pre: {
-            regulator_breathes_ok: "Breathes freely",
-            ip_check_ok: "Intermediate pressure OK",
-            octopus_ok: "Octopus function OK",
-            spg_ok: "SPG reads correctly",
-            lp_inflator_hose_ok: "LP inflator hose OK",
-          },
-          checklist_template_post: {
-            regs_rinsed: "Rinsed & cleaned",
-            mouthpiece_ok: "Mouthpiece good",
-            spg_ok: "SPG reads correctly",
-          },
-        })
-        .eq("id", regId)
-        .eq("user_id", user.id);
-    }
-
-    toast.success("Seeded gear categories, subcategories, and default checklist templates.");
-    await loadData();
-  };
 
   const addCategory = async () => {
     const name = newCatName.trim();
@@ -248,7 +156,7 @@ export default function GearTypeManager() {
     await loadData();
   };
 
-  const deleteCategory = async (id: string) => {
+  const deleteCategory = async (id: string, name?: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { error } = await supabase
@@ -261,6 +169,19 @@ export default function GearTypeManager() {
       throw error;
     }
     if (selectedCategoryId === id) setSelectedCategoryId("");
+    // Remove price entry for this category if present
+    if (name && catPrices[name] != null) {
+      setCatPrices(prev => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+      await supabase
+        .from("category_pricing")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("category", name);
+    }
     toast.success("Category deleted.");
     await loadData();
   };
@@ -365,6 +286,62 @@ export default function GearTypeManager() {
     setPostTemplate(next);
   };
 
+  const updateCategoryPrice = async (categoryName: string, priceVal: number | null) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: existing } = await supabase
+      .from("category_pricing")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("category", categoryName)
+      .maybeSingle();
+
+    if (priceVal == null) {
+      if (existing?.id) {
+        const { error } = await supabase
+          .from("category_pricing")
+          .delete()
+          .eq("id", existing.id)
+          .eq("user_id", user.id);
+        if (error) {
+          toast.error("Failed to clear price: " + error.message);
+          throw error;
+        }
+      }
+      setCatPrices((prev) => {
+        const next = { ...prev };
+        delete next[categoryName];
+        return next;
+      });
+      toast.success("Price cleared.");
+      return;
+    }
+
+    if (existing?.id) {
+      const { error } = await supabase
+        .from("category_pricing")
+        .update({ price: priceVal, updated_at: new Date().toISOString() })
+        .eq("id", existing.id)
+        .eq("user_id", user.id);
+      if (error) {
+        toast.error("Failed to update price: " + error.message);
+        throw error;
+      }
+    } else {
+      const { error } = await supabase
+        .from("category_pricing")
+        .insert({ user_id: user.id, category: categoryName, price: priceVal });
+      if (error) {
+        toast.error("Failed to add price: " + error.message);
+        throw error;
+      }
+    }
+
+    setCatPrices((prev) => ({ ...prev, [categoryName]: Number(priceVal) }));
+    toast.success("Category price saved.");
+  };
+
   return (
     <Fragment>
       {/* Categories */}
@@ -404,6 +381,7 @@ export default function GearTypeManager() {
                   <TableHead>Name</TableHead>
                   <TableHead>Months</TableHead>
                   <TableHead>Usage (days)</TableHead>
+                  <TableHead>Default Price</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -444,7 +422,20 @@ export default function GearTypeManager() {
                       />
                     </TableCell>
                     <TableCell>
-                      <Button variant="destructive" size="sm" onClick={() => deleteCategory(cat.id)}>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        className="w-28"
+                        defaultValue={catPrices[cat.name] ?? ""}
+                        onBlur={(e) => {
+                          const val = e.target.value === "" ? null : Number(e.target.value);
+                          updateCategoryPrice(cat.name, val);
+                        }}
+                        placeholder="$0.00"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="destructive" size="sm" onClick={() => deleteCategory(cat.id, cat.name)}>
                         Remove
                       </Button>
                     </TableCell>
@@ -452,7 +443,7 @@ export default function GearTypeManager() {
                 ))}
                 {categories.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
                       No categories configured. Add your first category above.
                     </TableCell>
                   </TableRow>
@@ -538,6 +529,25 @@ export default function GearTypeManager() {
           <CardTitle>Pre-Checkout Checklist (Default for Category)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Shared category selector */}
+          <div className="flex items-center justify-between">
+            <Label className="text-sm">Category</Label>
+            <div className="w-60">
+              <Select value={selectedCategoryId} onValueChange={(v) => setSelectedCategoryId(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pick a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2">
             <Input placeholder="key (e.g., bcd_inflate_ok)" value={newPreKey} onChange={(e) => setNewPreKey(e.target.value)} />
             <Input
@@ -545,7 +555,7 @@ export default function GearTypeManager() {
               value={newPreLabel}
               onChange={(e) => setNewPreLabel(e.target.value)}
             />
-            <Button variant="outline" onClick={addPreCheck}>
+            <Button variant="outline" onClick={addPreCheck} disabled={!selectedCategoryId}>
               Add
             </Button>
           </div>
@@ -579,7 +589,7 @@ export default function GearTypeManager() {
             </TableBody>
           </Table>
           <div className="flex justify-end">
-            <Button onClick={saveTemplates}>Save Templates</Button>
+            <Button onClick={saveTemplates} disabled={!selectedCategoryId}>Save Templates</Button>
           </div>
         </CardContent>
       </Card>
@@ -590,10 +600,29 @@ export default function GearTypeManager() {
           <CardTitle>Post-Check-In Checklist (Default for Category)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Shared category selector mirrors the one above */}
+          <div className="flex items-center justify-between">
+            <Label className="text-sm">Category</Label>
+            <div className="w-60">
+              <Select value={selectedCategoryId} onValueChange={(v) => setSelectedCategoryId(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pick a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2">
             <Input placeholder="key (e.g., regs_rinsed)" value={newPostKey} onChange={(e) => setNewPostKey(e.target.value)} />
             <Input placeholder="Label (e.g., Rinsed & cleaned)" value={newPostLabel} onChange={(e) => setNewPostLabel(e.target.value)} />
-            <Button variant="outline" onClick={addPostCheck}>
+            <Button variant="outline" onClick={addPostCheck} disabled={!selectedCategoryId}>
               Add
             </Button>
           </div>
@@ -621,13 +650,13 @@ export default function GearTypeManager() {
                 <TableRow>
                   <TableCell colSpan={3} className="text-center text-sm text-muted-foreground">
                     No post-checks configured.
-                  </TableCell>
+                  </TableRow>
                 </TableRow>
               )}
             </TableBody>
           </Table>
           <div className="flex justify-end">
-            <Button onClick={saveTemplates}>Save Templates</Button>
+            <Button onClick={saveTemplates} disabled={!selectedCategoryId}>Save Templates</Button>
           </div>
         </CardContent>
       </Card>

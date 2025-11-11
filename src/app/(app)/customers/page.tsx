@@ -109,10 +109,10 @@ export default function CustomersPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Customers</h1>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="w-full sm:w-64">
+        <div className="flex items-center gap-2">
+          <div className="w-64">
             <Input
               placeholder="Search name, phone, email"
               value={search}
@@ -132,11 +132,11 @@ export default function CustomersPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead className="hidden md:table-cell">Phone</TableHead>
-              <TableHead className="hidden md:table-cell">Email</TableHead>
-              <TableHead className="hidden md:table-cell">Number of Rentals</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Number of Rentals</TableHead>
               <TableHead>Balance</TableHead>
-              <TableHead className="hidden md:table-cell">Actions</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -147,11 +147,11 @@ export default function CustomersPage() {
                     {c.name}
                   </Link>
                 </TableCell>
-                <TableCell className="hidden md:table-cell">{c.phone || "-"}</TableCell>
-                <TableCell className="hidden md:table-cell">{c.email || "-"}</TableCell>
-                <TableCell className="hidden md:table-cell">{c.rentalCount}</TableCell>
+                <TableCell>{c.phone || "-"}</TableCell>
+                <TableCell>{c.email || "-"}</TableCell>
+                <TableCell>{c.rentalCount}</TableCell>
                 <TableCell>{formatCurrency(c.balance_due)}</TableCell>
-                <TableCell className="space-x-2 hidden md:table-cell">
+                <TableCell className="space-x-2">
                   <Link href={`/customers/${c.id}`} className="text-sm underline">View</Link>
                   <Link href={`/customers/${c.id}/edit`} className="text-sm underline">Edit</Link>
                 </TableCell>

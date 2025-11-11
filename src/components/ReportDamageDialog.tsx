@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -23,7 +24,7 @@ const schema = z.object({
   damage_type: z.string().optional(),
   severity: z.enum(["Cosmetic", "Functional", "Critical"]),
   notes: z.string().optional(),
-  estimate_cost: z.coerce.number().min(0).optional(),
+  charge_customer: z.boolean().optional(),
   photos_csv: z.string().optional(),
 });
 
@@ -52,7 +53,7 @@ export default function ReportDamageDialog({
     resolver: zodResolver(schema),
     defaultValues: {
       severity: "Functional",
-      estimate_cost: 0,
+      charge_customer: false,
     },
   });
 
@@ -77,7 +78,6 @@ export default function ReportDamageDialog({
         damage_type: watch("damage_type") || null,
         severity: watch("severity") || "Functional",
         photos: photoUrls,
-        estimate_cost: watch("estimate_cost") ?? null,
         notes: watch("notes") || null,
       })
       .select("*")
@@ -105,7 +105,7 @@ export default function ReportDamageDialog({
     onOpenChange(false);
     onReported?.();
 
-    // NEW: Create maintenance ticket automatically for this damage event with linked report ID
+    // NEW: Create maintenance ticket automatically with charge flag synced to checkbox
     const problem = [watch("damage_type") || null, watch("notes") || null].filter(Boolean).join(" - ") || "Damage reported";
     if (user && !error && inserted) {
       await supabase.from("maintenance_tickets").insert({
@@ -115,8 +115,8 @@ export default function ReportDamageDialog({
         damage_report_id: inserted.id,
         problem_description: problem,
         status: "pending",
-        cost: watch("estimate_cost") ?? null,
-        charge_customer: false,
+        cost: null,
+        charge_customer: !!values.charge_customer,
         date_received: new Date().toISOString(),
       });
     }
@@ -153,11 +153,12 @@ export default function ReportDamageDialog({
             <Label htmlFor="notes">Notes</Label>
             <Input id="notes" {...register("notes")} placeholder="Detailed description of damage" />
           </div>
-          <div>
-            <Label htmlFor="estimate_cost">Estimated Repair Cost</Label>
-            <Input id="estimate_cost" type="number" step="0.01" {...register("estimate_cost")} />
-            {errors.estimate_cost && <p className="text-destructive text-xs mt-1">{errors.estimate_cost.message}</p>}
+
+          <div className="flex items-center gap-2">
+            <Checkbox onCheckedChange={(v) => setValue("charge_customer", !!v)} />
+            <span className="text-sm">Charge customer on completion</span>
           </div>
+
           <div>
             <MultiPhotoUpload
               gearInternalId={gearInternalId}

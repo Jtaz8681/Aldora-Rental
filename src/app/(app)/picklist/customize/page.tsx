@@ -177,14 +177,16 @@ export default function CustomizePickListPage() {
           <CardTitle>Live Preview</CardTitle>
         </CardHeader>
         <CardContent>
-          <PickList
-            customerName="John Diver"
-            startAt={sampleStart}
-            endAt={sampleEnd}
-            items={previewItems}
-            total={previewItems.reduce((s, i) => s + i.price, 0)}
-            settings={settings as PickListSettings}
-          />
+          <div className="max-w-full overflow-x-auto">
+            <PickList
+              customerName="John Diver"
+              startAt={sampleStart}
+              endAt={sampleEnd}
+              items={previewItems}
+              total={previewItems.reduce((s, i) => s + i.price, 0)}
+              settings={settings as PickListSettings}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

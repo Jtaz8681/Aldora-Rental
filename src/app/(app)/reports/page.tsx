@@ -165,128 +165,136 @@ export default function ReportsPage() {
       <Card>
         <CardHeader><CardTitle>Gear Utilization & Profitability</CardTitle></CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Gear</TableHead>
-                <TableHead>Days Rented</TableHead>
-                <TableHead>Revenue (approx)</TableHead>
-                <TableHead>Maintenance Cost</TableHead>
-                <TableHead>Profitability</TableHead>
-                <TableHead>Profit / mo</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {utilization.map(u => (
-                <TableRow key={u.gear.id}>
-                  <TableCell className="font-mono">
-                    <Link href={`/gear/${u.gear.id}`} className="underline">
-                      {u.gear.internal_id}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{u.daysRented}</TableCell>
-                  <TableCell>${u.revenueApprox.toFixed(2)}</TableCell>
-                  <TableCell>${u.maintenanceCost.toFixed(2)}</TableCell>
-                  <TableCell className={u.profitability >= 0 ? "text-green-600" : "text-destructive"}>
-                    ${u.profitability.toFixed(2)}
-                  </TableCell>
-                  <TableCell className={u.profitPerMonth >= 0 ? "text-green-600" : "text-destructive"}>
-                    ${u.profitPerMonth.toFixed(2)}
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Gear</TableHead>
+                  <TableHead>Days Rented</TableHead>
+                  <TableHead>Revenue (approx)</TableHead>
+                  <TableHead className="hidden md:table-cell">Maintenance Cost</TableHead>
+                  <TableHead>Profitability</TableHead>
+                  <TableHead className="hidden md:table-cell">Profit / mo</TableHead>
                 </TableRow>
-              ))}
-              {utilization.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground">No data.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {utilization.map(u => (
+                  <TableRow key={u.gear.id}>
+                    <TableCell className="font-mono">
+                      <Link href={`/gear/${u.gear.id}`} className="underline">
+                        {u.gear.internal_id}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{u.daysRented}</TableCell>
+                    <TableCell>${u.revenueApprox.toFixed(2)}</TableCell>
+                    <TableCell className="hidden md:table-cell">${u.maintenanceCost.toFixed(2)}</TableCell>
+                    <TableCell className={u.profitability >= 0 ? "text-green-600" : "text-destructive"}>
+                      ${u.profitability.toFixed(2)}
+                    </TableCell>
+                    <TableCell className={`hidden md:table-cell ${u.profitPerMonth >= 0 ? "text-green-600" : "text-destructive"}`}>
+                      ${u.profitPerMonth.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {utilization.length === 0 && (
+                  <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground">No data.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader><CardTitle>Damage & Loss</CardTitle></CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Gear</TableHead>
-                <TableHead>Severity</TableHead>
-                <TableHead>Estimated Cost</TableHead>
-                <TableHead>Reported</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {damageSummary.map((d, idx) => (
-                <TableRow key={idx}>
-                  <TableCell className="font-mono">
-                    <Link href={`/gear/${d.gear_id}`} className="underline">
-                      {d.gear_id}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{d.severity}</TableCell>
-                  <TableCell>${d.estimate_cost.toFixed(2)}</TableCell>
-                  <TableCell>{d.reported_at ? format(new Date(d.reported_at), "PPp") : "-"}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Gear</TableHead>
+                  <TableHead className="hidden md:table-cell">Severity</TableHead>
+                  <TableHead>Estimated Cost</TableHead>
+                  <TableHead>Reported</TableHead>
                 </TableRow>
-              ))}
-              {damageSummary.length === 0 && (
-                <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground">No damage reports.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {damageSummary.map((d, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell className="font-mono">
+                      <Link href={`/gear/${d.gear_id}`} className="underline">
+                        {d.gear_id}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">{d.severity}</TableCell>
+                    <TableCell>${d.estimate_cost.toFixed(2)}</TableCell>
+                    <TableCell>{d.reported_at ? format(new Date(d.reported_at), "PPp") : "-"}</TableCell>
+                  </TableRow>
+                ))}
+                {damageSummary.length === 0 && (
+                  <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground">No damage reports.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader><CardTitle>Overdue Rentals</CardTitle></CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Start</TableHead>
-                <TableHead>Expected End</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {overdueRentals.map(r => (
-                <TableRow key={r.id}>
-                  <TableCell>{r.customers?.name || "N/A"}</TableCell>
-                  <TableCell>{format(new Date(r.start_at), "PPP")}</TableCell>
-                  <TableCell className="text-destructive">{format(new Date(r.expected_end_at), "PPP")}</TableCell>
-                  <TableCell>{r.status}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Start</TableHead>
+                  <TableHead>Expected End</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
-              ))}
-              {overdueRentals.length === 0 && (
-                <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground">No overdue rentals.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {overdueRentals.map(r => (
+                  <TableRow key={r.id}>
+                    <TableCell>{r.customers?.name || "N/A"}</TableCell>
+                    <TableCell>{format(new Date(r.start_at), "PPP")}</TableCell>
+                    <TableCell className="text-destructive">{format(new Date(r.expected_end_at), "PPP")}</TableCell>
+                    <TableCell>{r.status}</TableCell>
+                  </TableRow>
+                ))}
+                {overdueRentals.length === 0 && (
+                  <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground">No overdue rentals.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader><CardTitle>Maintenance Cost by Category</CardTitle></CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Category</TableHead>
-                <TableHead>Total Cost</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {costCategoryRows.map((row) => (
-                <TableRow key={row.category}>
-                  <TableCell>{row.category}</TableCell>
-                  <TableCell>${row.total.toFixed(2)}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Total Cost</TableHead>
                 </TableRow>
-              ))}
-              {costCategoryRows.length === 0 && (
-                <TableRow><TableCell colSpan={2} className="text-center text-sm text-muted-foreground">No maintenance costs yet.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {costCategoryRows.map((row) => (
+                  <TableRow key={row.category}>
+                    <TableCell>{row.category}</TableCell>
+                    <TableCell>${row.total.toFixed(2)}</TableCell>
+                  </TableRow>
+                ))}
+                {costCategoryRows.length === 0 && (
+                  <TableRow><TableCell colSpan={2} className="text-center text-sm text-muted-foreground">No maintenance costs yet.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

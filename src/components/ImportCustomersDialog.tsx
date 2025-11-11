@@ -34,6 +34,9 @@ type ParsedRow = {
 
 type Props = {
   onImported?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showTriggerButton?: boolean; // default true
 };
 
 function normalizeRow(row: Record<string, any>): ParsedRow {
@@ -48,8 +51,19 @@ function normalizeRow(row: Record<string, any>): ParsedRow {
   return out;
 }
 
-export default function ImportCustomersDialog({ onImported }: Props) {
-  const [open, setOpen] = useState(false);
+export default function ImportCustomersDialog({
+  onImported,
+  open,
+  onOpenChange,
+  showTriggerButton = true,
+}: Props) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const dialogOpen = open ?? internalOpen;
+  const setDialogOpen = (v: boolean) => {
+    if (onOpenChange) onOpenChange(v);
+    else setInternalOpen(v);
+  };
+
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [isParsing, setIsParsing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -110,24 +124,26 @@ export default function ImportCustomersDialog({ onImported }: Props) {
       return;
     }
     toast.success(`Imported ${payload.length} customer(s).`);
-    setOpen(false);
+    setDialogOpen(false);
     setRows([]);
     onImported?.();
   };
 
   const resetAndClose = () => {
-    setOpen(false);
+    setDialogOpen(false);
     setRows([]);
     setIsParsing(false);
     setIsImporting(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => (v ? setOpen(true) : resetAndClose())}>
-      <DialogTrigger asChild>
-        <Button variant="secondary">Import from CSV</Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-2xl">
+    <Dialog open={dialogOpen} onOpenChange={(v) => (v ? setDialogOpen(true) : resetAndClose())}>
+      {showTriggerButton && (
+        <DialogTrigger asChild>
+          <Button variant="secondary">Import from CSV</Button>
+        </DialogTrigger>
+      )}
+      <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Import Customers from CSV</DialogTitle>
           <DialogDescription>
@@ -167,20 +183,13 @@ export default function ImportCustomersDialog({ onImported }: Props) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.slice(0, 50).map((r, idx) => (
+                  {rows.map((r, idx) => (
                     <TableRow key={idx}>
                       <TableCell>{r.name || <span className="text-muted-foreground">-</span>}</TableCell>
                       <TableCell>{r.phone || <span className="text-muted-foreground">-</span>}</TableCell>
                       <TableCell>{r.email || <span className="text-muted-foreground">-</span>}</TableCell>
                     </TableRow>
                   ))}
-                  {rows.length > 50 && (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-xs text-muted-foreground">
-                        Showing first 50 rows of {rows.length}.
-                      </TableCell>
-                    </TableRow>
-                  )}
                 </TableBody>
               </Table>
             </div>

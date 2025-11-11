@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/format";
-import ImportCustomersDialog from "@/components/ImportCustomersDialog";
+import CustomersActions from "@/components/CustomersActions";
 
 type Customer = {
   id: string;
@@ -57,7 +57,7 @@ export default function CustomersPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Customers</h1>
         <div className="flex items-center gap-2">
-          <ImportCustomersDialog onImported={loadCustomers} />
+          <CustomersActions onImported={loadCustomers} />
           <Link href="/customers/new"><Button>Add Customer</Button></Link>
         </div>
       </div>

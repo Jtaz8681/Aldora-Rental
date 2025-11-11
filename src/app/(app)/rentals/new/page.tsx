@@ -14,6 +14,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import PickList from "@/components/PickList";
 import { roundToTwo } from "@/lib/format";
 import { ensureDefaultTemplate } from "@/lib/checklists";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { loadPickListSettings } from "@/lib/picklist";
 
 type Customer = { id: string; name: string; };
 type Gear = { id: string; internal_id: string; category: string; rental_price: number; status: string; category_id?: string; checklist_template_pre?: Record<string, string> | null };
@@ -29,13 +31,16 @@ export default function NewRentalPage() {
   const [selectedGearIds, setSelectedGearIds] = useState<string[]>([]);
   const [signature, setSignature] = useState<string>("");
 
-  // NEW: package pricing state
   const [isPackage, setIsPackage] = useState(false);
   const [packageTotal, setPackageTotal] = useState<string>("");
 
-  const [checklist, setChecklist] = useState<Record<string, Record<string, boolean>>>({}); // gearId -> checks
+  const [checklist, setChecklist] = useState<Record<string, Record<string, boolean>>>({});
   const [conflictsByGear, setConflictsByGear] = useState<Record<string, { rentalId: string; start_at: string; expected_end_at: string }[]>>({});
   const [checkingConflicts, setCheckingConflicts] = useState(false);
+
+  // Modal flow state
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutStep, setCheckoutStep] = useState<"signature" | "picklist">("signature");
 
   useEffect(() => {
     const load = async () => {
@@ -50,7 +55,6 @@ export default function NewRentalPage() {
         .order("internal_id");
       setGear(g || []);
 
-      // Load category pre-check templates
       const catIds = Array.from(new Set((g || []).map((x: any) => x.category_id).filter(Boolean)));
       if (catIds.length) {
         const { data: cats } = await supabase
@@ -67,7 +71,6 @@ export default function NewRentalPage() {
     load();
   }, []);
 
-  // NEW: check for date-range conflicts when dates or selected gear change
   useEffect(() => {
     const run = async () => {
       if (!startAt || !endAt || selectedGearIds.length === 0) {
@@ -81,7 +84,6 @@ export default function NewRentalPage() {
         return;
       }
 
-      // Fetch rental items for selected gear with their parent rentals
       const { data: items } = await supabase
         .from("rental_items")
         .select("gear_id, rental_id, rentals(id, start_at, expected_end_at, status)")
@@ -124,7 +126,6 @@ export default function NewRentalPage() {
     return Math.max(d, 1);
   }, [startAt, endAt]);
 
-  // UPDATED: total calculation (supports package)
   const total = useMemo(() => {
     if (isPackage) {
       const val = Number(packageTotal || 0);
@@ -147,15 +148,29 @@ export default function NewRentalPage() {
     setChecklist(prev => ({ ...prev, [id]: prev[id] || defaults }));
   };
 
-  const submitRental = async () => {
-    if (!customerId || !startAt || !endAt || selectedGearIds.length === 0 || !signature) {
-      toast.error("Please complete all fields and capture a signature.");
+  const startFinalizeFlow = () => {
+    if (!customerId || !startAt || !endAt || selectedGearIds.length === 0) {
+      toast.error("Please complete all fields and select at least one item.");
       return;
     }
     if (isPackage && (!packageTotal || Number(packageTotal) <= 0)) {
       toast.error("Enter a valid package total price.");
       return;
     }
+    if (hasConflicts) {
+      toast.error("Resolve gear conflicts before finalizing.");
+      return;
+    }
+    setCheckoutStep("signature");
+    setCheckoutOpen(true);
+  };
+
+  const submitRental = async () => {
+    if (!signature) {
+      toast.error("Please capture a signature.");
+      return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -171,20 +186,18 @@ export default function NewRentalPage() {
     }).select("*").single();
     if (rentalErr) throw rentalErr;
 
-    // Insert rental items
     for (let idx = 0; idx < selectedGearIds.length; idx++) {
       const gearId = selectedGearIds[idx];
       const g = gear.find(x => x.id === gearId);
       const preChecklist = checklist[gearId] || {};
 
-      // Per-item price handling
       let perItemPricePerDay = Number(g?.rental_price || 0);
       let packageShareTotal: number | null = null;
 
       if (isPackage) {
         const shareTotal = roundToTwo(total / selectedGearIds.length);
         packageShareTotal = shareTotal;
-        perItemPricePerDay = shareTotal / days; // per-day derived from share
+        perItemPricePerDay = shareTotal / days;
       }
 
       await supabase.from("rental_items").insert({
@@ -201,7 +214,6 @@ export default function NewRentalPage() {
         .eq("id", gearId);
     }
 
-    // Apply bill to customer account (use total which respects package)
     const { error: balanceErr } = await supabase.rpc("increment_customer_balance", {
       p_user_id: user.id,
       p_customer_id: customerId,
@@ -224,6 +236,7 @@ export default function NewRentalPage() {
     }
 
     toast.success("Rental created and gear checked out");
+    setCheckoutOpen(false);
     router.push(`/customers/${customerId}`);
   };
 
@@ -231,7 +244,6 @@ export default function NewRentalPage() {
     <div className="grid gap-6">
       <h1 className="text-xl font-semibold">New Rental</h1>
 
-      {/* NEW: global conflicts alert */}
       {hasConflicts && (
         <Alert className="border-destructive/50 bg-destructive/10">
           <AlertTitle>Some selected gear is already booked</AlertTitle>
@@ -267,7 +279,6 @@ export default function NewRentalPage() {
       </div>
 
       <div className="grid sm:grid-cols-2 gap-2">
-        {/* NEW: Package pricing controls */}
         <div className="flex items-center justify-between">
           <Label htmlFor="isPackage">Price as package</Label>
           <Switch id="isPackage" checked={isPackage} onCheckedChange={(v) => setIsPackage(!!v)} />
@@ -300,7 +311,6 @@ export default function NewRentalPage() {
                   <Checkbox checked={selectedGearIds.includes(g.id)} onCheckedChange={() => toggleGear(g.id)} />
                   <span className="text-sm">{g.internal_id} · {g.category} · ${g.rental_price.toFixed(2)}/day</span>
                 </div>
-                {/* NEW: per-item conflict hint */}
                 {selectedGearIds.includes(g.id) && conflicts.length > 0 && (
                   <span className="text-xs text-destructive">
                     Not available for selected dates (conflicts with {conflicts.length} rental{conflicts.length > 1 ? "s" : ""})
@@ -311,7 +321,6 @@ export default function NewRentalPage() {
           })}
           {gear.length === 0 && <p className="text-sm text-muted-foreground">No available gear.</p>}
         </div>
-        {/* NEW: show conflict details list */}
         {hasConflicts && (
           <div className="mt-3 space-y-2">
             {Object.entries(conflictsByGear).map(([gid, list]) => {
@@ -365,33 +374,70 @@ export default function NewRentalPage() {
         </div>
       )}
 
-      <div className="space-y-2">
-        <h2 className="text-lg font-semibold">Rental Waiver Signature</h2>
-        <SignaturePad onChange={setSignature} />
-      </div>
-
       <div className="flex items-center justify-between">
         <p className="text-sm">
           Total: <span className="font-semibold">${Number(total || 0).toFixed(2)}</span> ({days} day{days > 1 ? "s" : ""})
         </p>
         <div className="flex gap-2">
-          <PickList
-            customerName={customers.find(c => c.id === customerId)?.name || ""}
-            startAt={startAt}
-            endAt={endAt}
-            items={selectedGearIds.map(id => {
-              const gItem = gear.find(x => x.id === id);
-              const shareTotal = isPackage ? roundToTwo(total / selectedGearIds.length) : Number(gItem?.rental_price || 0) * days;
-              const pricePerDay = isPackage ? shareTotal / days : Number(gItem?.rental_price || 0);
-              return { internal_id: gItem?.internal_id || "", category: gItem?.category || "", price: Number(pricePerDay || 0) };
-            })}
-            total={total}
-          />
-          <Button onClick={submitRental} disabled={checkingConflicts || hasConflicts}>
+          <Button onClick={startFinalizeFlow} disabled={checkingConflicts || hasConflicts}>
             {checkingConflicts ? "Checking..." : "Finalize & Check Out"}
           </Button>
         </div>
       </div>
+
+      <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
+        <DialogContent>
+          {checkoutStep === "signature" && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Rental Waiver Signature</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2">
+                <SignaturePad onChange={setSignature} />
+              </div>
+              <DialogFooter className="flex justify-end gap-2">
+                <Button variant="secondary" onClick={() => setCheckoutOpen(false)}>Cancel</Button>
+                <Button onClick={() => {
+                  if (!signature) {
+                    toast.error("Please capture a signature before continuing.");
+                    return;
+                  }
+                  setCheckoutStep("picklist");
+                }}>
+                  Save Signature
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+
+          {checkoutStep === "picklist" && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Pack List</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <PickList
+                  customerName={customers.find(c => c.id === customerId)?.name || ""}
+                  startAt={startAt}
+                  endAt={endAt}
+                  items={selectedGearIds.map(id => {
+                    const gItem = gear.find(x => x.id === id);
+                    const shareTotal = isPackage ? roundToTwo(total / selectedGearIds.length) : Number(gItem?.rental_price || 0) * days;
+                    const pricePerDay = isPackage ? shareTotal / days : Number(gItem?.rental_price || 0);
+                    return { internal_id: gItem?.internal_id || "", category: gItem?.category || "", price: Number(pricePerDay || 0) };
+                  })}
+                  total={total}
+                  settings={loadPickListSettings()}
+                />
+              </div>
+              <DialogFooter className="flex justify-end gap-2">
+                <Button variant="secondary" onClick={() => setCheckoutOpen(false)}>Back</Button>
+                <Button onClick={submitRental}>Complete Checkout</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

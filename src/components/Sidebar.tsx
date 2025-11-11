@@ -11,7 +11,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, LayoutDashboard, Wrench, Users, PlusCircle, ArrowLeftRight, LogOut, Settings, BarChart3, ChevronDown } from "lucide-react";
+import { Menu, LayoutDashboard, Wrench, Users, PlusCircle, ArrowLeftRight, LogOut, Settings, BarChart3, ChevronDown, ListChecks } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -78,6 +78,7 @@ export default function Sidebar() {
     { href: "/rentals", icon: ArrowLeftRight, label: "All Rentals" },
     { href: "/returns", icon: ArrowLeftRight, label: "Process Returns" },
     { href: "/reports", icon: BarChart3, label: "Reports" },
+    { href: "/picklist/customize", icon: ListChecks, label: "Customize Pick List" },
     ...(role === "manager" || role === "owner" || role === "dev" ? [{ href: "/admin/users", icon: Users, label: "Users" }] : []),
     { href: "/settings", icon: Settings, label: "Settings" }
   ];

@@ -9,6 +9,13 @@ export default {
   ],
   theme: {
   	extend: {
+  		screens: {
+  			phone: { max: "600px" },
+  			tablet: { min: "601px", max: "1007px" },
+  			desktop: "1008px",
+  			portrait: { raw: "(orientation: portrait)" },
+  			landscape: { raw: "(orientation: landscape)" }
+  		},
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',

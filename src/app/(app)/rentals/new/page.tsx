@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { loadPickListSettings } from "@/lib/picklist";
 
 type Customer = { id: string; name: string; };
-type Gear = { id: string; internal_id: string; category: string; rental_price: number; status: string; category_id?: string; checklist_template_pre?: Record<string, string> | null };
+type Gear = { id: string; internal_id: string; category: string; rental_price: number; status: string; category_id?: string; checklist_template_pre?: Record<string, string> | null; brand?: string; model?: string; size?: string; serial_number?: string; home_location?: string; };
 
 export default function NewRentalPage() {
   const router = useRouter();
@@ -50,7 +50,7 @@ export default function NewRentalPage() {
       setCustomers(c || []);
       const { data: g } = await supabase
         .from("gear_items")
-        .select("id, internal_id, category, rental_price, status, category_id, checklist_template_pre")
+        .select("id, internal_id, category, rental_price, status, category_id, checklist_template_pre, brand, model, size, serial_number, home_location")
         .eq("status", "Available")
         .order("internal_id");
       setGear(g || []);
@@ -424,7 +424,16 @@ export default function NewRentalPage() {
                     const gItem = gear.find(x => x.id === id);
                     const shareTotal = isPackage ? roundToTwo(total / selectedGearIds.length) : Number(gItem?.rental_price || 0) * days;
                     const pricePerDay = isPackage ? shareTotal / days : Number(gItem?.rental_price || 0);
-                    return { internal_id: gItem?.internal_id || "", category: gItem?.category || "", price: Number(pricePerDay || 0) };
+                    return {
+                      internal_id: gItem?.internal_id || "",
+                      category: gItem?.category || "",
+                      price: Number(pricePerDay || 0),
+                      brand: gItem?.brand || undefined,
+                      model: gItem?.model || undefined,
+                      size: gItem?.size || undefined,
+                      serial_number: gItem?.serial_number || undefined,
+                      home_location: gItem?.home_location || undefined,
+                    };
                   })}
                   total={total}
                   settings={loadPickListSettings()}

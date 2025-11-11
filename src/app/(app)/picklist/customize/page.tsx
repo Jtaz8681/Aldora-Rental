@@ -19,13 +19,27 @@ const schema = z.object({
   titleText: z.string().min(1, "Title is required"),
   showCategory: z.boolean(),
   showPricePerDay: z.boolean(),
-  layout: z.enum(["table", "cards"]),
+  showBrand: z.boolean().optional(),
+  showModel: z.boolean().optional(),
+  showSize: z.boolean().optional(),
+  showSerialNumber: z.boolean().optional(),
+  showHomeLocation: z.boolean().optional(),
+  layout: z.enum(["standard-table", "detailed-table", "cards"]),
   logoUrl: z.string().optional(),
   noteText: z.string().optional(),
 });
 
 export default function CustomizePickListPage() {
-  const defaults = loadPickListSettings();
+  const legacy = loadPickListSettings();
+  const defaults = {
+    ...legacy,
+    layout:
+      (legacy.layout as any) === "table"
+        ? "standard-table"
+        : (legacy.layout as any) === "cards"
+        ? "cards"
+        : legacy.layout,
+  };
 
   const { register, handleSubmit, setValue, watch } = useForm<PickListSettings>({
     resolver: zodResolver(schema),
@@ -42,9 +56,9 @@ export default function CustomizePickListPage() {
   // Sample data for preview
   const previewItems = useMemo(
     () => [
-      { internal_id: "REG-123", category: "Regulator", price: 25 },
-      { internal_id: "BCD-055", category: "BCD", price: 20 },
-      { internal_id: "MASK-777", category: "Mask", price: 5 },
+      { internal_id: "REG-123", category: "Regulator", price: 25, brand: "Scubapro", model: "MK25", size: "M", serial_number: "SN-00123", home_location: "Bay A" },
+      { internal_id: "BCD-055", category: "BCD", price: 20, brand: "AquaLung", model: "Wave", size: "L", serial_number: "SN-00456", home_location: "Bay B" },
+      { internal_id: "MASK-777", category: "Mask", price: 5, brand: "Cressi", model: "Panoramic", size: "One Size", serial_number: "SN-00890", home_location: "Bay C" },
     ],
     []
   );
@@ -79,19 +93,49 @@ export default function CustomizePickListPage() {
           </div>
 
           <div>
-            <Label>Layout</Label>
+            <Label>Additional Details</Label>
+            <div className="grid sm:grid-cols-2 gap-3 mt-2">
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={!!settings.showBrand} onCheckedChange={(v) => setValue("showBrand", !!v)} />
+                Brand
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={!!settings.showModel} onCheckedChange={(v) => setValue("showModel", !!v)} />
+                Model
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={!!settings.showSize} onCheckedChange={(v) => setValue("showSize", !!v)} />
+                Size
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={!!settings.showSerialNumber} onCheckedChange={(v) => setValue("showSerialNumber", !!v)} />
+                Serial Number
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={!!settings.showHomeLocation} onCheckedChange={(v) => setValue("showHomeLocation", !!v)} />
+                Home Location
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <Label>Layout Template</Label>
             <Select
               value={settings.layout}
-              onValueChange={(val) => setValue("layout", val as "table" | "cards")}
+              onValueChange={(val) => setValue("layout", val as "standard-table" | "detailed-table" | "cards")}
             >
               <SelectTrigger className="w-full mt-1">
                 <SelectValue placeholder="Select layout" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="table">Table</SelectItem>
-                <SelectItem value="cards">Cards</SelectItem>
+                <SelectItem value="standard-table">Standard Table (Full Page)</SelectItem>
+                <SelectItem value="detailed-table">Detailed Table (Full Page)</SelectItem>
+                <SelectItem value="cards">Cards (Full Page)</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              All templates are optimized for Letter/A4 paper sizes when printing.
+            </p>
           </div>
 
           <div>

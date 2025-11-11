@@ -9,6 +9,11 @@ type Item = {
   internal_id: string;
   category: string;
   price: number;
+  brand?: string;
+  model?: string;
+  size?: string;
+  serial_number?: string;
+  home_location?: string;
 };
 
 type Props = {
@@ -46,7 +51,7 @@ export default function PickList({ customerName, startAt, endAt, items, total, s
 
   const print = () => {
     const content = containerRef.current?.innerHTML || "";
-    const w = window.open("", "_blank", "noopener,noreferrer,width=800,height=900");
+    const w = window.open("", "_blank", "noopener,noreferrer,width=900,height=1000");
     if (!w) return;
     w.document.write(`
       <html>
@@ -54,29 +59,47 @@ export default function PickList({ customerName, startAt, endAt, items, total, s
           <title>${effectiveSettings.titleText || "Pick List"}</title>
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <style>
-            body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; padding: 16px; color: #111827; }
+            @page { size: letter; margin: 0.5in; }
+            body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; color: #111827; }
+            .page { width: 8.5in; margin: 0 auto; }
             h1 { font-size: 18px; margin: 0 0 10px; }
             h2 { font-size: 16px; margin: 16px 0 8px; }
             .muted { color: #6b7280; font-size: 12px; }
             .grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
             .table { width: 100%; border-collapse: collapse; }
-            .table th, .table td { border: 1px solid #e5e7eb; padding: 8px; font-size: 12px; text-align: left; }
+            .table th, .table td { border: 1px solid #e5e7eb; padding: 8px; font-size: ${effectiveSettings.layout === "detailed-table" ? "11px" : "12px"}; text-align: left; }
             .flex-between { display: flex; align-items: center; justify-content: space-between; }
             .total { font-weight: 600; }
-            .logo { max-height: 40px; margin-bottom: 8px; }
-            .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px; }
+            .logo { max-height: 48px; margin-bottom: 8px; }
+            .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; }
             .cards { display: grid; grid-template-columns: 1fr; gap: 8px; }
-            @media print { .no-print { display: none; } }
+            @media print { .no-print { display: none; } .page { margin: 0; width: auto; } }
           </style>
         </head>
         <body>
-          ${content}
+          <div class="page">
+            ${content}
+          </div>
           <script>window.focus(); window.print();</script>
         </body>
       </html>
     `);
     w.document.close();
   };
+
+  const isTable = effectiveSettings.layout === "standard-table" || effectiveSettings.layout === "detailed-table";
+
+  const selectedHeaders = [
+    "Internal ID",
+    ...(effectiveSettings.showCategory ? ["Category"] : []),
+    ...(effectiveSettings.showBrand ? ["Brand"] : []),
+    ...(effectiveSettings.showModel ? ["Model"] : []),
+    ...(effectiveSettings.showSize ? ["Size"] : []),
+    ...(effectiveSettings.showSerialNumber ? ["Serial #"] : []),
+    ...(effectiveSettings.showHomeLocation ? ["Home Location"] : []),
+    ...(effectiveSettings.showPricePerDay ? ["Price (per day)"] : []),
+  ];
+  const colCount = selectedHeaders.length;
 
   return (
     <div className="border rounded p-3 space-y-2">
@@ -101,13 +124,13 @@ export default function PickList({ customerName, startAt, endAt, items, total, s
 
         <h2>Items to Pull</h2>
 
-        {effectiveSettings.layout === "table" ? (
+        {isTable ? (
           <table className="table">
             <thead>
               <tr>
-                <th>Internal ID</th>
-                {effectiveSettings.showCategory && <th>Category</th>}
-                {effectiveSettings.showPricePerDay && <th>Price (per day)</th>}
+                {selectedHeaders.map((h) => (
+                  <th key={h}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -115,12 +138,17 @@ export default function PickList({ customerName, startAt, endAt, items, total, s
                 <tr key={idx}>
                   <td>{i.internal_id}</td>
                   {effectiveSettings.showCategory && <td>{i.category}</td>}
+                  {effectiveSettings.showBrand && <td>{i.brand || "-"}</td>}
+                  {effectiveSettings.showModel && <td>{i.model || "-"}</td>}
+                  {effectiveSettings.showSize && <td>{i.size || "-"}</td>}
+                  {effectiveSettings.showSerialNumber && <td>{i.serial_number || "-"}</td>}
+                  {effectiveSettings.showHomeLocation && <td>{i.home_location || "-"}</td>}
                   {effectiveSettings.showPricePerDay && <td>{formatCurrency(i.price)}</td>}
                 </tr>
               ))}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={1 + Number(effectiveSettings.showCategory) + Number(effectiveSettings.showPricePerDay)} className="muted">No items selected.</td>
+                  <td colSpan={colCount} className="muted">No items selected.</td>
                 </tr>
               )}
             </tbody>
@@ -131,6 +159,11 @@ export default function PickList({ customerName, startAt, endAt, items, total, s
               <div key={idx} className="card">
                 <div><strong>ID:</strong> {i.internal_id}</div>
                 {effectiveSettings.showCategory && <div><strong>Category:</strong> {i.category}</div>}
+                {effectiveSettings.showBrand && <div><strong>Brand:</strong> {i.brand || "-"}</div>}
+                {effectiveSettings.showModel && <div><strong>Model:</strong> {i.model || "-"}</div>}
+                {effectiveSettings.showSize && <div><strong>Size:</strong> {i.size || "-"}</div>}
+                {effectiveSettings.showSerialNumber && <div><strong>Serial #:</strong> {i.serial_number || "-"}</div>}
+                {effectiveSettings.showHomeLocation && <div><strong>Home Location:</strong> {i.home_location || "-"}</div>}
                 {effectiveSettings.showPricePerDay && <div><strong>Price/day:</strong> {formatCurrency(i.price)}</div>}
               </div>
             ))}

@@ -50,12 +50,15 @@ export default function PickList({ customerName, startAt, endAt, items, total, s
   }, [startAt, endAt]);
 
   const print = () => {
-    const content = containerRef.current?.innerHTML || "";
-    const w = window.open("", "_blank", "noopener,noreferrer,width=900,height=1000");
-    if (!w) return;
-    w.document.write(`
+    const node = containerRef.current;
+    const content = node ? node.innerHTML : "";
+    if (!content) return;
+
+    const html = `
+      <!DOCTYPE html>
       <html>
         <head>
+          <meta charset="utf-8" />
           <title>${effectiveSettings.titleText || "Pick List"}</title>
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <style>
@@ -80,11 +83,46 @@ export default function PickList({ customerName, startAt, endAt, items, total, s
           <div class="page">
             ${content}
           </div>
-          <script>window.focus(); window.print();</script>
         </body>
       </html>
-    `);
-    w.document.close();
+    `;
+
+    // Try printing via a new window
+    const w = window.open("", "_blank", "noopener,noreferrer,width=900,height=1000");
+    if (w && w.document) {
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      w.focus();
+      setTimeout(() => {
+        // If for any reason the body is empty, fallback to iframe print
+        const bodyEmpty = !w.document.body || !w.document.body.innerHTML || w.document.body.innerHTML.trim() === "";
+        if (!bodyEmpty) {
+          w.print();
+          return;
+        }
+        // Fallback: print via hidden iframe in the current window
+        const iframe = document.createElement("iframe");
+        iframe.style.position = "fixed";
+        iframe.style.right = "0";
+        iframe.style.bottom = "0";
+        iframe.style.width = "0";
+        iframe.style.height = "0";
+        iframe.style.border = "0";
+        document.body.appendChild(iframe);
+        const doc = iframe.contentDocument;
+        if (doc) {
+          doc.open();
+          doc.write(html);
+          doc.close();
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        }
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 1000);
+      }, 100);
+    }
   };
 
   const isTable = effectiveSettings.layout === "standard-table" || effectiveSettings.layout === "detailed-table";

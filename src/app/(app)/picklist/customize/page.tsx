@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,7 +13,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import PickList from "@/components/PickList";
-import { PickListSettings, savePickListSettings, loadPickListSettings } from "@/lib/picklist";
+import { PickListSettings, savePickListSettings, loadPickListSettings, DEFAULT_PICKLIST_SETTINGS } from "@/lib/picklist";
 
 const schema = z.object({
   titleText: z.string().min(1, "Title is required"),
@@ -30,30 +30,45 @@ const schema = z.object({
 });
 
 export default function CustomizePickListPage() {
-  const legacy = loadPickListSettings();
-  const defaults = {
-    ...legacy,
-    layout:
-      (legacy.layout as any) === "table"
-        ? "standard-table"
-        : (legacy.layout as any) === "cards"
-        ? "cards"
-        : legacy.layout,
-  };
-
-  const { register, handleSubmit, setValue, watch } = useForm<PickListSettings>({
+  // Use stable, server-safe defaults to avoid hydration mismatch
+  const { register, handleSubmit, setValue, watch, reset } = useForm<PickListSettings>({
     resolver: zodResolver(schema),
-    defaultValues: defaults,
+    defaultValues: DEFAULT_PICKLIST_SETTINGS,
   });
 
+  // After mount, load saved settings from localStorage and migrate legacy layout
+  useEffect(() => {
+    const loaded = loadPickListSettings();
+    const migrated = {
+      ...loaded,
+      layout:
+        (loaded.layout as any) === "table"
+          ? "standard-table"
+          : (loaded.layout as any) === "cards"
+          ? "cards"
+          : loaded.layout,
+    };
+    reset(migrated);
+  }, [reset]);
+
   const settings = watch();
+
+  // Provide preview dates only after mount to avoid SSR time/locale mismatch
+  const [sampleStart, setSampleStart] = useState<string>("");
+  const [sampleEnd, setSampleEnd] = useState<string>("");
+  useEffect(() => {
+    const now = new Date();
+    const tomorrow = new Date(Date.now() + 86400000);
+    setSampleStart(now.toISOString());
+    setSampleEnd(tomorrow.toISOString());
+  }, []);
 
   const onSubmit = (values: PickListSettings) => {
     savePickListSettings(values);
     toast.success("Pick list settings saved");
   };
 
-  // Sample data for preview
+  // Sample data for preview (static values are safe for SSR)
   const previewItems = useMemo(
     () => [
       { internal_id: "REG-123", category: "Regulator", price: 25, brand: "Scubapro", model: "MK25", size: "M", serial_number: "SN-00123", home_location: "Bay A" },
@@ -164,8 +179,8 @@ export default function CustomizePickListPage() {
         <CardContent>
           <PickList
             customerName="John Diver"
-            startAt={new Date().toISOString()}
-            endAt={new Date(Date.now() + 86400000).toISOString()}
+            startAt={sampleStart}
+            endAt={sampleEnd}
             items={previewItems}
             total={previewItems.reduce((s, i) => s + i.price, 0)}
             settings={settings as PickListSettings}

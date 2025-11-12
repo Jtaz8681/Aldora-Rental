@@ -15,52 +15,69 @@ const supabaseAnon = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 serve(async (req) => {
+  // Preflight CORS
   if (req.method === "OPTIONS") {
-    const origin = req.headers.get("origin") ?? "*";
-    const reqHeaders = req.headers.get("Access-Control-Request-Headers") ?? "authorization, x-client-info, apikey, content-type, accept";
-    return new Response("ok", {
-      headers: {
-        "Access-Control-Allow-Origin": origin,
-        "Access-Control-Allow-Headers": reqHeaders,
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-      },
-    });
+    return new Response(null, { status: 200, headers: corsHeaders })
   }
 
+  // Require Authorization header
   const authHeader = req.headers.get("Authorization")
   if (!authHeader) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    )
   }
   const token = authHeader.replace("Bearer ", "")
 
   // Identify caller
   const { data: caller, error: callerErr } = await supabaseAnon.auth.getUser(token)
   if (callerErr || !caller?.user) {
-    return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    return new Response(
+      JSON.stringify({ error: "Invalid token" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    )
   }
 
-  // Check role permission
-  const { data: profile } = await supabaseAdmin
+  // Check role permission (owner, manager, dev)
+  const { data: profile, error: profileErr } = await supabaseAdmin
     .from("profiles")
     .select("role")
     .eq("id", caller.user.id)
     .maybeSingle()
 
-  const role = (profile?.role || "").toLowerCase()
-  if (!["owner", "manager", "dev"].includes(role)) {
-    return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } })
+  if (profileErr) {
+    return new Response(
+      JSON.stringify({ error: "Failed to verify role" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    )
   }
 
+  const role = (profile?.role || "").toLowerCase()
+  if (!["owner", "manager", "dev"].includes(role)) {
+    return new Response(
+      JSON.stringify({ error: "Forbidden" }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    )
+  }
+
+  // Parse payload
   let payload: { first_name?: string; last_name?: string; email?: string; password?: string; role?: string } = {}
   try {
     payload = await req.json()
   } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON body" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    return new Response(
+      JSON.stringify({ error: "Invalid JSON body" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    )
   }
 
   const { first_name, last_name, email, password, role: newRole } = payload
   if (!first_name || !last_name || !email || !password || !newRole) {
-    return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    return new Response(
+      JSON.stringify({ error: "Missing required fields" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    )
   }
 
   // Create auth user with must_change_password flag and names in metadata
@@ -72,16 +89,29 @@ serve(async (req) => {
   })
 
   if (createErr || !created?.user?.id) {
-    return new Response(JSON.stringify({ error: createErr?.message || "Failed to create user" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    return new Response(
+      JSON.stringify({ error: createErr?.message || "Failed to create user" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    )
   }
 
   const newUserId = created.user.id
 
   // Update the inserted profile row with the chosen role (trigger inserts profile)
-  await supabaseAdmin
+  const { error: updateErr } = await supabaseAdmin
     .from("profiles")
     .update({ role: newRole, updated_at: new Date().toISOString() })
     .eq("id", newUserId)
 
-  return new Response(JSON.stringify({ id: newUserId }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } })
+  if (updateErr) {
+    return new Response(
+      JSON.stringify({ error: "User created but failed to set role" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    )
+  }
+
+  return new Response(
+    JSON.stringify({ id: newUserId }),
+    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  )
 })

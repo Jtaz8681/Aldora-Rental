@@ -11,7 +11,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, LayoutDashboard, Wrench, Users, PlusCircle, ArrowLeftRight, LogOut, Settings, BarChart3, ChevronDown, ListChecks } from "lucide-react";
+import { Menu, LayoutDashboard, Wrench, Users, PlusCircle, ArrowLeftRight, LogOut, Settings, BarChart3, ChevronDown, ListChecks, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -49,7 +49,8 @@ const NavLink = ({ href, icon: Icon, label, currentPath, onClick }: NavLinkProps
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false); // mobile/tablet sheet
+  const [isCollapsed, setIsCollapsed] = useState(false); // desktop collapse
   const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
@@ -85,10 +86,10 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile Sidebar */}
+      {/* Mobile/Tablet Sidebar Trigger */}
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetTrigger asChild className="lg:hidden fixed top-4 left-4 z-50">
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" aria-label="Open navigation">
             <Menu className="h-6 w-6" />
           </Button>
         </SheetTrigger>
@@ -152,10 +153,32 @@ export default function Sidebar() {
         </SheetContent>
       </Sheet>
 
+      {/* Desktop reopen trigger (shows when collapsed) */}
+      {isCollapsed && (
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Open navigation"
+          className="hidden lg:flex fixed top-4 left-4 z-50"
+          onClick={() => setIsCollapsed(false)}
+        >
+          <Menu className="h-6 w-6" />
+        </Button>
+      )}
+
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 border-r bg-sidebar text-sidebar-foreground h-screen sticky top-0 p-4">
-        <div className="mb-6">
+      <aside className={`${isCollapsed ? "hidden" : "hidden lg:flex"} flex-col w-64 border-r bg-sidebar text-sidebar-foreground h-screen sticky top-0 p-4`}>
+        <div className="mb-6 flex items-center">
           <h2 className="text-xl font-bold text-sidebar-primary-foreground">Aldora Dive Gear</h2>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Collapse navigation"
+            className="ml-auto"
+            onClick={() => setIsCollapsed(true)}
+          >
+            <X className="h-5 w-5" />
+          </Button>
         </div>
         <nav className="flex flex-col gap-1 flex-grow">
           {navItems.map((item) => (

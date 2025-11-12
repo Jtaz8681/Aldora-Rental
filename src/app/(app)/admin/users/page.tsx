@@ -69,21 +69,32 @@ export default function AdminUsersPage() {
       setCreating(false);
       return;
     }
-    const { error } = await supabase.functions.invoke("create-user", {
-      body: {
+    const res = await fetch("/api/admin/create-user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
         first_name: newFirst.trim(),
         last_name: newLast.trim(),
         email: newEmail.trim(),
         password: newPassword,
         role: newRole,
-      },
-      headers: { Authorization: `Bearer ${session.access_token}` },
+      }),
     });
-    if (error) {
-      toast.error("Failed to create user: " + error.message);
+
+    if (!res.ok) {
+      let errMsg = "Failed to create user";
+      try {
+        const err = await res.json();
+        if (err?.error) errMsg = err.error;
+      } catch {}
+      toast.error(errMsg);
       setCreating(false);
       return;
     }
+
     toast.success("User created.");
     setNewFirst(""); setNewLast(""); setNewEmail(""); setNewPassword(""); setNewRole("staff");
     await load();

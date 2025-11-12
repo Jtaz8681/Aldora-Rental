@@ -75,8 +75,24 @@ export default function GearPage() {
       .order("created_at", { ascending: false });
 
     if (statusFilter) query = query.eq("status", statusFilter);
-    if (selectedCategoryId) query = query.eq("category_id", selectedCategoryId);
-    if (selectedSubcategoryId) query = query.eq("subcategory_id", selectedSubcategoryId);
+
+    if (selectedCategoryId) {
+      const catName = categories.find((c) => c.id === selectedCategoryId)?.name;
+      if (catName) {
+        query = query.ilike("category", `%${catName}%`);
+      } else {
+        query = query.eq("category_id", selectedCategoryId);
+      }
+    }
+
+    if (selectedSubcategoryId) {
+      const subName = subcategories.find((s) => s.id === selectedSubcategoryId)?.name;
+      if (subName) {
+        query = query.ilike("sub_type", `%${subName}%`);
+      } else {
+        query = query.eq("subcategory_id", selectedSubcategoryId);
+      }
+    }
 
     if (search.trim()) {
       const s = search.trim();
@@ -90,7 +106,7 @@ export default function GearPage() {
 
     setGear((data as GearItem[] | null) ?? []);
     setTotal(count ?? 0);
-  }, [page, pageSize, search, statusFilter, selectedCategoryId, selectedSubcategoryId]);
+  }, [page, pageSize, search, statusFilter, selectedCategoryId, selectedSubcategoryId, categories, subcategories]);
 
   useEffect(() => {
     loadGear();

@@ -141,8 +141,24 @@ export default function NewRentalPage() {
       .eq("status", "Available")
       .order("internal_id", { ascending: true });
 
-    if (selectedCategoryId) query = query.eq("category_id", selectedCategoryId);
-    if (selectedSubcategoryId) query = query.eq("subcategory_id", selectedSubcategoryId);
+    if (selectedCategoryId) {
+      const catName = categories.find((c) => c.id === selectedCategoryId)?.name;
+      if (catName) {
+        query = query.ilike("category", `%${catName}%`);
+      } else {
+        query = query.eq("category_id", selectedCategoryId);
+      }
+    }
+
+    if (selectedSubcategoryId) {
+      const subName = subcategories.find((s) => s.id === selectedSubcategoryId)?.name;
+      if (subName) {
+        query = query.ilike("sub_type", `%${subName}%`);
+      } else {
+        query = query.eq("subcategory_id", selectedSubcategoryId);
+      }
+    }
+
     if (search.trim()) {
       const s = search.trim();
       query = query.or(
@@ -172,7 +188,7 @@ export default function NewRentalPage() {
     } else {
       setCategoryPreTemplates({});
     }
-  }, [page, pageSize, search, selectedCategoryId, selectedSubcategoryId]);
+  }, [page, pageSize, search, selectedCategoryId, selectedSubcategoryId, categories, subcategories]);
 
   useEffect(() => {
     loadGear();

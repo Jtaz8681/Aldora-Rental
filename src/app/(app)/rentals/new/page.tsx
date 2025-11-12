@@ -69,6 +69,9 @@ export default function NewRentalPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
 
+  // Persist details for any selected gear (so they render even if filtered/paginated away)
+  const [selectedGearDetails, setSelectedGearDetails] = useState<Record<string, Gear>>({});
+
   // Pre-checklist templates per category
   const [categoryPreTemplates, setCategoryPreTemplates] = useState<Record<string, Record<string, string>>>({});
 
@@ -90,6 +93,14 @@ export default function NewRentalPage() {
   // Modal flow state
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<"signature" | "picklist">("signature");
+
+  // Helper to read details from current page or cache
+  const getGearById = useCallback(
+    (id: string): Gear | undefined => {
+      return gear.find((g) => g.id === id) || selectedGearDetails[id];
+    },
+    [gear, selectedGearDetails]
+  );
 
   // Load customers once
   useEffect(() => {
@@ -173,6 +184,19 @@ export default function NewRentalPage() {
     setGear(g);
     setGearTotal(count ?? 0);
 
+    // Keep cached details up to date for any selected items present on this page
+    if (selectedGearIds.length > 0) {
+      setSelectedGearDetails((prev) => {
+        const next = { ...prev };
+        g.forEach((item) => {
+          if (selectedGearIds.includes(item.id)) {
+            next[item.id] = item;
+          }
+        });
+        return next;
+      });
+    }
+
     // Load checklist templates for the categories present on this page
     const catIds = Array.from(new Set(g.map((x: any) => x.category_id).filter(Boolean)));
     if (catIds.length) {
@@ -188,7 +212,7 @@ export default function NewRentalPage() {
     } else {
       setCategoryPreTemplates({});
     }
-  }, [page, pageSize, search, selectedCategoryId, selectedSubcategoryId, categories, subcategories]);
+  }, [page, pageSize, search, selectedCategoryId, selectedSubcategoryId, categories, subcategories, selectedGearIds]);
 
   useEffect(() => {
     loadGear();
@@ -259,33 +283,50 @@ export default function NewRentalPage() {
     const extras = selectedGearIds
       .filter(id => !packageIncludedIds.includes(id))
       .reduce((sum, id) => {
-        const g = gear.find(x => x.id === id);
+        const g = getGearById(id);
         return sum + (Number(g?.rental_price || 0) * days);
       }, 0);
 
     return pkgContribution + extras;
-  }, [isPackage, packagePerDay, packageIncludedIds, selectedGearIds, gear, days]);
+  }, [isPackage, packagePerDay, packageIncludedIds, selectedGearIds, days, getGearById]);
 
   const toggleGear = (id: string) => {
     setSelectedGearIds(prev => {
-      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      const adding = !prev.includes(id);
+      const next = adding ? [...prev, id] : prev.filter(x => x !== id);
 
-      // If removing, also ensure it's not marked as package-included
-      if (!next.includes(id)) {
+      // When adding, cache its details from current page
+      if (adding) {
+        const gItem = gear.find(x => x.id === id);
+        if (gItem) {
+          setSelectedGearDetails(d => ({ ...d, [id]: gItem }));
+          // Initialize checklist defaults for this item
+          const rawTmpl = (gItem.checklist_template_pre && Object.keys(gItem.checklist_template_pre).length
+            ? gItem.checklist_template_pre
+            : (gItem.category_id ? categoryPreTemplates[gItem.category_id] || {} : {})) as Record<string, string>;
+          const tmpl = ensureDefaultTemplate(rawTmpl);
+          const defaults = Object.fromEntries(Object.keys(tmpl).map(k => [k, false]));
+          setChecklist(prevChecklist => ({ ...prevChecklist, [id]: prevChecklist[id] || defaults }));
+        }
+        if (isPackage) {
+          setPackageIncludedIds(p => (p.includes(id) ? p : [...p, id]));
+        }
+      } else {
+        // Removing: clear package include, checklist, conflicts, and cached details
         setPackageIncludedIds(p => p.filter(x => x !== id));
-      } else if (isPackage) {
-        // If adding and package pricing is enabled, default to included in package
-        setPackageIncludedIds(p => (p.includes(id) ? p : [...p, id]));
+        setChecklist(prevChecklist => {
+          const { [id]: _, ...rest } = prevChecklist;
+          return rest;
+        });
+        setConflictsByGear(prevConflicts => {
+          const { [id]: _, ...rest } = prevConflicts;
+          return rest;
+        });
+        setSelectedGearDetails(prevDetails => {
+          const { [id]: _, ...rest } = prevDetails;
+          return rest;
+        });
       }
-
-      // Initialize checklist defaults
-      const gItem = gear.find(x => x.id === id);
-      const rawTmpl = (gItem?.checklist_template_pre && Object.keys(gItem.checklist_template_pre).length
-        ? gItem.checklist_template_pre
-        : (gItem?.category_id ? categoryPreTemplates[gItem.category_id] || {} : {})) as Record<string, string>;
-      const tmpl = ensureDefaultTemplate(rawTmpl);
-      const defaults = Object.fromEntries(Object.keys(tmpl).map(k => [k, false]));
-      setChecklist(prev => ({ ...prev, [id]: prev[id] || defaults }));
 
       return next;
     });
@@ -294,6 +335,11 @@ export default function NewRentalPage() {
   const togglePackageInclude = (id: string) => {
     if (!selectedGearIds.includes(id)) return;
     setPackageIncludedIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
+  };
+
+  const removeSelected = (id: string) => {
+    if (!selectedGearIds.includes(id)) return;
+    toggleGear(id);
   };
 
   const startFinalizeFlow = () => {
@@ -347,7 +393,7 @@ export default function NewRentalPage() {
 
     for (let idx = 0; idx < selectedGearIds.length; idx++) {
       const gearId = selectedGearIds[idx];
-      const g = gear.find(x => x.id === gearId);
+      const g = getGearById(gearId);
       const preChecklist = checklist[gearId] || {};
 
       let pricePerDay = Number(g?.rental_price || 0);
@@ -563,10 +609,10 @@ export default function NewRentalPage() {
         {hasConflicts && (
           <div className="space-y-2">
             {Object.entries(conflictsByGear).map(([gid, list]) => {
-              const g = gear.find(x => x.id === gid);
+              const details = getGearById(gid);
               return (
                 <div key={gid} className="text-xs">
-                  <span className="font-medium">{g?.internal_id || "Gear"}:</span>{" "}
+                  <span className="font-medium">{details?.internal_id || "Gear"}:</span>{" "}
                   {list.map((c, i) => (
                     <span key={c.rentalId}>
                       {new Date(c.start_at).toLocaleDateString()} → {new Date(c.expected_end_at).toLocaleDateString()}
@@ -580,93 +626,30 @@ export default function NewRentalPage() {
         )}
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Rows per page</span>
-          <Select
-            value={String(pageSize)}
-            onValueChange={(v) => {
-              const size = Number(v);
-              setPageSize(size);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="w-[100px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="10">10</SelectItem>
-              <SelectItem value="20">20</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-            </SelectContent>
-          </Select>
-          <span className="text-sm text-muted-foreground">
-            {gearTotal === 0
-              ? "0 results"
-              : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, gearTotal)} of ${gearTotal}`}
-          </span>
-        </div>
-
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (page > 1) setPage(page - 1);
-                }}
-              />
-            </PaginationItem>
-
-            {getPageNumbers().map((p, idx) =>
-              p === "ellipsis" ? (
-                <PaginationItem key={`ellipsis-${idx}`}>
-                  <PaginationEllipsis />
-                </PaginationItem>
-              ) : (
-                <PaginationItem key={p}>
-                  <PaginationLink
-                    href="#"
-                    isActive={p === page}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setPage(p as number);
-                    }}
-                  >
-                    {p}
-                  </PaginationLink>
-                </PaginationItem>
-              )
-            )}
-
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (page < totalPages) setPage(page + 1);
-                }}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      </div>
-
       {selectedGearIds.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-lg font-semibold">Pre-Rental Inspection</h2>
           {selectedGearIds.map(id => {
-            const gItem = gear.find(x => x.id === id);
+            const details = getGearById(id);
             const c = checklist[id] || {};
-            const rawTmpl = (gItem?.checklist_template_pre && Object.keys(gItem.checklist_template_pre || {}).length
-              ? (gItem?.checklist_template_pre as any)
-              : (gItem?.category_id ? categoryPreTemplates[gItem.category_id] || {} : {})) as Record<string, string>;
+            const rawTmpl = (details?.checklist_template_pre && Object.keys(details.checklist_template_pre || {}).length
+              ? (details?.checklist_template_pre as any)
+              : (details?.category_id ? categoryPreTemplates[details.category_id] || {} : {})) as Record<string, string>;
             const tmpl = ensureDefaultTemplate(rawTmpl);
+            const meta = [details?.brand, details?.model, details?.size].filter(Boolean).join(" · ");
+
             return (
               <div key={id} className="border rounded p-3">
-                <p className="font-medium text-sm mb-2">{gItem?.internal_id} · {gItem?.category}</p>
-                <div className="grid sm:grid-cols-2 gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium text-sm">{details ? `${details.internal_id} · ${details.category}` : "Selected item"}</p>
+                    {meta && <p className="text-xs text-muted-foreground">{meta}</p>}
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => removeSelected(id)}>
+                    Remove
+                  </Button>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-2 mt-3">
                   {Object.entries(tmpl).map(([key, label]) => (
                     <label key={key} className="flex items-center gap-2 text-sm">
                       <Checkbox
@@ -733,7 +716,7 @@ export default function NewRentalPage() {
                   startAt={startAt}
                   endAt={endAt}
                   items={selectedGearIds.map(id => {
-                    const gItem = gear.find(x => x.id === id);
+                    const gItem = getGearById(id);
                     const packageItemCount = packageIncludedIds.filter(pid => selectedGearIds.includes(pid)).length;
                     const pkgPerDay = Number(packagePerDay || 0);
                     const pricePerDay =

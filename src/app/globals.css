@@ -139,3 +139,19 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Responsive type scale for better readability on small screens */
+/* Phones: up to 767px */
+@media (max-width: 767px) {
+  /* Slight bump for commonly used sizes */
+  .text-xs { font-size: 0.8rem; }        /* default ~0.75rem */
+  .text-sm { font-size: 0.95rem; }       /* default ~0.875rem */
+  .text-base { font-size: 1.05rem; }     /* default 1rem */
+}
+
+/* Tablets: 768px to 1007px */
+@media (min-width: 768px) and (max-width: 1007px) {
+  .text-xs { font-size: 0.8rem; }
+  .text-sm { font-size: 1rem; }
+  .text-base { font-size: 1.0625rem; }
+}

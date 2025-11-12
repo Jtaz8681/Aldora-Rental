@@ -39,7 +39,13 @@ type Rental = {
   customers: { name: string; phone: string | null; email: string | null } | null;
 };
 type RentalItem = { id: string; gear_id: string; price: number; pre_checklist: any; post_checklist: any; };
-type Gear = { id: string; internal_id: string; category: string; };
+type Gear = {
+  id: string;
+  internal_id: string;
+  category: string;
+  category_id?: string | null;
+  checklist_template_post?: Record<string, any> | null;
+};
 
 type PostChecks = Record<string, Record<string, boolean>>;
 type DamageEntry = { hasDamage: boolean; type?: string; severity?: string; photos?: string[]; notes?: string; estimate?: number };

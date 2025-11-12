@@ -7,12 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 type Role = "owner" | "manager" | "dev" | "staff" | "technician" | null;
 
 type Props = {
-  allow: Role[]; // roles allowed to view children
+  allow?: Role[]; // roles allowed to view children
+  allowedRoles?: Role[]; // alias prop
   children: React.ReactNode;
   title?: string;
 };
 
-export default function RoleGuard({ allow, children, title }: Props) {
+export default function RoleGuard({ allow, allowedRoles, children, title }: Props) {
   const [role, setRole] = useState<Role>(null);
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +33,8 @@ export default function RoleGuard({ allow, children, title }: Props) {
     return <div className="text-center text-muted-foreground">Checking access...</div>;
   }
 
-  if (!role || !allow.includes(role)) {
+  const allowed = allow ?? allowedRoles ?? [];
+  if (!role || !allowed.includes(role)) {
     return (
       <Card className="max-w-xl mx-auto">
         <CardHeader>

@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "@/components/ui/pagination";
 import { toast } from "sonner";
 import RoleGuard from "@/components/RoleGuard";
 import { Label } from "@/components/ui/label";
@@ -29,11 +30,13 @@ export default function AdminUsersPage() {
   const [newRole, setNewRole] = useState("staff");
   const [creating, setCreating] = useState(false);
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   const load = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Managers/Owners/Devs can view all via secure RPC; others see their own profile
     const { data, error } = await supabase.rpc("list_profiles_with_email");
 
     if (error) {
@@ -47,6 +50,7 @@ export default function AdminUsersPage() {
       return tb - ta;
     });
     setProfiles(list);
+    setPage(1);
   };
 
   useEffect(() => {
@@ -59,7 +63,7 @@ export default function AdminUsersPage() {
       return;
     }
     setCreating(true);
-    const { error, data } = await supabase.functions.invoke("create-user", {
+    const { error } = await supabase.functions.invoke("create-user", {
       body: { first_name: newFirst.trim(), last_name: newLast.trim(), email: newEmail.trim(), password: newPassword, role: newRole }
     });
     if (error) {
@@ -87,6 +91,26 @@ export default function AdminUsersPage() {
   };
 
   const roleOptions = ["owner", "manager", "dev", "technician", "staff"];
+
+  const total = profiles.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const getPageNumbers = () => {
+    const pages: (number | "ellipsis")[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+      return pages;
+    }
+    pages.push(1);
+    if (page > 3) pages.push("ellipsis");
+    const start = Math.max(2, page - 1);
+    const end = Math.min(totalPages - 1, page + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (page < totalPages - 2) pages.push("ellipsis");
+    pages.push(totalPages);
+    return pages;
+  };
+  const from = (page - 1) * pageSize;
+  const pagedProfiles = profiles.slice(from, from + pageSize);
 
   return (
     <RoleGuard allow={["owner", "manager", "dev"]} title="Users & Roles">
@@ -144,7 +168,7 @@ export default function AdminUsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {profiles.map(p => {
+                {pagedProfiles.map(p => {
                   const fullName = [p.first_name, p.last_name].filter(Boolean).join(" ").trim();
                   const display = fullName || p.email || "Unknown";
                   return (
@@ -166,13 +190,86 @@ export default function AdminUsersPage() {
                     </TableRow>
                   );
                 })}
-                {profiles.length === 0 && (
+                {pagedProfiles.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={2} className="text-center text-sm text-muted-foreground">No users found.</TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
+
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Rows per page</span>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(v) => {
+                    const size = Number(v);
+                    setPageSize(size);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-muted-foreground">
+                  {total === 0
+                    ? "0 results"
+                    : `${from + 1}–${Math.min(from + pageSize, total)} of ${total}`}
+                </span>
+              </div>
+
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (page > 1) setPage(page - 1);
+                      }}
+                    />
+                  </PaginationItem>
+
+                  {getPageNumbers().map((p, idx) =>
+                    p === "ellipsis" ? (
+                      <PaginationItem key={`ellipsis-${idx}`}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem key={p}>
+                        <PaginationLink
+                          href="#"
+                          isActive={p === page}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setPage(p as number);
+                          }}
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    )
+                  )}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (page < totalPages) setPage(page + 1);
+                      }}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
           </CardContent>
         </Card>
       </div>

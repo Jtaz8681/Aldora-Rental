@@ -68,8 +68,8 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "postcss": "^3.25.28",
-    "tailwindcss": "^7.56.4",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.14",
     "typescript": "^5"
   }
 }

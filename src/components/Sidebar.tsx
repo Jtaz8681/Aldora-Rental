@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu, LayoutDashboard, Wrench, Users, PlusCircle, ArrowLeftRight, LogOut, Settings, BarChart3, ChevronDown, ListChecks } from "lucide-react";
+import CompanyBrand from "./CompanyBrand";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -47,7 +48,7 @@ const NavLink = ({ href, icon: Icon, label, currentPath, onClick }: NavLinkProps
   );
 };
 
-export default function Sidebar() {
+export default function Sidebar({ hidden = false }: { hidden?: boolean }) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [role, setRole] = useState<string | null>(null);
@@ -94,7 +95,7 @@ export default function Sidebar() {
         </SheetTrigger>
         <SheetContent side="left" className="w-64 p-0 flex flex-col bg-sidebar text-sidebar-foreground">
           <SheetHeader className="p-4 border-b border-sidebar-border">
-            <SheetTitle className="text-lg font-semibold text-sidebar-primary-foreground">Aldora Dive Gear</SheetTitle>
+            <CompanyBrand />
           </SheetHeader>
           <nav className="flex flex-col gap-1 p-4 flex-grow">
             {navItems.map((item) => (
@@ -153,9 +154,10 @@ export default function Sidebar() {
       </Sheet>
 
       {/* Desktop Sidebar */}
+      {!hidden && (
       <aside className="hidden lg:flex flex-col w-64 border-r bg-sidebar text-sidebar-foreground h-screen sticky top-0 p-4">
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-sidebar-primary-foreground">Aldora Dive Gear</h2>
+        <div className="mb-4">
+          <CompanyBrand />
         </div>
         <nav className="flex flex-col gap-1 flex-grow">
           {navItems.map((item) => (
@@ -210,6 +212,7 @@ export default function Sidebar() {
           </Button>
         </div>
       </aside>
+      )}
     </>
   );
 }

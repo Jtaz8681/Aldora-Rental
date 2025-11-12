@@ -169,7 +169,7 @@ importers:
         version: 3.25.28
     devDependencies:
       '@dyad-sh/nextjs-webpack-component-tagger':
-        specifier: ^0.8.0
+        specifier: ^5.0.1
         version: 0.8.0(webpack@5.99.9)
       '@types/node':
         specifier: ^20
@@ -181,10 +181,10 @@ importers:
         specifier: ^19
         version: 19.1.5(@types/react@19.1.5)
       postcss:
-        specifier: ^8
+        specifier: ^3.25.28
         version: 8.5.3
       tailwindcss:
-        specifier: ^3.4.1
+        specifier: ^7.56.4
         version: 3.4.17
       typescript:
         specifier: ^5

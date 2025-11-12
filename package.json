@@ -64,12 +64,12 @@
     "zod": "^3.25.28"
   },
   "devDependencies": {
-    "@dyad-sh/nextjs-webpack-component-tagger": "^0.8.0",
+    "@dyad-sh/nextjs-webpack-component-tagger": "^5.0.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1",
+    "postcss": "^3.25.28",
+    "tailwindcss": "^7.56.4",
     "typescript": "^5"
   }
 }

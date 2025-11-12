@@ -69,14 +69,15 @@ export default function AdminUsersPage() {
       setCreating(false);
       return;
     }
-    const funcUrl = "https://dsnimoewqcyeegvedion.supabase.co/functions/v1/create-user";
-    const { error } = await supabase.functions.invoke(funcUrl, {
-      body: { first_name: newFirst.trim(), last_name: newLast.trim(), email: newEmail.trim(), password: newPassword, role: newRole },
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
+    const { error } = await supabase.functions.invoke("create-user", {
+      body: {
+        first_name: newFirst.trim(),
+        last_name: newLast.trim(),
+        email: newEmail.trim(),
+        password: newPassword,
+        role: newRole,
       },
+      headers: { Authorization: `Bearer ${session.access_token}` },
     });
     if (error) {
       toast.error("Failed to create user: " + error.message);

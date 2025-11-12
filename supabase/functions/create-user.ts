@@ -16,7 +16,15 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders })
+    const origin = req.headers.get("origin") ?? "*";
+    const reqHeaders = req.headers.get("Access-Control-Request-Headers") ?? "authorization, x-client-info, apikey, content-type, accept";
+    return new Response("ok", {
+      headers: {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Headers": reqHeaders,
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+      },
+    });
   }
 
   const authHeader = req.headers.get("Authorization")

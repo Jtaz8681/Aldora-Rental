@@ -13,32 +13,42 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import ImportCustomersDialog from "@/components/ImportCustomersDialog";
+import ImportGearDialog from "@/components/ImportGearDialog";
 import ExportCsvDialog from "@/components/ExportCsvDialog";
 
 type Props = {
   onImported?: () => void;
 };
 
-type SupabaseCustomerRow = {
+type SupabaseGearRow = {
   id: string;
-  name: string;
-  phone: string | null;
-  email: string | null;
-  balance_due: number;
-  rentals?: { count: number }[];
+  internal_id: string;
+  friendly_name: string | null;
+  category: string;
+  sub_type: string | null;
+  brand: string | null;
+  model: string | null;
+  size: string | null;
+  status: string;
+  rental_price: number;
+  manual_url?: string | null;
 };
 
-const CUSTOMER_FIELDS = [
+const GEAR_FIELDS = [
   { key: "id", label: "ID" },
-  { key: "name", label: "Name" },
-  { key: "phone", label: "Phone" },
-  { key: "email", label: "Email" },
-  { key: "balance_due", label: "Balance Due" },
-  { key: "rental_count", label: "Number of Rentals" },
+  { key: "internal_id", label: "Internal ID" },
+  { key: "friendly_name", label: "Name" },
+  { key: "category", label: "Category" },
+  { key: "sub_type", label: "Sub-Type" },
+  { key: "brand", label: "Brand" },
+  { key: "model", label: "Model" },
+  { key: "size", label: "Size" },
+  { key: "status", label: "Status" },
+  { key: "rental_price", label: "Rental Price" },
+  { key: "manual_url", label: "Manual URL" },
 ];
 
-export default function CustomersActions({ onImported }: Props) {
+export default function GearActions({ onImported }: Props) {
   const [importOpen, setImportOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
 
@@ -50,8 +60,8 @@ export default function CustomersActions({ onImported }: Props) {
     }
 
     const { data, error } = await supabase
-      .from("customers")
-      .select("id, name, phone, email, balance_due, rentals(count)")
+      .from("gear_items")
+      .select("id, internal_id, friendly_name, category, sub_type, brand, model, size, status, rental_price, manual_url")
       .order("created_at", { ascending: true });
 
     if (error) {
@@ -59,14 +69,19 @@ export default function CustomersActions({ onImported }: Props) {
       return [];
     }
 
-    const rows = (data as SupabaseCustomerRow[] | null) ?? [];
+    const rows = (data as SupabaseGearRow[] | null) ?? [];
     return rows.map((r) => ({
       id: r.id,
-      name: r.name,
-      phone: r.phone ?? "",
-      email: r.email ?? "",
-      balance_due: r.balance_due ?? 0,
-      rental_count: r.rentals?.[0]?.count ?? 0,
+      internal_id: r.internal_id,
+      friendly_name: r.friendly_name ?? "",
+      category: r.category,
+      sub_type: r.sub_type ?? "",
+      brand: r.brand ?? "",
+      model: r.model ?? "",
+      size: r.size ?? "",
+      status: r.status,
+      rental_price: r.rental_price ?? 0,
+      manual_url: r.manual_url ?? "",
     }));
   };
 
@@ -77,7 +92,7 @@ export default function CustomersActions({ onImported }: Props) {
           <Button variant="secondary">Import / Export</Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-48">
-          <DropdownMenuLabel>Customers</DropdownMenuLabel>
+          <DropdownMenuLabel>Gear</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => setImportOpen(true)}>
             <Upload className="mr-2 h-4 w-4" />
@@ -90,7 +105,7 @@ export default function CustomersActions({ onImported }: Props) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <ImportCustomersDialog
+      <ImportGearDialog
         open={importOpen}
         onOpenChange={setImportOpen}
         showTriggerButton={false}
@@ -100,9 +115,9 @@ export default function CustomersActions({ onImported }: Props) {
       <ExportCsvDialog
         open={exportOpen}
         onOpenChange={setExportOpen}
-        fields={CUSTOMER_FIELDS}
-        defaultSelected={["name", "phone", "email", "balance_due", "rental_count"]}
-        filename="customers.csv"
+        fields={GEAR_FIELDS}
+        defaultSelected={["internal_id", "friendly_name", "category", "status", "rental_price"]}
+        filename="gear.csv"
         getRows={getRows}
       />
     </>

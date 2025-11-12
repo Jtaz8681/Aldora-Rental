@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client"; // Changed from default to named import
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { badgeVariantForGearStatus } from "@/lib/status";
 import { formatCurrency } from "@/lib/format";
+import GearActions from "@/components/GearActions";
 
 type GearItem = {
   id: string;
@@ -28,19 +29,20 @@ export default function GearPage() {
   const [gear, setGear] = useState<GearItem[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("");
 
-  useEffect(() => {
-    const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data, error } = await supabase
-        .from("gear_items")
-        .select("id, internal_id, friendly_name, category, sub_type, brand, model, size, status, rental_price, manual_url")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      setGear(data || []);
-    };
-    load();
+  const loadGear = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("gear_items")
+      .select("id, internal_id, friendly_name, category, sub_type, brand, model, size, status, rental_price, manual_url")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    setGear(data || []);
   }, []);
+
+  useEffect(() => {
+    loadGear();
+  }, [loadGear]);
 
   const filtered = statusFilter ? gear.filter(g => g.status === statusFilter) : gear;
 
@@ -62,6 +64,7 @@ export default function GearPage() {
             <option>Quarantined</option>
             <option>Retired</option>
           </select>
+          <GearActions onImported={loadGear} />
           <Link href="/gear/new"><Button>Add Gear</Button></Link>
         </div>
       </div>

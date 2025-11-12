@@ -28,7 +28,7 @@ type Subcategory = {
   usage_service_threshold: number | null;
 };
 
-export default function GearTypeManagerFixed(): JSX.Element {
+export default function GearTypeManagerFixed(): React.ReactElement {
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");

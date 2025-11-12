@@ -1,9 +1,19 @@
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, accept",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+export async function OPTIONS(): Promise<Response> {
+  return new Response(null, { status: 200, headers: corsHeaders });
+}
+
 export async function POST(req: Request): Promise<Response> {
   const authHeader = req.headers.get("authorization");
   if (!authHeader) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -11,7 +21,7 @@ export async function POST(req: Request): Promise<Response> {
   if (!payload) {
     return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
       status: 400,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -30,6 +40,6 @@ export async function POST(req: Request): Promise<Response> {
   const text = await res.text();
   return new Response(text, {
     status: res.status,
-    headers: { "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }

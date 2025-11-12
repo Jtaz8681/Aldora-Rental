@@ -81,6 +81,7 @@ export default function Sidebar({ hidden = false }: { hidden?: boolean }) {
     { href: "/reports", icon: BarChart3, label: "Reports" },
     { href: "/picklist/customize", icon: ListChecks, label: "Customize Pick List" },
     ...(role === "manager" || role === "owner" || role === "dev" ? [{ href: "/admin/users", icon: Users, label: "Users" }] : []),
+    ...(role === "owner" ? [{ href: "/company-settings", icon: Settings, label: "Company Settings" }] : []),
     { href: "/settings", icon: Settings, label: "Settings" }
   ];
 

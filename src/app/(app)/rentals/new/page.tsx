@@ -59,7 +59,7 @@ export default function NewRentalPage() {
 
   // Gear data (paginated + filtered)
   const [gear, setGear] = useState<Gear[]>([]);
-  const [total, setTotal] = useState(0);
+  const [gearTotal, setGearTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -155,7 +155,7 @@ export default function NewRentalPage() {
 
     const g = (data as Gear[] | null) ?? [];
     setGear(g);
-    setTotal(count ?? 0);
+    setGearTotal(count ?? 0);
 
     // Load checklist templates for the categories present on this page
     const catIds = Array.from(new Set(g.map((x: any) => x.category_id).filter(Boolean)));
@@ -383,7 +383,7 @@ export default function NewRentalPage() {
     router.push(`/customers/${customerId}`);
   };
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const totalPages = Math.max(1, Math.ceil(gearTotal / pageSize));
   const getPageNumbers = () => {
     const pages: (number | "ellipsis")[] = [];
     if (totalPages <= 7) {
@@ -585,9 +585,9 @@ export default function NewRentalPage() {
             </SelectContent>
           </Select>
           <span className="text-sm text-muted-foreground">
-            {total === 0
+            {gearTotal === 0
               ? "0 results"
-              : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} of ${total}`}
+              : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, gearTotal)} of ${gearTotal}`}
           </span>
         </div>
 

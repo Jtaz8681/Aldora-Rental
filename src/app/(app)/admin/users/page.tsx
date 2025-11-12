@@ -70,30 +70,45 @@ export default function AdminUsersPage() {
       return;
     }
 
-    const res = await fetch("/api/admin/create-user", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({
-        first_name: newFirst.trim(),
-        last_name: newLast.trim(),
-        email: newEmail.trim(),
-        password: newPassword,
-        role: newRole,
-      }),
-    });
+    const payload = {
+      first_name: newFirst.trim(),
+      last_name: newLast.trim(),
+      email: newEmail.trim(),
+      password: newPassword,
+      role: newRole,
+    };
 
-    if (!res.ok) {
-      let errMsg = "Failed to create user";
-      try {
-        const err = await res.json();
-        if (err?.error) errMsg = err.error;
-      } catch {}
-      toast.error(errMsg);
-      setCreating(false);
-      return;
+    // Try local API route first (same-origin, no CORS)
+    let localOk = false;
+    try {
+      const res = await fetch("/api/admin/create-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        localOk = true;
+      }
+    } catch {
+      // ignore and fall back
+    }
+
+    if (!localOk) {
+      // Fallback: call Supabase Edge Function directly with Authorization header
+      const { error } = await supabase.functions.invoke("create-user", {
+        body: payload,
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (error) {
+        toast.error("Failed to create user: " + error.message);
+        setCreating(false);
+        return;
+      }
     }
 
     toast.success("User created.");

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import useTheme from "@/hooks/use-theme";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ const THEME_OPTIONS = [
   { value: "sunrise", label: "Sun Rise" },
   { value: "sunset", label: "Sun Set" },
   { value: "aldora", label: "Aldora" },
+  { value: "custom", label: "Custom" },
 ] as const;
 
 const FONT_OPTIONS = [
@@ -30,7 +31,28 @@ const FONT_OPTIONS = [
 ];
 
 export default function ThemeSettings(): React.ReactElement {
-  const { theme, mode, font, setTheme, setMode, setFont } = useTheme();
+  const { theme, mode, font, customColors, setTheme, setMode, setFont, setCustomColors } = useTheme();
+  const [bg, setBg] = useState(customColors.background);
+  const [primary, setPrimary] = useState(customColors.primary);
+  const [accent, setAccent] = useState(customColors.accent);
+  const [destructive, setDestructive] = useState(customColors.destructive);
+
+  useEffect(() => {
+    setBg(customColors.background);
+    setPrimary(customColors.primary);
+    setAccent(customColors.accent);
+    setDestructive(customColors.destructive);
+  }, [customColors]);
+
+  const saveCustom = () => {
+    setCustomColors({
+      background: bg,
+      primary,
+      accent,
+      destructive,
+    });
+    toast.success("Custom theme saved.");
+  };
 
   return (
     <Card>
@@ -78,16 +100,32 @@ export default function ThemeSettings(): React.ReactElement {
           </Select>
         </div>
 
-        <div className="flex justify-end">
-          <Button
-            variant="outline"
-            onClick={() => {
-              toast.success("Appearance updated.");
-            }}
-          >
-            Save
-          </Button>
-        </div>
+        {theme === "custom" && (
+          <div className="space-y-4">
+            <div className="text-sm font-medium">Custom Theme</div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex items-center justify-between gap-3 border rounded p-3">
+                <Label className="text-sm">Background</Label>
+                <input type="color" value={bg} onChange={(e) => setBg(e.target.value)} className="h-9 w-14 cursor-pointer rounded" />
+              </div>
+              <div className="flex items-center justify-between gap-3 border rounded p-3">
+                <Label className="text-sm">Primary Button</Label>
+                <input type="color" value={primary} onChange={(e) => setPrimary(e.target.value)} className="h-9 w-14 cursor-pointer rounded" />
+              </div>
+              <div className="flex items-center justify-between gap-3 border rounded p-3">
+                <Label className="text-sm">Accent</Label>
+                <input type="color" value={accent} onChange={(e) => setAccent(e.target.value)} className="h-9 w-14 cursor-pointer rounded" />
+              </div>
+              <div className="flex items-center justify-between gap-3 border rounded p-3">
+                <Label className="text-sm">Destructive</Label>
+                <input type="color" value={destructive} onChange={(e) => setDestructive(e.target.value)} className="h-9 w-14 cursor-pointer rounded" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={saveCustom}>Save Custom Theme</Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

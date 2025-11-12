@@ -4,55 +4,30 @@
 
 @layer base {
   :root {
-
     --background: 0 0% 100%;
-
     --foreground: 0 0% 3.9%;
-
     --card: 0 0% 100%;
-
     --card-foreground: 0 0% 3.9%;
-
     --popover: 0 0% 100%;
-
     --popover-foreground: 0 0% 3.9%;
-
     --primary: 0 0% 9%;
-
     --primary-foreground: 0 0% 98%;
-
     --secondary: 0 0% 96.1%;
-
     --secondary-foreground: 0 0% 9%;
-
     --muted: 0 0% 96.1%;
-
     --muted-foreground: 0 0% 45.1%;
-
     --accent: 0 0% 96.1%;
-
     --accent-foreground: 0 0% 9%;
-
     --destructive: 0 84.2% 60.2%;
-
     --destructive-foreground: 0 0% 98%;
-
     --border: 0 0% 89.8%;
-
     --input: 0 0% 89.8%;
-
     --ring: 0 0% 3.9%;
-
     --chart-1: 12 76% 61%;
-
     --chart-2: 173 58% 39%;
-
     --chart-3: 197 37% 24%;
-
     --chart-4: 43 74% 66%;
-
     --chart-5: 27 87% 67%;
-
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
@@ -68,55 +43,30 @@
     --app-font-family: var(--font-geist-sans), system-ui, sans-serif;
   }
   .dark {
-
     --background: 0 0% 3.9%;
-
     --foreground: 0 0% 98%;
-
     --card: 0 0% 3.9%;
-
     --card-foreground: 0 0% 98%;
-
     --popover: 0 0% 3.9%;
-
     --popover-foreground: 0 0% 98%;
-
     --primary: 0 0% 98%;
-
     --primary-foreground: 0 0% 9%;
-
     --secondary: 0 0% 14.9%;
-
     --secondary-foreground: 0 0% 98%;
-
     --muted: 0 0% 14.9%;
-
     --muted-foreground: 0 0% 63.9%;
-
     --accent: 0 0% 14.9%;
-
     --accent-foreground: 0 0% 98%;
-
     --destructive: 0 62.8% 30.6%;
-
     --destructive-foreground: 0 0% 98%;
-
     --border: 0 0% 14.9%;
-
     --input: 0 0% 14.9%;
-
     --ring: 0 0% 83.1%;
-
     --chart-1: 220 70% 50%;
-
     --chart-2: 160 60% 45%;
-
     --chart-3: 30 80% 55%;
-
     --chart-4: 280 65% 60%;
-
     --chart-5: 340 75% 55%;
-
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -128,60 +78,68 @@
   }
 }
 
-/* Theme variants: override a few key variables; works for both light and dark (dark adjusts bg/fg) */
-.theme-default {
-  /* uses base variables */
+/* Theme variants (light mode only): subtle, distinct backgrounds */
+.theme-default:not(.dark) {
+  --background: 210 20% 99%;
+  --card: 0 0% 100%;
 }
 
-.theme-shallow {
+.theme-shallow:not(.dark) {
+  --background: 189 60% 97%; /* soft aqua */
+  --card: 0 0% 100%;
   --primary: 189 70% 51%; /* #2CC1DA */
-  --primary-foreground: 0 0% 9%; /* dark text */
+  --primary-foreground: 0 0% 9%;
   --accent: 190 73% 46%; /* #20ADC9 */
-  --accent-foreground: 0 0% 9%; /* dark text */
+  --accent-foreground: 0 0% 9%;
   --ring: 199 59% 25%; /* #1A4C64 */
 }
 
-.theme-deep {
+.theme-deep:not(.dark) {
+  --background: 199 30% 95%; /* light slate-blue */
+  --card: 0 0% 100%;
   --primary: 199 59% 25%; /* #1A4C64 */
-  --primary-foreground: 0 0% 98%; /* light text */
+  --primary-foreground: 0 0% 98%;
   --accent: 190 73% 46%; /* #20ADC9 */
-  --accent-foreground: 0 0% 9%; /* dark text */
-  --ring: 189 70% 51%; /* #2CC1DA */
+  --accent-foreground: 0 0% 9%;
+  --ring: 189 70% 51%;
 }
 
-.theme-sunrise {
+.theme-sunrise:not(.dark) {
+  --background: 42 100% 96%; /* soft warm */
+  --card: 0 0% 100%;
   --primary: 42 91% 53%; /* #F4B11B */
-  --primary-foreground: 0 0% 9%; /* dark text for contrast */
+  --primary-foreground: 0 0% 9%;
   --accent: 358 70% 45%; /* #C42329 */
-  --accent-foreground: 0 0% 98%; /* light text */
+  --accent-foreground: 0 0% 98%;
   --ring: 42 91% 53%;
 }
 
-.theme-sunset {
+.theme-sunset:not(.dark) {
+  --background: 358 80% 96%; /* soft rose */
+  --card: 0 0% 100%;
   --primary: 358 70% 45%; /* #C42329 */
-  --primary-foreground: 0 0% 98%; /* light text */
+  --primary-foreground: 0 0% 98%;
   --accent: 42 91% 53%; /* #F4B11B */
-  --accent-foreground: 0 0% 9%; /* dark text */
+  --accent-foreground: 0 0% 9%;
   --ring: 358 70% 45%;
 }
 
-.theme-aldora {
-  /* Buttons: Green primary, Red destructive, Yellow accent */
+.theme-aldora:not(.dark) {
+  --background: 189 60% 97%; /* subtle aqua light */
+  --card: 0 0% 100%;
   --primary: 120 100% 25%; /* #008000 */
-  --primary-foreground: 0 0% 98%; /* light text */
-
+  --primary-foreground: 0 0% 98%;
   --destructive: 358 70% 45%; /* #C42329 */
-  --destructive-foreground: 0 0% 98%; /* light text */
-
+  --destructive-foreground: 0 0% 98%;
   --accent: 42 91% 53%; /* #F4B11B */
-  --accent-foreground: 0 0% 9%; /* dark text */
-
-  /* Additional Aldora palette */
-  --chart-1: 189 70% 51%; /* #2CC1DA */
-  --chart-2: 190 73% 46%; /* #20ADC9 */
-  --chart-3: 199 59% 25%; /* #1A4C64 */
+  --accent-foreground: 0 0% 9%;
+  --chart-1: 189 70% 51%;
+  --chart-2: 190 73% 46%;
+  --chart-3: 199 59% 25%;
   --ring: 199 59% 25%;
 }
+
+/* Custom theme values are applied inline by ThemeProvider when selected. */
 
 @layer base {
   * {
@@ -194,15 +152,12 @@
 }
 
 /* Responsive type scale for better readability on small screens */
-/* Phones: up to 767px */
 @media (max-width: 767px) {
-  /* Slight bump for commonly used sizes */
-  .text-xs { font-size: 0.8rem; }        /* default ~0.75rem */
-  .text-sm { font-size: 0.95rem; }       /* default ~0.875rem */
-  .text-base { font-size: 1.05rem; }     /* default 1rem */
+  .text-xs { font-size: 0.8rem; }
+  .text-sm { font-size: 0.95rem; }
+  .text-base { font-size: 1.05rem; }
 }
 
-/* Tablets: 768px to 1007px */
 @media (min-width: 768px) and (max-width: 1007px) {
   .text-xs { font-size: 0.8rem; }
   .text-sm { font-size: 1rem; }

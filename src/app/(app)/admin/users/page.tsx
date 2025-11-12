@@ -63,8 +63,15 @@ export default function AdminUsersPage() {
       return;
     }
     setCreating(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      toast.error("You must be logged in to perform this action.");
+      setCreating(false);
+      return;
+    }
     const { error } = await supabase.functions.invoke("create-user", {
-      body: { first_name: newFirst.trim(), last_name: newLast.trim(), email: newEmail.trim(), password: newPassword, role: newRole }
+      body: { first_name: newFirst.trim(), last_name: newLast.trim(), email: newEmail.trim(), password: newPassword, role: newRole },
+      headers: { Authorization: `Bearer ${session.access_token}` }
     });
     if (error) {
       toast.error("Failed to create user: " + error.message);

@@ -108,7 +108,7 @@ export default function DashboardPage() {
           .filter(t => t.gear_id === g.id && t.status === "completed" && t.updated_at)
           .sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime())[0];
 
-        const anchorStr = lastCompleted?.updated_at || g.purchase_date || g.date_added || null;
+        const anchorStr = lastCompleted?.updated_at || (g as any).purchase_date || (g as any).date_added || null;
         if (!anchorStr) continue;
 
         const nextDue = new Date(anchorStr);
@@ -203,79 +203,83 @@ export default function DashboardPage() {
       {/* NEW: Compact upcoming service list */}
       <div>
         <h2 className="text-xl font-semibold mb-4">Upcoming Service</h2>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Gear</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Due Date</TableHead>
-              <TableHead>Days Away</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {serviceDueSoon.slice(0, 5).map((p, idx) => (
-              <TableRow key={idx}>
-                <TableCell className="font-mono">
-                  <Link href={`/gear/${p.gear.id}`} className="underline">
-                    {p.gear.internal_id || p.gear.id}
-                  </Link>
-                </TableCell>
-                <TableCell>{p.gear.category}</TableCell>
-                <TableCell>{format(p.nextDue, 'PPP')}</TableCell>
-                <TableCell className={p.daysAway < 0 ? "text-destructive" : ""}>{p.daysAway}</TableCell>
-                <TableCell>
-                  <Link href="/maintenance" className="text-sm underline">Review</Link>
-                </TableCell>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Gear</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Due Date</TableHead>
+                <TableHead>Days Away</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
-            ))}
-            {serviceDueSoon.length === 0 && (
-              <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground">No upcoming service due.</TableCell></TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {serviceDueSoon.slice(0, 5).map((p, idx) => (
+                <TableRow key={idx}>
+                  <TableCell className="font-mono">
+                    <Link href={`/gear/${p.gear.id}`} className="underline">
+                      {p.gear.internal_id || p.gear.id}
+                    </Link>
+                  </TableCell>
+                  <TableCell>{p.gear.category}</TableCell>
+                  <TableCell>{format(p.nextDue, 'PPP')}</TableCell>
+                  <TableCell className={p.daysAway < 0 ? "text-destructive" : ""}>{p.daysAway}</TableCell>
+                  <TableCell>
+                    <Link href="/maintenance" className="text-sm underline">Review</Link>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {serviceDueSoon.length === 0 && (
+                <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground">No upcoming service due.</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       <div>
         <h2 className="text-xl font-semibold mb-4">Recent Rentals</h2>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Customer</TableHead>
-              <TableHead>Start Date</TableHead>
-              <TableHead>Expected End</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Total Cost</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {recentRentals.map(r => {
-              const overdue = (r.status === "active" || r.status === "checked-out") && new Date(r.expected_end_at).getTime() < Date.now();
-              return (
-                <TableRow key={r.id}>
-                  <TableCell>{r.customers?.name || "N/A"}</TableCell>
-                  <TableCell>{format(new Date(r.start_at), 'PPP')}</TableCell>
-                  <TableCell className={overdue ? "text-destructive" : ""}>
-                    {format(new Date(r.expected_end_at), 'PPP')}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={badgeVariantForRentalStatus(r.status)}>
-                      {overdue ? "Overdue" : r.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>${Number(r.total_cost || 0).toFixed(2)}</TableCell>
-                  <TableCell>
-                    <Link href={`/customers/${r.customer_id}`} className="text-sm underline">View Customer</Link>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-            {recentRentals.length === 0 && (
-              <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground">No recent rentals found.</TableCell></TableRow>
-            )}
-          </TableBody>
-        </Table>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Customer</TableHead>
+                <TableHead>Start Date</TableHead>
+                <TableHead>Expected End</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Total Cost</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recentRentals.map(r => {
+                const overdue = (r.status === "active" || r.status === "checked-out") && new Date(r.expected_end_at).getTime() < Date.now();
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell>{r.customers?.name || "N/A"}</TableCell>
+                    <TableCell>{format(new Date(r.start_at), 'PPP')}</TableCell>
+                    <TableCell className={overdue ? "text-destructive" : ""}>
+                      {format(new Date(r.expected_end_at), 'PPP')}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={badgeVariantForRentalStatus(r.status)}>
+                        {overdue ? "Overdue" : r.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>${Number(r.total_cost || 0).toFixed(2)}</TableCell>
+                    <TableCell>
+                      <Link href={`/customers/${r.customer_id}`} className="text-sm underline">View Customer</Link>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {recentRentals.length === 0 && (
+                <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground">No recent rentals found.</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   );

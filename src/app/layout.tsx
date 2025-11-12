@@ -39,7 +39,7 @@ export default function RootLayout({
                 {/* Mobile header content if needed, but the SheetTrigger for sidebar is fixed */}
                 <h1 className="text-lg font-semibold text-center">Aldora Dive Gear</h1>
               </header>
-              <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-6">
+              <main className="flex-1 mx-auto w-full max-w-screen-xl px-3 sm:px-4 md:px-6 py-4 md:py-6">
                 {children}
               </main>
             </div>

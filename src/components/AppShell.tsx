@@ -5,6 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
+import FullscreenToggleButton from "@/components/FullscreenToggleButton";
 
 type Props = {
   children: React.ReactNode;
@@ -35,6 +36,9 @@ export default function AppShell({ children }: Props) {
               <Menu className="h-5 w-5" />
             </Button>
             <h1 className="text-sm sm:text-base font-semibold">Aldora Dive Gear</h1>
+          </div>
+          <div className="flex items-center">
+            <FullscreenToggleButton />
           </div>
         </header>
         <main className="flex-1 mx-auto w-full max-w-screen-xl px-3 sm:px-4 md:px-6 py-4 md:py-6">

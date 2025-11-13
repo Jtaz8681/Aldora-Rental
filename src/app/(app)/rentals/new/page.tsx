@@ -704,7 +704,7 @@ export default function NewRentalPage() {
                   }
                   setCheckoutStep("picklist");
                 }}>
-                  Save Signature
+                  Continue
                 </Button>
               </DialogFooter>
             </>

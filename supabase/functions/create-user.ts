@@ -52,7 +52,6 @@ serve(async (req) => {
       JSON.stringify({ error: "Failed to verify role" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     )
-  )
   }
 
   const role = (profile?.role || "").toLowerCase()

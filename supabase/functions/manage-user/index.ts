@@ -86,8 +86,8 @@ serve(async (req) => {
   }
 
   if (action === "suspend") {
-    // Ban user from logging in
-    const { error: banErr } = await supabaseAdmin.auth.admin.updateUserById(user_id, { ban_duration: "forever" as unknown as number })
+    // Ban user from logging in (use string duration as per Supabase API)
+    const { error: banErr } = await supabaseAdmin.auth.admin.updateUserById(user_id, { ban_duration: "forever" })
     if (banErr) {
       return new Response(JSON.stringify({ error: banErr.message || "Failed to suspend user" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
@@ -95,8 +95,8 @@ serve(async (req) => {
   }
 
   if (action === "unsuspend") {
-    // Remove ban
-    const { error: unbanErr } = await supabaseAdmin.auth.admin.updateUserById(user_id, { ban_duration: "" as unknown as number })
+    // Remove ban by clearing ban_duration (set to null)
+    const { error: unbanErr } = await supabaseAdmin.auth.admin.updateUserById(user_id, { ban_duration: null })
     if (unbanErr) {
       return new Response(JSON.stringify({ error: unbanErr.message || "Failed to unsuspend user" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }

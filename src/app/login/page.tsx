@@ -4,15 +4,13 @@ import React from "react";
 import Link from "next/link";
 import LoginCard from "@/components/LoginCard";
 import CompanyBrand from "@/components/CompanyBrand";
-import LoginLogo from "@/components/LoginLogo";
 
 export default function LoginPage() {
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md rounded-lg border bg-card p-6 shadow-sm">
         <CompanyBrand />
-        <LoginLogo />
-        <h1 className="text-xl font-semibold mb-4 text-center">Aldora Dive Gear Management System</h1>
+        <h1 className="text-xl font-semibold mb-4 text-center">Gear Management System</h1>
         <LoginCard />
         <p className="mt-4 text-xs text-center text-muted-foreground">
           Need access? Contact your administrator.

@@ -97,8 +97,16 @@ export default function ReportsPage() {
       setDamages(damageData || []);
 
       // Overdue rentals report
-      const overdue = (rentalData || []).filter(r => ["active", "checked-out"].includes(r.status) && new Date(r.expected_end_at).getTime() < Date.now());
-      setOverdueRentals(overdue as Rental[]);
+      const overdueRaw = (rentalData || []).filter(r => ["active", "checked-out"].includes(r.status) && new Date(r.expected_end_at).getTime() < Date.now());
+      const overdueNorm: Rental[] = overdueRaw.map((r: any) => ({
+        id: r.id,
+        customer_id: r.customer_id,
+        start_at: r.start_at,
+        expected_end_at: r.expected_end_at,
+        status: r.status,
+        customers: Array.isArray(r.customers) ? (r.customers[0] ?? null) : (r.customers ?? null),
+      }));
+      setOverdueRentals(overdueNorm);
 
       // Service schedule projection: next 30/60/90 days based on last completed and intervals
       const regulatorMonths = Number(settings?.regulator_service_interval_months ?? 12);

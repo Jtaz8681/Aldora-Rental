@@ -25,6 +25,7 @@ const schema = z.object({
   showSerialNumber: z.boolean().optional(),
   showHomeLocation: z.boolean().optional(),
   layout: z.enum(["standard-table", "detailed-table", "cards"]),
+  useCompanyLogo: z.boolean().optional(),
   logoUrl: z.string().optional(),
   noteText: z.string().optional(),
 });
@@ -154,11 +155,23 @@ export default function CustomizePickListPage() {
           </div>
 
           <div>
-            <Label htmlFor="logoUrl">Logo URL</Label>
-            <Input id="logoUrl" {...register("logoUrl")} placeholder="https://example.com/logo.png" />
-            <p className="text-xs text-muted-foreground mt-1">
-              Provide a hosted image URL to display your logo at the top of the pick list.
-            </p>
+            <Label>Logo</Label>
+            <div className="mt-2 flex items-center gap-2">
+              <Checkbox
+                checked={!!settings.useCompanyLogo}
+                onCheckedChange={(v) => setValue("useCompanyLogo", !!v)}
+              />
+              <span className="text-sm">Use uploaded company logo</span>
+            </div>
+            {!settings.useCompanyLogo && (
+              <>
+                <Label htmlFor="logoUrl" className="mt-3">Logo URL</Label>
+                <Input id="logoUrl" {...register("logoUrl")} placeholder="https://example.com/logo.png" />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Provide a hosted image URL to display your logo at the top of the pick list.
+                </p>
+              </>
+            )}
           </div>
 
           <div>

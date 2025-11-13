@@ -4,6 +4,7 @@ import React, { useMemo, useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/format";
 import { PickListSettings, loadPickListSettings, DEFAULT_PICKLIST_SETTINGS } from "@/lib/picklist";
+import { supabase } from "@/integrations/supabase/client";
 
 type Item = {
   internal_id: string;
@@ -29,6 +30,7 @@ export default function PickList({ customerName, startAt, endAt, items, total, s
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [generatedDate, setGeneratedDate] = useState<string>("");
   const [effectiveSettings, setEffectiveSettings] = useState<PickListSettings>(settings || DEFAULT_PICKLIST_SETTINGS);
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     setGeneratedDate(new Date().toLocaleString());
@@ -41,6 +43,43 @@ export default function PickList({ customerName, startAt, endAt, items, total, s
       setEffectiveSettings(loadPickListSettings());
     }
   }, [settings]);
+
+  // Load company logo from storage (and fallback to company_settings) when enabled
+  useEffect(() => {
+    const loadLogo = async () => {
+      if (!effectiveSettings.useCompanyLogo) {
+        setCompanyLogoUrl(null);
+        return;
+      }
+
+      const { data: files } = await supabase.storage
+        .from("gear-photos")
+        .list("company/logo", {
+          limit: 100,
+          sortBy: { column: "updated_at", order: "desc" },
+        });
+
+      const latest = files?.[0];
+      if (latest?.name) {
+        const path = `company/logo/${latest.name}`;
+        const { data: pub } = supabase.storage.from("gear-photos").getPublicUrl(path);
+        setCompanyLogoUrl(pub?.publicUrl ?? null);
+        return;
+      }
+
+      // Fallback to company_settings.logo_url if storage has no files
+      const { data: settingsRows } = await supabase
+        .from("company_settings")
+        .select("logo_url")
+        .order("updated_at", { ascending: false })
+        .limit(1);
+
+      const s = settingsRows?.[0]?.logo_url ?? null;
+      setCompanyLogoUrl(s);
+    };
+
+    loadLogo();
+  }, [effectiveSettings.useCompanyLogo]);
 
   const days = useMemo(() => {
     if (!startAt || !endAt) return 1;
@@ -141,8 +180,12 @@ export default function PickList({ customerName, startAt, endAt, items, total, s
       </div>
 
       <div ref={containerRef}>
-        {effectiveSettings.logoUrl ? (
-          <img src={effectiveSettings.logoUrl} alt="Logo" className="logo" />
+        {(effectiveSettings.useCompanyLogo ? companyLogoUrl : effectiveSettings.logoUrl) ? (
+          <img
+            src={(effectiveSettings.useCompanyLogo ? companyLogoUrl : effectiveSettings.logoUrl) as string}
+            alt="Logo"
+            className="logo"
+          />
         ) : null}
         <h1 className="text-base font-semibold">{effectiveSettings.titleText || "Pick List"}</h1>
         <p className="muted">Generated: {generatedDate}</p>

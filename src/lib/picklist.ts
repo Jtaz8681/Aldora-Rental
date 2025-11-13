@@ -10,6 +10,7 @@ export type PickListSettings = {
   showSerialNumber?: boolean;
   showHomeLocation?: boolean;
   layout: "standard-table" | "detailed-table" | "cards";
+  useCompanyLogo?: boolean;
   logoUrl?: string;
   noteText?: string;
 };
@@ -24,6 +25,7 @@ export const DEFAULT_PICKLIST_SETTINGS: PickListSettings = {
   showSerialNumber: false,
   showHomeLocation: false,
   layout: "standard-table",
+  useCompanyLogo: true,
   logoUrl: "",
   noteText: "Note: Ensure all pre-rental checks are completed before checkout.",
 };
@@ -35,7 +37,7 @@ export function loadPickListSettings(): PickListSettings {
     const raw = typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null;
     if (!raw) return DEFAULT_PICKLIST_SETTINGS;
     const parsed = JSON.parse(raw);
-    const merged = { ...DEFAULT_PICKLIST_SETTINGS, ...parsed };
+    const merged: PickListSettings = { ...DEFAULT_PICKLIST_SETTINGS, ...parsed };
     // Migrate legacy layout values
     if ((parsed.layout as any) === "table") merged.layout = "standard-table";
     if ((parsed.layout as any) === "cards") merged.layout = "cards";

@@ -4,6 +4,7 @@ import React from "react";
 import Sidebar from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 type Props = {
   children: React.ReactNode;
@@ -11,6 +12,13 @@ type Props = {
 
 export default function AppShell({ children }: Props) {
   const [sidebarHidden, setSidebarHidden] = React.useState(false);
+  const pathname = usePathname();
+  const isLogin = pathname?.startsWith("/login");
+
+  if (isLogin) {
+    // On the login page, render content without any menu or header
+    return <>{children}</>;
+  }
 
   return (
     <div className="flex min-h-screen">

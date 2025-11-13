@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import PickList from "@/components/PickList";
+import CustomerSearch from "@/components/CustomerSearch";
 import { roundToTwo } from "@/lib/format";
 import { ensureDefaultTemplate } from "@/lib/checklists";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -77,6 +78,7 @@ export default function NewRentalPage() {
 
   // Selection and rental details
   const [customerId, setCustomerId] = useState("");
+  const [selectedCustomerName, setSelectedCustomerName] = useState<string>("");
   const [startAt, setStartAt] = useState<string>("");
   const [endAt, setEndAt] = useState<string>("");
   const [selectedGearIds, setSelectedGearIds] = useState<string[]>([]);
@@ -482,10 +484,13 @@ export default function NewRentalPage() {
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
           <Label>Customer</Label>
-          <select className="border rounded px-2 py-2 w-full" value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
-            <option value="">Select a customer</option>
-            {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+          <CustomerSearch
+            value={customerId}
+            onChange={(id, name) => {
+              setCustomerId(id);
+              setSelectedCustomerName(name || "");
+            }}
+          />
           {customerId && (
             <p className="mt-2 text-xs text-muted-foreground">
               Outstanding balance will be updated: ${Number(total || 0).toFixed(2)} added.
@@ -712,7 +717,7 @@ export default function NewRentalPage() {
               </DialogHeader>
               <div className="space-y-3">
                 <PickList
-                  customerName={customers.find(c => c.id === customerId)?.name || ""}
+                  customerName={selectedCustomerName || customers.find(c => c.id === customerId)?.name || ""}
                   startAt={startAt}
                   endAt={endAt}
                   items={selectedGearIds.map(id => {

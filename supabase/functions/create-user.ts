@@ -7,18 +7,19 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 }
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-
-const supabaseAnon = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-
 serve(async (req) => {
   // Preflight CORS
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders })
   }
+
+  // Initialize Supabase clients inside the serve block
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
+  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+
+  const supabaseAnon = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
   // Require Authorization header
   const authHeader = req.headers.get("Authorization")
@@ -51,6 +52,7 @@ serve(async (req) => {
       JSON.stringify({ error: "Failed to verify role" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     )
+  )
   }
 
   const role = (profile?.role || "").toLowerCase()

@@ -14,9 +14,17 @@ serve(async (req) => {
   }
 
   // Initialize Supabase clients inside the serve block
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
-  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")
+  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+
+  // **Explicitly check for missing environment variables**
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
+    return new Response(
+      JSON.stringify({ error: "Missing Supabase environment variables in Edge Function secrets. Check SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY." }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    )
+  }
 
   const supabaseAnon = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)

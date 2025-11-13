@@ -14,12 +14,30 @@ export default function CompanyBrand() {
 
   useEffect(() => {
     const fetchSettings = async () => {
-      const { data } = await supabase
+      // Try latest settings
+      const { data: latest } = await supabase
         .from("company_settings")
         .select("id, name, logo_url")
         .order("updated_at", { ascending: false })
         .limit(1);
-      setSettings(data?.[0] || null);
+
+      const first = latest?.[0] || null;
+
+      if (first?.logo_url) {
+        setSettings(first);
+        return;
+      }
+
+      // Fallback: find the most recent setting that has a non-empty logo
+      const { data: withLogo } = await supabase
+        .from("company_settings")
+        .select("id, name, logo_url")
+        .not("logo_url", "is", null)
+        .neq("logo_url", "")
+        .order("updated_at", { ascending: false })
+        .limit(1);
+
+      setSettings(withLogo?.[0] || first || null);
     };
     fetchSettings();
   }, []);
@@ -34,7 +52,7 @@ export default function CompanyBrand() {
           <img
             src={settings!.logo_url!}
             alt="Company Logo"
-            className="max-h-20 w-auto object-contain"
+            className="h-24 w-full object-contain"
           />
         </div>
       )}

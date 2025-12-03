@@ -29,19 +29,24 @@ export default function CompanyBrand() {
         setSettings(null);
       }
 
-      // Load latest logo from storage bucket gear-photos/company/logo
-      const { data: files } = await supabase.storage
-        .from("gear-photos")
-        .list("company/logo", {
-          limit: 100,
-          sortBy: { column: "name", order: "desc" },
-        });
+      // Load latest logo from storage bucket gear-photos/company/logo only if authenticated
+      const { data: { session: storageSession } } = await supabase.auth.getSession();
+      if (storageSession) {
+        const { data: files } = await supabase.storage
+          .from("gear-photos")
+          .list("company/logo", {
+            limit: 100,
+            sortBy: { column: "name", order: "desc" },
+          });
 
-      const latestFile = files?.[0];
-      if (latestFile?.name) {
-        const path = `company/logo/${latestFile.name}`;
-        const { data: pub } = supabase.storage.from("gear-photos").getPublicUrl(path);
-        setStorageLogoUrl(pub?.publicUrl || null);
+        const latestFile = files?.[0];
+        if (latestFile?.name) {
+          const path = `company/logo/${latestFile.name}`;
+          const { data: pub } = supabase.storage.from("gear-photos").getPublicUrl(path);
+          setStorageLogoUrl(pub?.publicUrl || null);
+        } else {
+          setStorageLogoUrl(null);
+        }
       } else {
         setStorageLogoUrl(null);
       }

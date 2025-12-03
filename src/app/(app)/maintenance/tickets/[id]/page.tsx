@@ -71,8 +71,7 @@ export default function MaintenanceTicketDetailPage() {
       .from("maintenance_tickets")
       .select(`
         *,
-        gear_items(internal_id, category),
-        damage_reports(id, photos, damage_type, severity, notes, estimate_cost, reported_at)
+        gear_items(internal_id, category)
       `)
       .eq("id", ticketId)
       .single();
@@ -88,6 +87,19 @@ export default function MaintenanceTicketDetailPage() {
     setEtaUpdate(tData.estimated_completion_date ? tData.estimated_completion_date.split("T")[0] : "");
     setCostUpdate(Number(tData.cost ?? 0));
     setChargeFlag(!!tData.charge_customer);
+
+    if (tData.damage_report_id) {
+      const { data: drData, error: drErr } = await supabase
+        .from("damage_reports")
+        .select("id, photos, damage_type, severity, notes, estimate_cost, reported_at")
+        .eq("id", tData.damage_report_id)
+        .single();
+      if (drErr) {
+        console.error("Failed to load damage report:", drErr);
+      } else {
+        setTicket(prev => prev ? { ...prev, damage_reports: drData } : prev);
+      }
+    }
 
     const { data: wlData } = await supabase
       .from("maintenance_work_logs")

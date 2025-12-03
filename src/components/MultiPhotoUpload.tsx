@@ -26,18 +26,17 @@ export default function MultiPhotoUpload({ onUploaded, initialUrls = [], gearInt
     if (!files || files.length === 0) return toast.error("Please select one or more images.");
     setUploading(true);
 
-    // REMOVED: sign-in check to allow anonymous uploads
-    // const { data: { session } } = await supabase.auth.getSession();
-    // if (!session) {
-    //   setUploading(false);
-    //   return toast.error("You must be signed in to upload.");
-    // }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setUploading(false);
+      return toast.error("You must be signed in to upload.");
+    }
 
     const safeName = (gearInternalId || "gear").replace(/[^a-zA-Z0-9-_]/g, "_");
     const uploaded: string[] = [];
 
     for (const file of Array.from(files)) {
-      const path = `${safeName}/${Date.now()}_${file.name}`;
+      const path = `${session.user.id}/${safeName}/${Date.now()}_${file.name}`;
 
       const { error: uploadError } = await supabase.storage
         .from("gear-photos")

@@ -36,7 +36,7 @@ export default function SignupCard() {
         data: {
           first_name: values.first_name,
           last_name: values.last_name,
-          role: "owner"
+          role: "dev"
         }
       }
     });

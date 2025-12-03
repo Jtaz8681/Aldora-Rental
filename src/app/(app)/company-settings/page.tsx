@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import React, { useEffect, useState } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { supabase } from "@/integrations/supabase/client";
+import { useForm } from "react-hook-form";
+import { createClient } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import CompanyLogoUpload from "@/components/CompanyLogoUpload";
 import RoleGuard from "@/components/RoleGuard";
+import { AlertTriangle, Download } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const FormSchema = z.object({
   name: z.string().min(1, "Company name is required"),
@@ -24,6 +26,8 @@ export default function CompanySettingsPage() {
     resolver: zodResolver(FormSchema),
     defaultValues: { name: "", logo_url: "" },
   });
+
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -50,7 +54,6 @@ export default function CompanySettingsPage() {
   };
 
   const onSubmit = async (values: FormValues) => {
-    // Upsert: keep a single row by updating the latest or inserting one if none exists
     const { data: existing, error: loadErr } = await supabase
       .from("company_settings")
       .select("id")
@@ -91,9 +94,55 @@ export default function CompanySettingsPage() {
     toast.success("Company settings saved");
   };
 
+  const handleExportDatabase = async () => {
+    setIsExporting(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      toast.error("You must be logged in to perform this action.");
+      setIsExporting(false);
+      return;
+    }
+
+    try {
+      // Invoke using full function URL as required
+      const url = "https://dsnimoewqcyeegvedion.supabase.co/functions/v1/export-database";
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+          "Accept": "application/sql",
+        },
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || `Export failed with status ${res.status}`);
+      }
+
+      const sqlText = await res.text();
+      const blob = new Blob([sqlText], { type: "application/sql" });
+      const dlUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = dlUrl;
+      a.download = `database_dump_${new Date().toISOString().slice(0, 10)}.sql`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(dlUrl);
+
+      toast.success("Database export downloaded successfully.");
+    } catch (error: any) {
+      console.error("Export error:", error);
+      toast.error(`Export failed: ${error.message || "Unknown error"}`);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
-    <RoleGuard allowedRoles={["owner"]}>
-      <div className="max-w-xl mx-auto">
+    <RoleGuard allowedRoles={["owner", "dev"]}>
+      <div className="max-w-xl mx-auto space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Company Settings</CardTitle>
@@ -118,6 +167,29 @@ export default function CompanySettingsPage() {
               {isSubmitting ? "Saving..." : "Save Settings"}
             </Button>
           </CardFooter>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Development Tools
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              This tool exports a complete SQL dump of all tables. Use only during development and remove before production.
+            </p>
+            <Button
+              variant="destructive"
+              onClick={handleExportDatabase}
+              disabled={isExporting}
+              className="w-full"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {isExporting ? "Exporting..." : "Export Full Database (SQL)"}
+            </Button>
+          </CardContent>
         </Card>
       </div>
     </RoleGuard>

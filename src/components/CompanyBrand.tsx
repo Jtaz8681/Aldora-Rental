@@ -15,21 +15,26 @@ export default function CompanyBrand() {
 
   useEffect(() => {
     const loadBrand = async () => {
-      // Load latest company settings for name and fallback logo_url
-      const { data: settingsRows } = await supabase
-        .from("company_settings")
-        .select("id, name, logo_url")
-        .order("updated_at", { ascending: false })
-        .limit(1);
-      const s = settingsRows?.[0] || null;
-      setSettings(s);
+      // Load company settings only if authenticated to avoid 401 on login page
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data: settingsRows } = await supabase
+          .from("company_settings")
+          .select("id, name, logo_url")
+          .order("updated_at", { ascending: false })
+          .limit(1);
+        const s = settingsRows?.[0] || null;
+        setSettings(s);
+      } else {
+        setSettings(null);
+      }
 
       // Load latest logo from storage bucket gear-photos/company/logo
       const { data: files } = await supabase.storage
         .from("gear-photos")
         .list("company/logo", {
           limit: 100,
-          sortBy: { column: "updated_at", order: "desc" },
+          sortBy: { column: "name", order: "desc" },
         });
 
       const latestFile = files?.[0];

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import LoginCard from "@/components/LoginCard";
 import SignupCard from "@/components/SignupCard";
 import CompanyBrand from "@/components/CompanyBrand";
@@ -9,6 +10,17 @@ import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
+  const router = useRouter();
+
+  const enableDevBypass = () => {
+    try {
+      localStorage.setItem("DEV_AUTH", "true");
+      // Reload so the Supabase client picks up service role key immediately
+      window.location.href = "/dashboard";
+    } catch {
+      router.replace("/dashboard");
+    }
+  };
 
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center p-4">
@@ -16,7 +28,7 @@ export default function LoginPage() {
         <CompanyBrand />
         <h1 className="text-xl font-semibold mb-4 text-center">Gear Management System</h1>
 
-        <div className="flex justify-center gap-2 mb-4">
+        <div className="flex flex-wrap justify-center gap-2 mb-4">
           <Button
             variant={mode === "login" ? "default" : "outline"}
             size="sm"
@@ -30,6 +42,9 @@ export default function LoginPage() {
             onClick={() => setMode("signup")}
           >
             Sign Up
+          </Button>
+          <Button variant="secondary" size="sm" onClick={enableDevBypass}>
+            DEV
           </Button>
         </div>
 

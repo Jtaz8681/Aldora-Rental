@@ -31,7 +31,7 @@ export default function LoginCard() {
 
     if (error) {
       // Fallback: use admin dev-login to create a session by email
-      const res = await fetch("/api/auth/dev-login", {
+      const res = await fetch(`${window.location.origin}/api/auth/dev-login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: values.email }),

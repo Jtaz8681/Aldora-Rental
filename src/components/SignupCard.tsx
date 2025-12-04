@@ -30,7 +30,7 @@ export default function SignupCard() {
 
   const onSubmit = async (values: FormValues) => {
     // Call server-side signup to bypass client-side 401s
-    const res = await fetch("/api/signup", {
+    const res = await fetch(`${window.location.origin}/api/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

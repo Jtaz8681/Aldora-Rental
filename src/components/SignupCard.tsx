@@ -49,11 +49,11 @@ export default function SignupCard() {
 
     toast.success("Account created.");
 
-    // Create a session via admin route and set client session (works even if password login returns 401)
-    const sessionRes = await fetch(`${window.location.origin}/api/auth/dev-login`, {
+    // Server-side password login to get tokens and set client session
+    const sessionRes = await fetch(`${window.location.origin}/api/auth/password-login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: values.email }),
+      body: JSON.stringify({ email: values.email, password: values.password }),
     });
 
     if (sessionRes.ok) {

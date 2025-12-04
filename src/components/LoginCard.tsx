@@ -30,11 +30,11 @@ export default function LoginCard() {
     });
 
     if (error) {
-      // Fallback: use admin dev-login to create a session by email
-      const res = await fetch(`${window.location.origin}/api/auth/dev-login`, {
+      // Fallback: call server-side password login and set client session
+      const res = await fetch(`${window.location.origin}/api/auth/password-login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: values.email }),
+        body: JSON.stringify({ email: values.email, password: values.password }),
       });
       if (!res.ok) {
         const payload = await res.json().catch(() => ({}));
@@ -47,7 +47,7 @@ export default function LoginCard() {
         toast.error("Failed to set session: " + setErr.message);
         return;
       }
-      toast.success("Signed in (dev).");
+      toast.success("Signed in.");
       return;
     }
 

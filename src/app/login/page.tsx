@@ -15,7 +15,6 @@ export default function LoginPage() {
   const enableDevBypass = () => {
     try {
       localStorage.setItem("DEV_AUTH", "true");
-      // Reload so the Supabase client picks up service role key immediately
       window.location.href = "/dashboard";
     } catch {
       router.replace("/dashboard");

@@ -49,17 +49,24 @@ export default function SignupCard() {
 
     toast.success("Account created.");
 
-    // Attempt to sign in immediately (will work once email/password is enabled)
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: values.email,
-      password: values.password,
+    // Create a session via admin route and set client session (works even if password login returns 401)
+    const sessionRes = await fetch(`${window.location.origin}/api/auth/dev-login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: values.email }),
     });
 
-    if (signInError) {
-      toast.error("Login failed: " + signInError.message);
-      // The SessionProvider will redirect once login works; for now, user can try logging in after enabling email/password in Supabase.
+    if (sessionRes.ok) {
+      const { access_token, refresh_token } = await sessionRes.json();
+      const { error: setErr } = await supabase.auth.setSession({ access_token, refresh_token });
+      if (setErr) {
+        toast.error("Failed to set session: " + setErr.message);
+      } else {
+        toast.success("Signed in successfully");
+      }
     } else {
-      toast.success("Signed in successfully");
+      const fail = await sessionRes.json().catch(() => ({}));
+      toast.error("Failed to create session: " + (fail.error || sessionRes.statusText));
     }
 
     reset();

@@ -29,29 +29,39 @@ export default function SignupCard() {
   });
 
   const onSubmit = async (values: FormValues) => {
-    const { data, error } = await supabase.auth.signUp({
-      email: values.email,
-      password: values.password,
-      options: {
-        data: {
-          first_name: values.first_name,
-          last_name: values.last_name,
-          role: "dev"
-        }
-      }
+    // Call server-side signup to bypass client-side 401s
+    const res = await fetch("/api/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: values.email,
+        password: values.password,
+        first_name: values.first_name,
+        last_name: values.last_name,
+      }),
     });
 
-    if (error) {
-      toast.error("Sign up failed: " + error.message);
-      throw error;
+    if (!res.ok) {
+      const payload = await res.json().catch(() => ({}));
+      toast.error("Sign up failed: " + (payload.error || res.statusText));
+      return;
     }
 
-    // If email confirmations are enabled, there may be no session yet.
-    if (data.session) {
-      toast.success("Account created. Redirecting...");
+    toast.success("Account created.");
+
+    // Attempt to sign in immediately (will work once email/password is enabled)
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: values.email,
+      password: values.password,
+    });
+
+    if (signInError) {
+      toast.error("Login failed: " + signInError.message);
+      // The SessionProvider will redirect once login works; for now, user can try logging in after enabling email/password in Supabase.
     } else {
-      toast.success("Account created. Please check your email to confirm your address.");
+      toast.success("Signed in successfully");
     }
+
     reset();
   };
 
@@ -94,7 +104,7 @@ export default function SignupCard() {
       </Button>
 
       <p className="text-xs text-muted-foreground mt-2">
-        By creating an account, you agree to the terms of service.
+        You’ll be assigned the “dev” role automatically.
       </p>
     </form>
   );

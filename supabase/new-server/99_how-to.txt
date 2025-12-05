@@ -1,0 +1,63 @@
+Migration to new Supabase project - Complete How-To
+
+Overview
+- This guide migrates your database schema, functions, triggers, RLS policies, auth users (hashed password template), and storage bucket structure to a brand-new Supabase project.
+- Data import for public tables uses the provided export edge function output.
+- Storage files (actual images/PDFs) must be copied separately; this guide creates buckets and dev-friendly policies only.
+
+Prerequisites
+- A brand-new Supabase project created in the Supabase Dashboard.
+- Access to the SQL Editor in the new project.
+- Your old project remains accessible to export data and (optionally) auth users.
+
+Order of operations (run in SQL Editor)
+1) 01_extensions.sql
+2) 02_storage_buckets.sql
+3) 03_tables.sql
+4) 04_functions.sql
+5) 05_triggers.sql
+6) 06_policies.sql
+7) 07_auth_import_template.sql (ONLY if you plan to migrate hashed passwords and identities via SQL; otherwise skip and use Admin API)
+8) 08_import_data.sql (paste exported INSERT statements and run)
+
+Exporting data from the old project
+- Use your existing edge function: supabase/functions/export-database/index.ts
+- Invoke it from your app or a REST client:
+  - Authorization: Bearer <your user access token>
+  - The function returns a full SQL dump with CREATE-IF-NOT-EXISTS and INSERT statements for public tables.
+- Paste the SQL output into 08_import_data.sql (between the markers) and run it in the new project's SQL Editor.
+
+Auth users migration (hashed passwords and provider identities)
+- Supabase recommends creating users via Admin API, which does NOT accept hashed passwords.
+- If you must preserve hashed passwords, insert into auth.users and auth.identities directly using 07_auth_import_template.sql, adjusted to match your project's auth schema (columns may differ by version).
+- Sessions do not migrate; users will need to log in again in the new project.
+- After insert, verify: SELECT id, email FROM auth.users ORDER BY email;
+
+Storage migration
+- This bundle creates buckets ("gear-photos" and "manuals") and dev-friendly policies.
+- To move actual files:
+  - In the old project: Download files from Storage (Storage -> Browser).
+  - In the new project: Upload files to matching paths (Storage -> Browser).
+  - Ensure keys/paths match the metadata used by your app (e.g., gear-photos/<safeName>/<timestamp>_<filename>).
+
+Secrets and edge functions
+- Recreate environment secrets in the new project (Project -> Edge Functions -> Manage Secrets):
+  - SUPABASE_URL
+  - SUPABASE_ANON_KEY
+  - SUPABASE_SERVICE_ROLE_KEY
+- Copy edge function source directories (from supabase/functions/) to your new project and redeploy via the Dashboard.
+- Validate the export-database function and any other functions after restoring the DB.
+
+Post-migration checks
+- Query counts: Compare row counts in key tables (customers, gear_items, rentals) between old and new.
+- RLS tests: Confirm that authenticated users can only access their own data (unless dev-all policies remain).
+- Triggers: Create a test user and confirm profiles auto-provision via handle_new_user.
+- Storage: Upload a logo and a manual from the app; confirm public URLs load.
+
+Notes
+- This bundle includes permissive dev policies (“dev_all_*” and “allow_all_*”). Use only in development.
+- Before going to production, remove dev/allow-all policies and rely on user-scoped policies.
+- If your old project had additional tables/policies, replicate them following the same patterns here.
+
+Support
+- If anything fails due to version-specific auth schema differences, export the auth schema DDL from the old project and adapt 07_auth_import_template.sql accordingly.

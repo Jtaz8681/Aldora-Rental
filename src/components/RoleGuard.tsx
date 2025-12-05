@@ -18,13 +18,6 @@ export default function RoleGuard({ allow, allowedRoles, children, title }: Prop
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const devBypass = typeof window !== "undefined" && localStorage.getItem("DEV_AUTH") === "true";
-    if (devBypass) {
-      setRole("dev");
-      setLoading(false);
-      return;
-    }
-
     (async () => {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();

@@ -49,25 +49,18 @@ export default function SignupCard() {
 
     toast.success("Account created.");
 
-    // Server-side password login to get tokens and set client session
-    const sessionRes = await fetch(`${window.location.origin}/api/auth/password-login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: values.email, password: values.password }),
+    // Sign in on the client to establish session without manual token handling
+    const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+      email: values.email,
+      password: values.password,
     });
 
-    if (sessionRes.ok) {
-      const { access_token, refresh_token } = await sessionRes.json();
-      const { error: setErr } = await supabase.auth.setSession({ access_token, refresh_token });
-      if (setErr) {
-        toast.error("Failed to set session: " + setErr.message);
-      } else {
-        toast.success("Signed in successfully");
-      }
-    } else {
-      const fail = await sessionRes.json().catch(() => ({}));
-      toast.error("Failed to create session: " + (fail.error || sessionRes.statusText));
+    if (signInErr) {
+      toast.error("Failed to sign in: " + signInErr.message);
+      return;
     }
+
+    toast.success("Signed in successfully");
 
     reset();
   };

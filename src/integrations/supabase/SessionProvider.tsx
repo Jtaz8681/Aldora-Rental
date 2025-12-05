@@ -16,12 +16,6 @@ export default function SessionProvider({ children }: Props) {
     let unsub: { unsubscribe: () => void } | null = null;
 
     const handleAuth = async () => {
-      const devBypass = typeof window !== "undefined" && localStorage.getItem("DEV_AUTH") === "true";
-      if (devBypass) {
-        // In DEV bypass, do not redirect regardless of session.
-        return;
-      }
-
       const { data: { session } } = await supabase.auth.getSession();
       const isAuthPage = pathname?.startsWith("/login");
       const isRootPage = pathname === "/";
@@ -30,6 +24,7 @@ export default function SessionProvider({ children }: Props) {
         router.replace("/login");
         return;
       } else if (session && (isAuthPage || isRootPage)) {
+        // Before routing to dashboard, enforce password change or profile setup
         const mustChange = !!(session.user?.user_metadata as any)?.must_change_password;
         if (mustChange && pathname !== "/account/change-password") {
           router.replace("/account/change-password");
@@ -53,6 +48,7 @@ export default function SessionProvider({ children }: Props) {
       }
 
       if (session) {
+        // Enforce checks anywhere else too
         const mustChange = !!(session.user?.user_metadata as any)?.must_change_password;
         if (mustChange && pathname !== "/account/change-password") {
           router.replace("/account/change-password");
@@ -73,14 +69,9 @@ export default function SessionProvider({ children }: Props) {
       }
     };
 
-    handleAuth();
+    handleAuth(); // Run once on client mount
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
-      const devBypass = typeof window !== "undefined" && localStorage.getItem("DEV_AUTH") === "true";
-      if (devBypass) {
-        // Ignore auth state changes in DEV bypass
-        return;
-      }
       if (event === "SIGNED_IN") {
         const mustChange = !!(newSession?.user?.user_metadata as any)?.must_change_password;
         if (mustChange) {
@@ -101,5 +92,6 @@ export default function SessionProvider({ children }: Props) {
     };
   }, [pathname, router]);
 
+  // Always render children. Client-side useEffect handles redirects.
   return <>{children}</>;
 }

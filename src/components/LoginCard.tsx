@@ -24,30 +24,13 @@ export default function LoginCard() {
   });
 
   const onSubmit = async (values: LoginValues) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: values.email,
       password: values.password,
     });
 
     if (error) {
-      // Fallback: call server-side password login and set client session
-      const res = await fetch(`${window.location.origin}/api/auth/password-login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: values.email, password: values.password }),
-      });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        toast.error("Login failed: " + (payload.error || error.message));
-        return;
-      }
-      const { access_token, refresh_token } = await res.json();
-      const { error: setErr } = await supabase.auth.setSession({ access_token, refresh_token });
-      if (setErr) {
-        toast.error("Failed to set session: " + setErr.message);
-        return;
-      }
-      toast.success("Signed in.");
+      toast.error(error.message);
       return;
     }
 

@@ -29,15 +29,6 @@ type Ticket = {
   charge_customer: boolean | null;
   updated_at: string;
   gear_items?: { internal_id: string; category: string } | null;
-  damage_reports?: {
-    id: string;
-    photos: string[] | null;
-    damage_type: string | null;
-    severity: string | null;
-    notes: string | null;
-    estimate_cost: number | null;
-    reported_at: string | null;
-  } | null;
 };
 
 type WorkLog = { id: string; description: string; created_at: string; ticket_id: string };
@@ -69,10 +60,7 @@ export default function MaintenanceTicketDetailPage() {
 
     const { data: tData, error: tErr } = await supabase
       .from("maintenance_tickets")
-      .select(`
-        *,
-        gear_items(internal_id, category)
-      `)
+      .select("*, gear_items(internal_id, category)")
       .eq("id", ticketId)
       .single();
 
@@ -87,19 +75,6 @@ export default function MaintenanceTicketDetailPage() {
     setEtaUpdate(tData.estimated_completion_date ? tData.estimated_completion_date.split("T")[0] : "");
     setCostUpdate(Number(tData.cost ?? 0));
     setChargeFlag(!!tData.charge_customer);
-
-    if (tData.damage_report_id) {
-      const { data: drData, error: drErr } = await supabase
-        .from("damage_reports")
-        .select("id, photos, damage_type, severity, notes, estimate_cost, reported_at")
-        .eq("id", tData.damage_report_id)
-        .single();
-      if (drErr) {
-        console.error("Failed to load damage report:", drErr);
-      } else {
-        setTicket(prev => prev ? { ...prev, damage_reports: drData } : prev);
-      }
-    }
 
     const { data: wlData } = await supabase
       .from("maintenance_work_logs")
@@ -321,8 +296,6 @@ export default function MaintenanceTicketDetailPage() {
     return <div className="text-center text-muted-foreground">Ticket not found.</div>;
   }
 
-  const hasPhotos = !!ticket.damage_reports?.photos && (ticket.damage_reports?.photos || []).length > 0;
-
   return (
     <RoleGuard allow={["owner", "manager", "dev", "technician", "staff"]} title="Maintenance">
       <div className="space-y-6">
@@ -425,49 +398,7 @@ export default function MaintenanceTicketDetailPage() {
                 <div className="mt-1 text-sm">{ticket.problem_description || "No description"}</div>
               </div>
             </div>
-
-            {ticket.damage_reports && (
-              <div className="mt-4 space-y-2">
-                <div className="text-sm font-medium">Damage Report</div>
-                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-                  <div>
-                    <div className="text-muted-foreground">Type</div>
-                    <div>{ticket.damage_reports.damage_type || "-"}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Severity</div>
-                    <div>{ticket.damage_reports.severity || "-"}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Estimated Cost</div>
-                    <div>{ticket.damage_reports.estimate_cost != null ? `$${Number(ticket.damage_reports.estimate_cost).toFixed(2)}` : "-"}</div>
-                  </div>
-                  <div className="sm:col-span-2 md:col-span-3">
-                    <div className="text-muted-foreground">Notes</div>
-                    <div>{ticket.damage_reports.notes || "-"}</div>
-                  </div>
-                </div>
-
-                {hasPhotos && (
-                  <div className="mt-2">
-                    <div className="text-xs text-muted-foreground">Photos</div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mt-1">
-                      {(ticket.damage_reports?.photos || []).map((url, idx) => (
-                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="block">
-                          <img
-                            src={url}
-                            alt={`Damage photo ${idx + 1}`}
-                            className="w-full h-24 object-cover rounded border"
-                          />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="flex gap-2 mt-4">
+            <div className="flex gap-2">
               <Button variant="outline" onClick={updateTicket}>Save Changes</Button>
             </div>
           </CardContent>

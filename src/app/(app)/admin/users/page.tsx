@@ -64,13 +64,7 @@ export default function AdminUsersPage() {
       return;
     }
     setCreating(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) {
-      toast.error("You must be logged in to perform this action.");
-      setCreating(false);
-      return;
-    }
-
+    
     const payload = {
       first_name: newFirst.trim(),
       last_name: newLast.trim(),
@@ -79,22 +73,32 @@ export default function AdminUsersPage() {
       role: newRole,
     };
 
-    // Directly call the Supabase Edge Function
-    const { error } = await supabase.functions.invoke("create-user", {
-      body: payload,
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
+    try {
+      // Call the new API route instead of edge function
+      const response = await fetch('/api/admin/create-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
 
-    if (error) {
-      toast.error("Failed to create user: " + error.message);
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error("Failed to create user: " + (data.error || 'Unknown error'));
+        setCreating(false);
+        return;
+      }
+
+      toast.success("User created successfully.");
+      setNewFirst(""); setNewLast(""); setNewEmail(""); setNewPassword(""); setNewRole("staff");
+      await load();
+    } catch (error) {
+      toast.error("Failed to create user: " + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
       setCreating(false);
-      return;
     }
-
-    toast.success("User created.");
-    setNewFirst(""); setNewLast(""); setNewEmail(""); setNewPassword(""); setNewRole("staff");
-    await load();
-    setCreating(false);
   };
 
   const updateRole = async (id: string, role: string) => {

@@ -75,24 +75,13 @@ export async function POST(request: NextRequest) {
     // Create profile record
     const { data: profileData, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .insert({
-        id: authData.user.id,
-        first_name: first_name.trim(),
-        last_name: last_name.trim(),
-        role: role.trim(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
+      .select('*')
+      .eq('id', authData.user.id)
       .single();
 
     if (profileError) {
-      console.error('Profile creation error:', profileError);
-      // Try to cleanup auth user if profile creation fails
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-      return NextResponse.json(
-        { error: 'Failed to create user profile: ' + profileError.message },
-        { status: 500 }
-      );
+      console.error('Profile fetch error:', profileError);
+      // Profile is created by DB trigger; continue without blocking
     }
 
     return NextResponse.json({

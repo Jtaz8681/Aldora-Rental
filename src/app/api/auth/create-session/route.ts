@@ -8,20 +8,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing userId" }, { status: 400 });
     }
 
-    const { data, error } = await supabaseServer.auth.admin.signInAsUser({
-      id: body.userId,
-    });
-    if (error) {
-      return NextResponse.json({ error: `Create session failed: ${error.message}` }, { status: 400 });
-    }
-
-    const access_token = data.session?.access_token;
-    const refresh_token = data.session?.refresh_token;
-    if (!access_token || !refresh_token) {
-      return NextResponse.json({ error: "Missing session tokens" }, { status: 400 });
-    }
-
-    return NextResponse.json({ access_token, refresh_token }, { status: 200 });
+    // Supabase Admin API does not support minting user sessions directly.
+    // If you need admin impersonation, use a magic link flow via auth.admin.generateLink.
+    return NextResponse.json({ error: "Admin session creation is not supported in Supabase. Use magic links instead." }, { status: 400 });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Unknown error" }, { status: 500 });
   }

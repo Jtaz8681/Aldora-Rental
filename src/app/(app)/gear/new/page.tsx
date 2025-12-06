@@ -33,7 +33,7 @@ type FormValues = z.infer<typeof schema>;
 
 export default function NewGearPage() {
   const router = useRouter();
-  const { register, handleSubmit, setValue, formState: { isSubmitting, errors } } = useForm<FormValues>({
+  const { register, handleSubmit, setValue, watch, formState: { isSubmitting, errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       status: "Available",

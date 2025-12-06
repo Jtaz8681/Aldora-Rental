@@ -1,28 +1,36 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-// Create admin client with service role key for privileged operations
-const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-});
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { first_name, last_name, email, password, role } = body;
 
-    // Validate input
-    if (!first_name?.trim() || !last_name?.trim() || !email?.trim() || !password?.trim() || !role?.trim()) {
+    // Lazy init Supabase admin client and guard missing envs
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey) {
       return NextResponse.json(
-        { error: 'All fields are required' },
-        { status: 400 }
+        { error: 'Server misconfiguration: Supabase URL or Service Role Key is missing.' },
+        { status: 500 }
       );
+    }
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // Validate input
+    if (
+      !first_name?.trim() ||
+      !last_name?.trim() ||
+      !email?.trim() ||
+      !password?.trim() ||
+      !role?.trim()
+    ) {
+      return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
     }
 
     // Validate role
@@ -37,15 +45,10 @@ export async function POST(request: NextRequest) {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
-    // Rely on Supabase to return an error if the email already exists
-
-    // Create auth user
+    // Create auth user (email_confirm must be boolean)
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: email.trim(),
       password,
@@ -53,8 +56,8 @@ export async function POST(request: NextRequest) {
       user_metadata: {
         first_name: first_name.trim(),
         last_name: last_name.trim(),
-        role: role.trim()
-      }
+        role: role.trim(),
+      },
     });
 
     if (authError) {
@@ -72,7 +75,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create profile record
+    // Fetch profile (created by DB trigger)
     const { data: profileData, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('*')
@@ -92,15 +95,11 @@ export async function POST(request: NextRequest) {
         first_name: first_name.trim(),
         last_name: last_name.trim(),
         role: role.trim(),
-        updated_at: profileData?.updated_at
-      }
+        updated_at: profileData?.updated_at,
+      },
     });
-
   } catch (error) {
     console.error('Create user API error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

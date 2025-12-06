@@ -137,9 +137,9 @@ export default function InventoryAnalyticsPage() {
           const categories = Array.from(categoryMap.values()).map(cat => ({
             ...cat,
             average_roi: cat.total_cost > 0 ? ((cat.total_revenue - cat.total_cost) / cat.total_cost) * 100 : 0,
-            average_utilization: categoryMap.get(cat.category)?.total_gear > 0 ? 
+            average_utilization: (categoryMap.get(cat.category)?.total_gear || 0) > 0 ?
               performanceData.filter((gp: any) => gp.gear_items?.category === cat.category)
-                .reduce((sum, gp) => sum + (gp.utilization_rate || 0), 0) / 
+                .reduce((sum, gp) => sum + (gp.utilization_rate || 0), 0) /
               performanceData.filter((gp: any) => gp.gear_items?.category === cat.category).length || 0 : 0
           }));
 

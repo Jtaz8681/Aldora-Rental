@@ -243,7 +243,7 @@ export default function CustomerAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{atRiskCustomers.length}</div>
-            <p className="text-xs text-muted-foreground">Churn risk > 70%</p>
+            <p className="text-xs text-muted-foreground">Churn risk &gt; 70%</p>
           </CardContent>
         </Card>
         <Card>

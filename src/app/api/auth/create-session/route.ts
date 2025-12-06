@@ -8,8 +8,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing userId" }, { status: 400 });
     }
 
-    const { data, error } = await supabaseServer.auth.admin.createSession({
-      user_id: body.userId,
+    const { data, error } = await supabaseServer.auth.admin.signInAsUser({
+      id: body.userId,
     });
     if (error) {
       return NextResponse.json({ error: `Create session failed: ${error.message}` }, { status: 400 });

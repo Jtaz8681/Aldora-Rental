@@ -1,399 +1,206 @@
 "use client";
 
-import React from "react";
-import { supabase } from "@/integrations/supabase/client"; // Changed from default to named import
-import { useForm, SubmitHandler } from "react-hook-form";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import ManualUpload from "@/components/ManualUpload";
-import MultiPhotoUpload from "@/components/MultiPhotoUpload";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { DEFAULT_CHECK_KEY, DEFAULT_CHECK_LABEL, ensureDefaultTemplate } from "@/lib/checklists";
+import { toast } from "sonner";
+import MultiPhotoUpload from "@/components/MultiPhotoUpload";
+import ManualUpload from "@/components/ManualUpload";
 
 const schema = z.object({
-  internal_id: z.string().min(1),
-  friendly_name: z.string().min(1),
-  category: z.string().min(1),
-  sub_type: z.string().min(1),
+  internal_id: z.string().min(1, "Internal ID is required"),
+  friendly_name: z.string().optional(),
+  category: z.string().min(1, "Category is required"),
+  sub_type: z.string().optional(),
   brand: z.string().optional(),
   model: z.string().optional(),
   size: z.string().optional(),
-  rental_price: z.coerce.number().min(0),
-  photos_csv: z.string().optional(),
-  serial_number: z.string().min(1),
-  home_location: z.string().min(1),
-  manual_url: z.string().url().optional(),
-  notes: z.string().optional(),
+  status: z.enum(["Available", "Checked-Out", "In Maintenance", "Overdue", "Quarantined", "Retired"]),
+  rental_price: z.coerce.number().min(0, "Rental price must be >= 0"),
   purchase_date: z.string().optional(),
-  purchase_cost: z.coerce.number().optional(),
-  initial_cost: z.coerce.number().optional(),
-  current_value: z.coerce.number().optional(),
+  purchase_price: z.coerce.number().min(0).optional(),
+  manual_url: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
 
 export default function NewGearPage() {
   const router = useRouter();
-  const { register, handleSubmit, formState: { errors, isSubmitting }, setValue, watch } = useForm<FormValues>({
+  const { register, handleSubmit, setValue, formState: { isSubmitting, errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      rental_price: 0,
+      status: "Available",
     },
   });
 
-  const internalId = watch("internal_id");
-  const category = watch("category");
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [manualUrl, setManualUrl] = useState<string>("");
+  const [categories, setCategories] = useState<string[]>([]);
+  const [subcategories, setSubcategories] = useState<string[]>([]);
 
-  const [categories, setCategories] = React.useState<{ id: string; name: string; service_interval_months: number | null; usage_service_threshold: number | null }[]>([]);
-  const [subcategories, setSubcategories] = React.useState<{ id: string; name: string; category_id: string; service_interval_months: number | null; usage_service_threshold: number | null }[]>([]);
-  const [categoryId, setCategoryId] = React.useState<string>("");
-  const [subcategoryId, setSubcategoryId] = React.useState<string>("");
-  const [useCustomSchedule, setUseCustomSchedule] = React.useState<boolean>(false);
-  const [customMonths, setCustomMonths] = React.useState<number | "">("");
-  const [customUsageDays, setCustomUsageDays] = React.useState<number | "">("");
-  // NEW: item-level checklist templates
-  const [itemPreTemplate, setItemPreTemplate] = React.useState<Record<string, string>>({ [DEFAULT_CHECK_KEY]: DEFAULT_CHECK_LABEL });
-  const [itemPostTemplate, setItemPostTemplate] = React.useState<Record<string, string>>({ [DEFAULT_CHECK_KEY]: DEFAULT_CHECK_LABEL });
-  const [newItemPreKey, setNewItemPreKey] = React.useState("");
-  const [newItemPreLabel, setNewItemPreLabel] = React.useState("");
-  const [newItemPostKey, setNewItemPostKey] = React.useState("");
-  const [newItemPostLabel, setNewItemPostLabel] = React.useState("");
-
-  React.useEffect(() => {
-    (async () => {
+  useEffect(() => {
+    const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
       const { data: cats } = await supabase
         .from("gear_categories")
-        .select("id, name, service_interval_months, usage_service_threshold")
-        .order("name");
-      setCategories(cats || []);
-    })();
-  }, []);
+        .select("name")
+        .order("name", { ascending: true });
+      setCategories((cats || []).map((c) => c.name));
 
-  React.useEffect(() => {
-    (async () => {
-      if (!categoryId) { setSubcategories([]); setSubcategoryId(""); return; }
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
       const { data: subs } = await supabase
         .from("gear_subcategories")
-        .select("id, name, category_id, service_interval_months, usage_service_threshold")
-        .eq("category_id", categoryId)
-        .order("name");
-      setSubcategories(subs || []);
-      setSubcategoryId("");
-      const selectedCat = (cats => cats.find(c => c.id === categoryId))(categories);
-      if (selectedCat && !useCustomSchedule) {
-        // Prefill rental price already handled; Prefill schedule preview only
-        // Do not set form fields directly; store locally
-      }
-    })();
-  }, [categoryId, categories, useCustomSchedule]);
+        .select("name")
+        .order("name", { ascending: true });
+      setSubcategories((subs || []).map((s) => s.name));
+    };
+    load();
+  }, []);
 
-  React.useEffect(() => {
-    (async () => {
-      const cat = (category || "").trim();
-      if (!cat) return;
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      // Fetch default price for category
-      const { data } = await supabase
-        .from("category_pricing")
-        .select("price")
-        .eq("category", cat)
-        .maybeSingle();
-      const defaultPrice = data?.price != null ? Number(data.price) : undefined;
-      if (defaultPrice != null) {
-        setValue("rental_price", defaultPrice, { shouldValidate: true });
-      }
-    })();
-  }, [category, setValue]);
-
-  const onSubmit: SubmitHandler<FormValues> = async (values: FormValues) => {
+  const onSubmit = async (values: FormValues) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const photos = (values.photos_csv || "")
-      .split(",")
-      .map(s => s.trim())
-      .filter(Boolean);
-
-    const selectedCat = categories.find(c => c.id === categoryId);
-    const selectedSub = subcategories.find(s => s.id === subcategoryId);
-
-    const serviceMonths = useCustomSchedule
-      ? (customMonths === "" ? null : Number(customMonths))
-      : (selectedCat?.service_interval_months ?? null);
-    const usageThreshold = useCustomSchedule
-      ? (customUsageDays === "" ? null : Number(customUsageDays))
-      : (selectedCat?.usage_service_threshold ?? null);
 
     const { error } = await supabase.from("gear_items").insert({
       user_id: user.id,
       internal_id: values.internal_id,
       friendly_name: values.friendly_name || null,
-      category: selectedCat?.name || values.category,
-      sub_type: selectedSub?.name || values.sub_type || null,
-      category_id: selectedCat?.id ?? null,
-      subcategory_id: selectedSub?.id ?? null,
+      category: values.category,
+      sub_type: values.sub_type || null,
       brand: values.brand || null,
       model: values.model || null,
       size: values.size || null,
+      status: values.status,
       rental_price: values.rental_price,
-      photos,
-      serial_number: values.serial_number || null,
-      home_location: values.home_location || null,
-      manual_url: values.manual_url || null,
-      notes: values.notes || null,
-      status: "Available",
-      service_interval_months: serviceMonths,
-      usage_service_threshold: usageThreshold,
-      checklist_template_pre: ensureDefaultTemplate(itemPreTemplate),
-      checklist_template_post: ensureDefaultTemplate(itemPostTemplate),
+      purchase_date: values.purchase_date || null,
+      purchase_price: values.purchase_price || null,
+      manual_url: manualUrl || null,
     });
-    if (error) throw error;
-    toast.success("Gear added");
+
+    if (error) {
+      toast.error("Failed to create gear: " + error.message);
+      throw error;
+    }
+
+    toast.success("Gear created");
     router.push("/gear");
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 max-w-2xl">
-      <h1 className="text-xl font-semibold">Add Gear</h1>
-      <div className="grid sm:grid-cols-2 gap-4">
+    <div className="max-w-xl mx-auto space-y-6">
+      <h1 className="text-2xl font-bold">Add New Gear</h1>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
         <div>
-          <Label>Internal ID <span className="text-destructive">*</span></Label>
-          <Input {...register("internal_id")} placeholder="BCD-001" />
+          <Label htmlFor="internal_id">Internal ID</Label>
+          <Input id="internal_id" {...register("internal_id")} placeholder="e.g., BCD-001" />
+          {errors.internal_id && <p className="text-xs text-destructive mt-1">{errors.internal_id.message}</p>}
         </div>
+
         <div>
-          <Label>Friendly Name <span className="text-destructive">*</span></Label>
-          <Input {...register("friendly_name")} placeholder="Big Blue BCD" />
+          <Label htmlFor="friendly_name">Friendly Name</Label>
+          <Input id="friendly_name" {...register("friendly_name")} placeholder="e.g., Jacket Style BCD" />
         </div>
+
         <div>
-          <Label>Category <span className="text-destructive">*</span></Label>
-          <Select value={categoryId} onValueChange={(v) => {
-            setCategoryId(v);
-            const selected = categories.find(c => c.id === v);
-            // Ensure form value is set so schema requirement is satisfied
-            setValue("category", selected?.name || "", { shouldValidate: true });
-          }}>
+          <Label htmlFor="category">Category</Label>
+          <Select onValueChange={(v) => setValue("category", v)} value={watch("category")}>
             <SelectTrigger>
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent>
-              {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              {categories.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground mt-1">Manage this list in Settings → Gear Types.</p>
+          {errors.category && <p className="text-xs text-destructive mt-1">{errors.category.message}</p>}
         </div>
+
         <div>
-          <Label>Sub-type <span className="text-destructive">*</span></Label>
-          <Select value={subcategoryId} onValueChange={(v) => {
-            setSubcategoryId(v);
-            const selected = subcategories.find(s => s.id === v);
-            // Ensure form value is set so schema requirement is satisfied
-            setValue("sub_type", selected?.name || "", { shouldValidate: true });
-          }} disabled={!categoryId || subcategories.length === 0}>
+          <Label htmlFor="sub_type">Sub-Type</Label>
+          <Select onValueChange={(v) => setValue("sub_type", v)} value={watch("sub_type")}>
             <SelectTrigger>
-              <SelectValue placeholder={categoryId ? (subcategories.length ? "Select subcategory" : "No subcategories") : "Pick a category first"} />
+              <SelectValue placeholder="Select sub-type" />
             </SelectTrigger>
             <SelectContent>
-              {subcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+              {subcategories.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <Label>Rental Price (per day) <span className="text-destructive">*</span></Label>
-          <Input type="number" step="0.01" {...register("rental_price")} />
-        </div>
-        <div>
-          <Label>Serial Number <span className="text-destructive">*</span></Label>
-          <Input {...register("serial_number")} />
-        </div>
-        <div>
-          <Label>Home Location <span className="text-destructive">*</span></Label>
-          <Input {...register("home_location")} placeholder="Shelf A / Bin 3" />
-        </div>
 
-        <div>
-          <Label>Brand</Label>
-          <Input {...register("brand")} placeholder="Scubapro" />
-        </div>
-        <div>
-          <Label>Model</Label>
-          <Input {...register("model")} placeholder="Hydros Pro" />
-        </div>
-        <div>
-          <Label>Size</Label>
-          <Input {...register("size")} placeholder="Medium" />
-        </div>
-
-        <div className="sm:col-span-2">
-          <div className="flex items-center justify-between">
-            <Label>Service Schedule</Label>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Use custom</span>
-              <Switch checked={useCustomSchedule} onCheckedChange={(v) => setUseCustomSchedule(!!v)} />
-            </div>
-          </div>
-          {useCustomSchedule ? (
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <div>
-                <Label>Service interval (months)</Label>
-                <Input type="number" value={customMonths === "" ? "" : String(customMonths)} onChange={(e) => setCustomMonths(e.target.value === "" ? "" : Number(e.target.value))} />
-              </div>
-              <div>
-                <Label>Usage threshold (days rented)</Label>
-                <Input type="number" value={customUsageDays === "" ? "" : String(customUsageDays)} onChange={(e) => setCustomUsageDays(e.target.value === "" ? "" : Number(e.target.value))} />
-              </div>
-            </div>
-          ) : (
-            <div className="text-xs text-muted-foreground mt-2">
-              {(() => {
-                const cat = categories.find(c => c.id === categoryId);
-                const months = cat?.service_interval_months;
-                const usage = cat?.usage_service_threshold;
-                return months || usage
-                  ? <>Default will be applied: {months ? `${months} months` : ""}{months && usage ? " · " : ""}{usage ? `${usage} days rented` : ""}.</>
-                  : <>No default configured; you can set a custom schedule.</>;
-              })()}
-            </div>
-          )}
-        </div>
-
-        <div>
-          <Label>Purchase Date</Label>
-          <Input type="date" {...register("purchase_date")} />
-        </div>
-        <div>
-          <Label>Purchase Cost</Label>
-          <Input type="number" step="0.01" {...register("purchase_cost")} />
-        </div>
-        <div>
-          <Label>Initial Cost</Label>
-          <Input type="number" step="0.01" {...register("initial_cost")} />
-        </div>
-        <div>
-          <Label>Current Value</Label>
-          <Input type="number" step="0.01" {...register("current_value")} />
-        </div>
-
-        <div className="sm:col-span-2">
-          <MultiPhotoUpload
-            gearInternalId={internalId}
-            onUploaded={(urls) => setValue("photos_csv", urls.join(","))}
-          />
-        </div>
-
-        <div className="sm:col-span-2">
-          <ManualUpload
-            gearInternalId={internalId}
-            onUploaded={(url) => setValue("manual_url", url)}
-          />
-        </div>
-
-        {/* NEW: Custom Checklist Templates (This Item) - placed above Notes */}
-        <div className="sm:col-span-2 space-y-3">
-          <h2 className="text-sm font-medium">Custom Checklist Templates (This Item)</h2>
-
+        <div className="grid sm:grid-cols-2 gap-2">
           <div>
-            <div className="text-xs font-semibold mb-1">Pre-Checkout Checklist</div>
-            <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2 mb-2">
-              <Input placeholder="key" value={newItemPreKey} onChange={(e) => setNewItemPreKey(e.target.value)} />
-              <Input placeholder="label" value={newItemPreLabel} onChange={(e) => setNewItemPreLabel(e.target.value)} />
-              <Button
-                variant="outline"
-                type="button"
-                onClick={() => {
-                  if (!newItemPreKey.trim() || !newItemPreLabel.trim()) return;
-                  setItemPreTemplate(prev => ({ ...prev, [newItemPreKey.trim()]: newItemPreLabel.trim() }));
-                  setNewItemPreKey(""); setNewItemPreLabel("");
-                }}
-              >
-                Add
-              </Button>
-            </div>
-            <div className="space-y-1">
-              {Object.entries(itemPreTemplate).map(([k, v]) => (
-                <div key={k} className="flex items-center justify-between text-xs">
-                  <span className="font-mono">{k}</span> <span>{v}</span>
-                  {k !== DEFAULT_CHECK_KEY && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      type="button"
-                      onClick={() => {
-                        const next = { ...itemPreTemplate }; delete next[k]; setItemPreTemplate(next);
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  )}
-                </div>
-              ))}
-              {Object.keys(itemPreTemplate).length === 0 && (
-                <div className="text-xs text-muted-foreground">No pre-checks configured.</div>
-              )}
-            </div>
+            <Label htmlFor="brand">Brand</Label>
+            <Input id="brand" {...register("brand")} placeholder="e.g., Scubapro" />
           </div>
-
           <div>
-            <div className="text-xs font-semibold mb-1">Post-Check-In Checklist</div>
-            <div className="grid grid-cols-[1.5fr,2fr,auto] gap-2 mb-2">
-              <Input placeholder="key" value={newItemPostKey} onChange={(e) => setNewItemPostKey(e.target.value)} />
-              <Input placeholder="label" value={newItemPostLabel} onChange={(e) => setNewItemPostLabel(e.target.value)} />
-              <Button
-                variant="outline"
-                type="button"
-                onClick={() => {
-                  if (!newItemPostKey.trim() || !newItemPostLabel.trim()) return;
-                  setItemPostTemplate(prev => ({ ...prev, [newItemPostKey.trim()]: newItemPostLabel.trim() }));
-                  setNewItemPostKey(""); setNewItemPostLabel("");
-                }}
-              >
-                Add
-              </Button>
-            </div>
-            <div className="space-y-1">
-              {Object.entries(itemPostTemplate).map(([k, v]) => (
-                <div key={k} className="flex items-center justify-between text-xs">
-                  <span className="font-mono">{k}</span> <span>{v}</span>
-                  {k !== DEFAULT_CHECK_KEY && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      type="button"
-                      onClick={() => {
-                        const next = { ...itemPostTemplate }; delete next[k]; setItemPostTemplate(next);
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  )}
-                </div>
-              ))}
-              {Object.keys(itemPostTemplate).length === 0 && (
-                <div className="text-xs text-muted-foreground">No post-checks configured.</div>
-              )}
-            </div>
+            <Label htmlFor="model">Model</Label>
+            <Input id="model" {...register("model")} placeholder="e.g., MK25" />
           </div>
         </div>
 
-        <div className="sm:col-span-2">
-          <Label>Notes</Label>
-          <Input {...register("notes")} placeholder="Any misc info" />
+        <div className="grid sm:grid-cols-2 gap-2">
+          <div>
+            <Label htmlFor="size">Size</Label>
+            <Input id="size" {...register("size")} placeholder="e.g., M" />
+          </div>
+          <div>
+            <Label htmlFor="status">Status</Label>
+            <Select onValueChange={(v) => setValue("status", v as any)} value={watch("status")}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Available">Available</SelectItem>
+                <SelectItem value="Checked-Out">Checked-Out</SelectItem>
+                <SelectItem value="In Maintenance">In Maintenance</SelectItem>
+                <SelectItem value="Overdue">Overdue</SelectItem>
+                <SelectItem value="Quarantined">Quarantined</SelectItem>
+                <SelectItem value="Retired">Retired</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </div>
 
-      <Button disabled={isSubmitting} type="submit">Save</Button>
-      {Object.keys(errors).length > 0 && (
-        <p className="text-xs text-destructive">Please fix the highlighted fields.</p>
-      )}
-    </form>
+        <div className="grid sm:grid-cols-2 gap-2">
+          <div>
+            <Label htmlFor="rental_price">Rental Price (per day)</Label>
+            <Input id="rental_price" type="number" step="0.01" {...register("rental_price")} />
+            {errors.rental_price && <p className="text-xs text-destructive mt-1">{errors.rental_price.message}</p>}
+          </div>
+          <div>
+            <Label htmlFor="purchase_price">Purchase Price</Label>
+            <Input id="purchase_price" type="number" step="0.01" {...register("purchase_price")} />
+          </div>
+        </div>
+
+        <div>
+          <Label htmlFor="purchase_date">Purchase Date</Label>
+          <Input id="purchase_date" type="date" {...register("purchase_date")} />
+        </div>
+
+        <MultiPhotoUpload gearInternalId={watch("internal_id")} initialUrls={photos} onUploaded={setPhotos} />
+        <ManualUpload onUploaded={setManualUrl} gearInternalId={watch("internal_id")} />
+
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Creating..." : "Create Gear"}
+        </Button>
+      </form>
+    </div>
   );
 }

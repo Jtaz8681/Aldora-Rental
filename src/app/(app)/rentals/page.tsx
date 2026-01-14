@@ -56,6 +56,19 @@ export default function RentalsPage() {
       const custMap: Record<string, Customer> = {};
       (cs || []).forEach(c => { custMap[c.id] = c as Customer; });
 
+      // Find rentals with missing customers and create placeholder entries
+      const missingCustomers: string[] = [];
+      (rs || []).forEach(rental => {
+        if (!custMap[rental.customer_id]) {
+          missingCustomers.push(rental.customer_id);
+        }
+      });
+
+      // Create placeholder customers for missing ones
+      missingCustomers.forEach(customerId => {
+        custMap[customerId] = { id: customerId, name: `Customer ${customerId.substring(0, 8)}...` };
+      });
+
       setCustomers(custMap);
       setRentals(rs || []);
       setPage(1);
@@ -153,12 +166,19 @@ export default function RentalsPage() {
           {displayed.map(r => {
             const customer = customers[r.customer_id];
             const overdue = r.status !== "returned" && new Date(r.expected_end_at).getTime() < Date.now();
+            const isMissingCustomer = !customer || customer.name.startsWith(`Customer ${r.customer_id.substring(0, 8)}...`);
+            
             return (
               <TableRow key={r.id}>
                 <TableCell>
                   <div className="flex flex-col">
-                    <span className="font-medium">{customer?.name || "Unknown"}</span>
+                    <span className={`font-medium ${isMissingCustomer ? 'text-orange-600' : ''}`}>
+                      {customer?.name || "Unknown"}
+                    </span>
                     <span className="text-xs text-muted-foreground">{r.id}</span>
+                    {isMissingCustomer && (
+                      <span className="text-xs text-orange-600">Customer record missing</span>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell>{formatDateTime(r.start_at)}</TableCell>
@@ -174,7 +194,9 @@ export default function RentalsPage() {
                 <TableCell>{formatCurrency(r.total_cost)}</TableCell>
                 <TableCell className="space-x-2">
                   <Link className="underline text-sm" href={`/rentals/${r.id}`}>View Rental</Link>
-                  <Link className="underline text-sm" href={`/customers/${r.customer_id}`}>View Customer</Link>
+                  {!isMissingCustomer && (
+                    <Link className="underline text-sm" href={`/customers/${r.customer_id}`}>View Customer</Link>
+                  )}
                   <Link className="underline text-sm" href={`/returns`}>Return</Link>
                 </TableCell>
               </TableRow>

@@ -13,7 +13,7 @@ export default function LoginPage() {
         <h1 className="text-xl font-semibold mb-4 text-center">Gear Management System</h1>
         <LoginCard />
         <p className="mt-4 text-xs text-center text-muted-foreground">
-          Need access? Contact your administrator.
+          Need access? Contact your administrator. Want a Demo use the following demo login. demo1@mail.com DemoPassword1 
         </p>
         <div className="mt-6 text-center">
           <Link href="/" className="text-xs underline text-muted-foreground">Back to Home</Link>
